@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Spiritual Guide</title>
+		<link rel="stylesheet" href="styles/main.css">
+	</head>
+	<body>
+		<div class="SC1-container">
+			<header class="SC1-header">
+				<h1 class="SC1-h1" data-i18n="SC1.header.title">Spiritual Guide</h1>
+				<p data-i18n="SC1.header.subtitle">Discover your spiritual pattern through this interactive test</p>
+				<div class="SC1-language-switcher">
+					<button class="SC1-lang-btn" data-lang="ar" data-i18n="SC1.header.language.ar">العربية</button>
+					<button class="SC1-lang-btn SC1-active" data-lang="en" data-i18n="SC1.header.language.en">English</button>
+				</div>
+			</header>
+			
+			<div class="SC1-progress-bar">
+				<div class="SC1-progress" id="SC1-progress"></div>
+			</div>
+			
+			<div class="SC1-card SC1-active" id="SC1-welcome-card">
+				<div class="SC1-question-text">
+					<h2 data-i18n="SC1.welcome.title">Welcome to the Spiritual Guide Test</h2>
+					<p data-i18n="SC1.welcome.description1">This test will help you discover your spiritual pattern by analyzing your answers to a set of questions.</p>
+					<p data-i18n="SC1.welcome.description2">8 questions will be displayed, each with 4 options. Choose the option that reflects your true state.</p>
+				</div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-primary" id="SC1-start-btn" data-i18n="SC1.welcome.startButton">Start Test</button>
+				</div>
+			</div>
+			
+			<div class="SC1-card" id="SC1-question-card">
+				<div class="SC1-question-number" data-i18n="SC1.questions.questionCounter">Question <span id="SC1-current-question">1</span> of 8</div>
+				<div class="SC1-question-text" id="SC1-question-text"></div>
+				<div class="SC1-options-container" id="SC1-options-container"></div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-secondary" id="SC1-prev-btn" data-i18n="SC1.questions.previousButton">Previous</button>
+					<button class="SC1-button SC1-btn-primary" id="SC1-next-btn" data-i18n="SC1.questions.nextButton">Next</button>
+				</div>
+			</div>
+			
+			<div class="SC1-card" id="SC1-result-card">
+				<div class="SC1-result-title" data-i18n="SC1.results.title">Spiritual Guide Test Result</div>
+				<div class="SC1-result-guide" id="SC1-result-guide"></div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.symbolicMeaning">Symbolic Meaning</h3>
+					<p id="SC1-symbolic-meaning"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.coreChallenge">Core Challenge</h3>
+					<p id="SC1-core-challenge"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.mission90Days">90-Day Mission</h3>
+					<p id="SC1-mission-90-days"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.kpi">Key Performance Indicator</h3>
+					<p id="SC1-kpi"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.allianceTip">Alliance Tip</h3>
+					<p id="SC1-alliance-tip"></p>
+				</div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-secondary" id="SC1-restart-btn" data-i18n="SC1.results.restartButton">Restart Test</button>
+				</div>
+			</div>
+		</div>
+		
+		<script src="scripts/main.js"></script>
+	</body>
+</html>
