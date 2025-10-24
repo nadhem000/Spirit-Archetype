@@ -42,10 +42,18 @@ body {
 	margin-bottom: 10px;
 }
 
+.SC1-controls {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 15px;
+	margin-top: 15px;
+}
+
 .SC1-language-switcher {
 	display: flex;
 	justify-content: center;
-	margin-top: 15px;
 }
 
 .SC1-lang-btn {
@@ -62,6 +70,24 @@ body {
 .SC1-lang-btn.SC1-active {
 	background: white;
 	color: var(--SC1-primary-color);
+}
+
+.SC1-install-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: none;
+	color: var(--SC1-primary-color);
+	padding: 8px 15px;
+	border-radius: 20px;
+	cursor: pointer;
+	transition: all 0.3s;
+	font-weight: 600;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.SC1-install-btn:hover {
+	background: white;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .SC1-card {
@@ -217,5 +243,10 @@ body {
 	
 	.SC1-card {
 		padding: 20px;
+	}
+	
+	.SC1-controls {
+		flex-direction: column;
+		gap: 10px;
 	}
 }

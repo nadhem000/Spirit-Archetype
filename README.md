@@ -10,6 +10,7 @@ An interactive web application that helps users discover their spiritual archety
 - 📱 Responsive design
 - 🎨 Clean, modern interface
 - 🔄 Progress tracking
+- 📲 PWA (Progressive Web App) - Installable on devices
 
 ## Archetypes
 
@@ -28,10 +29,21 @@ Discover which of these four spiritual guides resonates with you:
 4. Answer the 8 questions honestly
 5. Receive your personalized spiritual guide analysis
 
+## PWA Installation
+
+This app is a Progressive Web App (PWA) that can be installed on your device:
+
+- **Desktop**: Look for the install button in the header or use your browser's install option
+- **Mobile**: Use "Add to Home Screen" from your browser's menu
+- **Offline**: The app works offline once installed
+
 ## File Structure
 
 ```
 ├── index.html          # Main application file
+├── manifest.json       # PWA manifest
+├── sw.js              # Service Worker
+├── netlify.toml       # Netlify deployment config
 ├── scripts/
 │   └── main.js         # Application logic and data
 └── styles/
@@ -57,6 +69,7 @@ Discover which of these four spiritual guides resonates with you:
 - CSS3 with CSS Variables
 - Vanilla JavaScript
 - Responsive Design Principles
+- PWA (Progressive Web App)
 
 ## License
 
