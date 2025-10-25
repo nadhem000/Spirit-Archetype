@@ -12,9 +12,6 @@
 	"dir": "auto",
 	"lang": "en",
 	"scope": "/",
-	"scope_extensions": [
-		{"type": "origin", "origin": "https://spirit-archetype.netlify.app"}
-	],
 	"iarc_rating_id": "e58f13d1-5619-4cbc-8c0f-98bc5e5a75d9",
 	"categories": ["education", "lifestyle", "personalization"],
 	"icons": [
