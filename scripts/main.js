@@ -1,3 +1,5 @@
+// Enhanced update checking in main.js
+let isUpdateAvailable = false;
 
 // بيانات الأسئلة
 const questions = [
@@ -282,46 +284,98 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 // Enhanced service worker registration with background sync support
+// Check for service worker updates every time the page loads
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('SW registered: ', registration);
-      
-      // Check if background sync is supported
-      if ('sync' in registration) {
-        console.log('Background Sync supported');
+  navigator.serviceWorker.ready.then(registration => {
+    registration.update();
+  });
+
+  // Listen for controller changes (when new SW takes control)
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('New service worker controlling the page');
+    window.location.reload();
+  });
+
+  // Listen for messages from service worker
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SW_VERSION_UPDATED') {
+      console.log('Service Worker updated to version:', event.data.version);
+      showUpdateNotification();
+    }
+    
+    if (event.data && event.data.type === 'CONTENT_UPDATED') {
+      if (confirm('A new version is available. Refresh now?')) {
+        window.location.reload();
       }
-      
-      // Check if periodic sync is supported
-      if ('periodicSync' in registration) {
-        console.log('Periodic Sync supported');
-        // Register for periodic updates
-        registration.periodicSync.register('content-update', {
-          minInterval: 24 * 60 * 60 * 1000 // 24 hours
-        }).then(() => {
-          console.log('Periodic sync registered');
-        }).catch(error => {
-          console.log('Periodic sync registration failed:', error);
-        });
-      }
-      
-    } catch (registrationError) {
-      console.log('SW registration failed: ', registrationError);
     }
   });
+
+  // Periodically check for updates
+  setInterval(() => {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.update();
+    });
+  }, 60 * 60 * 1000); // Check every hour
 }
 
-// Listen for service worker messages (like content updates)
-navigator.serviceWorker.addEventListener('message', event => {
-  if (event.data && event.data.type === 'CONTENT_UPDATED') {
-    // Show update notification to user
-    if (confirm(event.data.message + ' Would you like to refresh now?')) {
-      window.location.reload();
-    }
+function showUpdateNotification() {
+  // Create a subtle update notification
+  const updateBar = document.createElement('div');
+  updateBar.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #4a6fa5;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    z-index: 10000;
+    font-size: 14px;
+  `;
+  updateBar.innerHTML = `
+    New version available. 
+    <button onclick="window.location.reload()" style="margin-left: 10px; background: white; color: #4a6fa5; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+      Refresh
+    </button>
+  `;
+  document.body.appendChild(updateBar);
+}
+
+// Force refresh when coming online if update is pending
+window.addEventListener('online', () => {
+  if (isUpdateAvailable) {
+    window.location.reload();
   }
 });
 
+
+// Add this to your main.js
+function checkForUpdates() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.update().then(() => {
+        console.log('Update check completed');
+      });
+    });
+  }
+}
+
+// Check for updates when the app becomes visible
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    checkForUpdates();
+  }
+});
+
+// Add update button to your UI (optional)
+function addUpdateButton() {
+  const updateBtn = document.createElement('button');
+  updateBtn.textContent = 'Check for Updates';
+  updateBtn.style.cssText = 'position: fixed; bottom: 10px; right: 10px; z-index: 1000;';
+  updateBtn.addEventListener('click', checkForUpdates);
+  document.body.appendChild(updateBtn);
+}
 // Enhanced install button handler
 installBtn.addEventListener('click', async () => {
   if (!deferredPrompt) return;

@@ -1,37 +1,43 @@
 // Service Worker for Spiritual Guide Test PWA
-const CACHE_NAME = 'spiritual-guide-v1.2.3';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles/main.css',
-  '/scripts/main.js',
-  '/manifest.json',
-  '/assets/icons/icon-72x72.png',
-  '/assets/icons/icon-96x96.png',
-  '/assets/icons/icon-128x128.png',
-  '/assets/icons/icon-144x144.png',
-  '/assets/icons/icon-152x152.png',
-  '/assets/icons/icon-192x192.png',
-  '/assets/icons/icon-384x384.png',
-  '/assets/icons/icon-512x512.png',
-  '/assets/screenshots/screenshot-desktop_1280x720.png',
-  '/assets/screenshots/screenshot-mobile_375x667.png'
-];
+const CACHE_NAME = 'spiritual-guide-v1.2.4-' + new Date().toISOString().slice(0, 10); // Add date for daily cache busting
 
+// Add cache-busting query parameters to URLs
+const urlsToCache = [
+  '/?v=1.2.4',
+  '/index.html?v=1.2.4',
+  '/styles/main.css?v=1.2.4',
+  '/scripts/main.js?v=1.2.4',
+  '/manifest.json?v=1.2.4',
+  '/assets/icons/icon-72x72.png?v=1.2.4',
+  '/assets/icons/icon-96x96.png?v=1.2.4',
+  '/assets/icons/icon-128x128.png?v=1.2.4',
+  '/assets/icons/icon-144x144.png?v=1.2.4',
+  '/assets/icons/icon-152x152.png?v=1.2.4',
+  '/assets/icons/icon-192x192.png?v=1.2.4',
+  '/assets/icons/icon-384x384.png?v=1.2.4',
+  '/assets/icons/icon-512x512.png?v=1.2.4',
+  '/assets/screenshots/screenshot-desktop_1280x720.png?v=1.2.4',
+  '/assets/screenshots/screenshot-mobile_375x667.png?v=1.2.4''
+];
 // Background Sync queue name
 const BACKGROUND_SYNC_QUEUE = 'background-sync-queue';
 
 // Install event - cache essential files
 self.addEventListener('install', event => {
-  console.log('Service Worker installing...');
+  console.log('Service Worker installing with version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        console.log('Opened cache:', CACHE_NAME);
+        return cache.addAll(urlsToCache.map(url => {
+          // Remove version query for actual caching
+          const cleanUrl = url.split('?')[0];
+          return new Request(cleanUrl, {cache: 'reload'});
+        }));
       })
       .then(() => {
         console.log('All resources cached successfully');
+        // Skip waiting to activate immediately
         return self.skipWaiting();
       })
       .catch(error => {
@@ -277,26 +283,27 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
+          // Delete ALL old caches except current one
+          if (cacheName !== CACHE_NAME && cacheName.startsWith('spiritual-guide-')) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      // Claim clients to ensure the service worker controls all pages
+      // Claim clients immediately
       return self.clients.claim();
     }).then(() => {
-      // Register periodic sync only if supported
-      if ('periodicSync' in self.registration) {
-        return self.registration.periodicSync.register('content-update', {
-          minInterval: 24 * 60 * 60 * 1000 // 24 hours
-        }).then(() => {
-          console.log('Periodic Sync registered on activate');
-        }).catch(error => {
-          console.log('Periodic Sync not registered:', error);
+      // Send version update message to all clients
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_VERSION_UPDATED',
+            version: CACHE_NAME,
+            timestamp: new Date().toISOString()
+          });
         });
-      }
+      });
     })
   );
 });

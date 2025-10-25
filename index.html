@@ -18,7 +18,14 @@
 		<!-- Windows -->
 		<meta name="msapplication-TileImage" content="assets/icons/icon-144x144.png">
 		<meta name="msapplication-TileColor" content="#4a6fa5">
-		<link rel="stylesheet" href="styles/main.css">
+<!-- Cache Control Meta Tags -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<!-- Preload critical resources -->
+<link rel="preload" href="scripts/main.js" as="script">
+<link rel="preload" href="styles/main.css" as="style">
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -90,7 +97,6 @@
 			</div>
 		</div>
 		
-		<script src="scripts/main.js"></script>
 		<script>
 			// Register service worker for PWA
 			if ('serviceWorker' in navigator) {
