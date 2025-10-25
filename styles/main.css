@@ -250,3 +250,66 @@ body {
 		gap: 10px;
 	}
 }
+
+/* RTL Specific Styles */
+[dir="rtl"] .SC1-nav-buttons {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-controls {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-language-switcher {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-option {
+    text-align: right;
+}
+
+[dir="rtl"] .SC1-question-text {
+    text-align: right;
+}
+
+[dir="rtl"] .SC1-result-section {
+    text-align: right;
+}
+
+[dir="rtl"] .SC1-result-section h3 {
+    text-align: right;
+}
+
+/* Base text alignment for RTL */
+[dir="rtl"] {
+    text-align: right;
+}
+
+/* Ensure proper alignment for headers in RTL */
+[dir="rtl"] .SC1-header {
+    text-align: center;
+}
+
+[dir="rtl"] .SC1-result-title {
+    text-align: center;
+}
+
+[dir="rtl"] .SC1-result-guide {
+    text-align: center;
+}
+
+/* Mobile adjustments for RTL */
+@media (max-width: 768px) {
+    [dir="rtl"] .SC1-controls {
+        flex-direction: column;
+    }
+    
+    [dir="rtl"] .SC1-nav-buttons {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+    
+    [dir="rtl"] .SC1-button {
+        width: 100%;
+    }
+}

@@ -1,3 +1,4 @@
+
 // بيانات الأسئلة
 const questions = [
 	{
@@ -89,6 +90,76 @@ const questions = [
 		]
 	}
 ];
+
+// بيانات النتائج
+const results = {
+	"A": {
+		guide_ar: "الصقر/النسر",
+		guide_en: "The Eagle/Hawk",
+		title_ar: "مرشد الإرادة",
+		title_en: "The Guide of Will",
+		symbolic_meaning_ar: "القيادة، الرؤية، وقوة الإرادة. الصقر ينفذ الاستراتيجية بدقة متناهية.",
+		symbolic_meaning_en: "Leadership, Vision, and Willpower. The Eagle executes the strategy with pinpoint accuracy.",
+		core_challenge_ar: "فخ السيطرة الكاملة. خطر الإرهاق من محاولة القيام بكل شيء بنفسك. هذا يعيق التفويض الضروري.",
+		core_challenge_en: "The Trap of Total Control. Risk of burnout from attempting to do everything yourself. This hinders necessary Delegation.",
+		mission_90_days_ar: "التفويض الإلزامي: حدد شخصاً وقم بتدريبه لإدارة 3 مهام روتينية. حرر 10 ساعات أسبوعياً للتخطيط الاستراتيجي فقط.",
+		mission_90_days_en: "Mandatory Delegation: Identify and train someone to manage 3 routine tasks. Free up 10 hours per week solely for strategic planning.",
+		kpi_ar: "مؤشر الأداء: 'عدد القرارات الحرجة التي يتخذها عضو في الفريق دون تدخلي.'",
+		kpi_en: "Execution KPI: Your daily focus metric is: 'Number of critical decisions made by a team member without my intervention.'",
+		alliance_tip_ar: "لتحقيق التوازن، ابحث عن الحدسي (النمط B) لتخفيف اندفاعك، والمتحول (النمط D) لضمان المرونة.",
+		alliance_tip_en: "To find balance, seek the Intuitive (Pattern B) to temper your drive, and the Transformation (Pattern D) to ensure flexible pivots."
+	},
+	"B": {
+		guide_ar: "الدلفين/الحوت",
+		guide_en: "The Whale/Dolphin",
+		title_ar: "مرشد العمق",
+		title_en: "The Guide of Depth",
+		symbolic_meaning_ar: "الحدس، الوعي الجماعي، والعمق الإبداعي. الحوت يحمل حكمة الزمن العميقة.",
+		symbolic_meaning_en: "Intuition, Collective Consciousness, and Creative Depth. The Whale carries the deep wisdom of time.",
+		core_challenge_ar: "فخ تشتت النطاق. خيالك الواسع يؤدي إلى مشاريع متوازية، مما يمنع الإنجاز العميق والتجسيد المادي.",
+		core_challenge_en: "The Trap of Scope Creep. Your vast imagination leads to parallel projects, preventing deep completion and physical grounding.",
+		mission_90_days_ar: "التجسيد المادي: التزم بمشروع MVP واحد يتوافق مع رؤيتك. مهمتك هي إكمال 70% منه فعلياً قبل التفكير في أي فكرة رئيسية أخرى.",
+		mission_90_days_en: "Physical Grounding: Commit to one single MVP project aligned with your vision. Your mission is to physically complete 70% of it before entertaining any other major idea.",
+		kpi_ar: "مؤشر الأداء: 'الساعات التي تقضيها في التنفيذ المادي مقابل الساعات التي تقضيها في التخطيط المجرد.'",
+		kpi_en: "Execution KPI: Your daily focus metric is: 'Hours spent on physical execution versus hours spent on abstract planning.'",
+		alliance_tip_ar: "لتحقيق التوازن، ابحث عن القائد (النمط A) لفرض الحدود والتنفيذ، والحكيم (النمط C) لتنظيم رؤاك.",
+		alliance_tip_en: "To find balance, seek the Leadership (Pattern A) to enforce boundaries and execution, and the Wisdom (Pattern C) to structure your insights."
+	},
+	"C": {
+		guide_ar: "البومة/الذئب",
+		guide_en: "The Owl/Wolf",
+		title_ar: "مرشد الحكمة",
+		title_en: "The Guide of Wisdom",
+		symbolic_meaning_ar: "المعرفة الخفية، الاستراتيجية، والحماية. البومة ترى الحقيقة في الظلام؛ الذئب يحمي جوهره.",
+		symbolic_meaning_en: "Hidden Knowledge, Strategy, and Protection. The Owl sees truth in the darkness; the Wolf protects its core.",
+		core_challenge_ar: "فخ شلل التحليل. سعيك للمعرفة الكاملة (100% من البيانات) يمكن أن يوقف العمل الحاسم. تخاطر بفقدان الفرص المحسوبة.",
+		core_challenge_en: "The Trap of Analysis Paralysis. Your drive for complete knowledge (100% data) can halt critical action. You risk missing calculated opportunities.",
+		mission_90_days_ar: "عتبة العمل: حدد 'عتبة ثقة 80%' للقرارات الحرجة. بمجرد جمع 80% من البيانات، يجب أن تنفذ خلال 72 ساعة، حتى لو بقيت مجهولات بسيطة.",
+		mission_90_days_en: "Action Threshold: Define an '80% Confidence Threshold' for critical decisions. Once 80% of data is collected, you must execute within 72 hours, even if minor unknowns remain.",
+		kpi_ar: "مؤشر الأداء: 'عدد القرارات الرئيسية التي تم تنفيذها (وليس فقط تخطيطها) هذا الأسبوع.'",
+		kpi_en: "Execution KPI: Your daily focus metric is: 'Number of major decisions executed (not just planned) this week.'",
+		alliance_tip_ar: "لتحقيق التوازن، ابحث عن الحدسي (النمط B) لإلهام الاتصال العاطفي، والمتحول (النمط D) لدفعك نحو التغيير الضروري.",
+		alliance_tip_en: "To find balance, seek the Intuitive (Pattern B) to inspire emotional connection, and the Transformation (Pattern D) to push you into necessary change."
+	},
+	"D": {
+		guide_ar: "الأفعى/الفراشة",
+		guide_en: "The Snake/Butterfly",
+		title_ar: "مرشد الدورات",
+		title_en: "The Guide of Cycles",
+		symbolic_meaning_ar: "التحول الجذري، الشفاء، والمرونة. الأفعى تخلع جلدها؛ الفراشة تظهر من جديد.",
+		symbolic_meaning_en: "Radical Transformation, Healing, and Resilience. The Snake sheds its skin; the Butterfly emerges reborn.",
+		core_challenge_ar: "فخ عدم الاستقرار. التحولات الكبيرة المستمرة تمنعك من إنشاء الأساس المستدام اللازم لإرث يمتد لعقود.",
+		core_challenge_en: "The Trap of Instability. Constant, major transformations prevent you from establishing the Sustainable Foundation needed for a multi-decade legacy.",
+		mission_90_days_ar: "استقرار الجوهر: حدد 'جوهر غير قابل للتفاوض' لحياتك/عملك (مثل هدف دخلك أو قيمتك الأساسية). تأكد من أن جميع التحولات تخدم تعزيز هذا الجوهر.",
+		mission_90_days_en: "Core Stability: Define a 'Non-Negotiable Core' for your life/business (e.g., your income goal or core value). Ensure all transformations serve to strengthen this core.",
+		kpi_ar: "مؤشر الأداء: 'عدد الأيام المتتالية التي مرت دون بدء مشروع جديد أو تغيير الاتجاه الأساسي للمشروع الرئيسي.'",
+		kpi_en: "Execution KPI: Your daily focus metric is: 'Number of consecutive days passed without starting a new project or changing the core direction of the primary MVP.'",
+		alliance_tip_ar: "لتحقيق التوازن، ابحث عن القائد (النمط A) لفرض الانضباط والتركيز، والحكيم (النمط C) لتوفير الاستطالة أثناء تطوراتك السريعة.",
+		alliance_tip_en: "To find balance, seek the Leadership (Pattern A) to enforce discipline and focus, and the Wisdom (Pattern C) to provide stability during your rapid evolutions."
+	}
+};
+
+
 
 // بيانات الترجمة
 const translations = {
@@ -223,7 +294,7 @@ installBtn.addEventListener('click', async () => {
 		console.log('User accepted the install prompt');
 		// Hide the install button after successful installation
 		installBtn.style.display = 'none';
-	} else {
+		} else {
 		console.log('User dismissed the install prompt');
 	}
 	
@@ -314,14 +385,17 @@ function applyTranslations() {
 
 // تبديل اللغة
 langButtons.forEach(button => {
-	button.addEventListener('click', () => {
-		currentLanguage = button.getAttribute('data-lang');
-		langButtons.forEach(btn => btn.classList.remove('SC1-active'));
-		button.classList.add('SC1-active');
-		
-		// تطبيق الترجمات
-		applyTranslations();
-	});
+    button.addEventListener('click', () => {
+        currentLanguage = button.getAttribute('data-lang');
+        langButtons.forEach(btn => btn.classList.remove('SC1-active'));
+        button.classList.add('SC1-active');
+        
+        // تحديث اتجاه الصفحة
+        updatePageDirection();
+        
+        // تطبيق الترجمات
+        applyTranslations();
+    });
 });
 
 // عرض السؤال الحالي
@@ -459,6 +533,17 @@ function displayResult() {
 		allianceTipElement.textContent = result.alliance_tip_ar;
 	}
 }
+// وظيفة تبديل اتجاه الصفحة
+function updatePageDirection() {
+    const htmlElement = document.getElementById('SC1-html-direction');
+    if (currentLanguage === 'ar') {
+        htmlElement.setAttribute('dir', 'rtl');
+        htmlElement.setAttribute('lang', 'ar');
+    } else {
+        htmlElement.setAttribute('dir', 'ltr');
+        htmlElement.setAttribute('lang', 'en');
+    }
+}
 
 // معالجة أحداث الأزرار
 startBtn.addEventListener('click', () => {
@@ -504,6 +589,7 @@ restartBtn.addEventListener('click', () => {
 });
 
 // التهيئة الأولية
+updatePageDirection();
 applyTranslations();
 updateProgressBar();
 updateNavButtons();
