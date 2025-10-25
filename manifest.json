@@ -131,5 +131,40 @@
 			"form_factor": "narrow",
 			"label": "Interactive Spiritual Test"
 		}
+	],
+	"file_handlers": [
+		{
+			"action": "/file-handler",
+			"accept": {
+				"text/plain": [".txt"],
+				"application/javascript": [".js"],
+				"application/json": [".json"],
+				"audio/mpeg": [".mp3", ".mpeg"],
+				"audio/wav": [".wav"],
+				"audio/ogg": [".ogg"],
+				"audio/aac": [".aac"],
+				"audio/m4a": [".m4a"]
+			},
+			"name": "Spiritual Guide Files",
+			"icons": [
+				{
+					"src": "assets/icons/icon-96x96.png",
+					"sizes": "96x96",
+					"type": "image/png"
+				}
+			]
+		}
+	],
+	"protocol_handlers": [
+		{
+			"protocol": "spiritual-guide",
+			"url": "/protocol-handler?type=%s",
+			"name": "Spiritual Guide Protocol"
+		},
+		{
+			"protocol": "web+spiritual",
+			"url": "/protocol-handler?type=%s",
+			"name": "Spiritual Web Protocol"
+		}
 	]
 }

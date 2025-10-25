@@ -961,6 +961,193 @@ function resumeTestFromSavedState() {
     }
 }
 
+// File and Protocol Handlers
+function initializeFileHandlers() {
+    // Check if file handling is supported
+    if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
+        console.log('File Handling API is supported');
+        
+        launchQueue.setConsumer(async (launchParams) => {
+            if (!launchParams.files.length) {
+                return;
+            }
+            
+            for (const fileHandle of launchParams.files) {
+                await handleFile(fileHandle);
+            }
+        });
+    } else {
+        console.log('File Handling API is not supported in this browser');
+    }
+}
+
+// Handle file opening
+async function handleFile(fileHandle) {
+    try {
+        const file = await fileHandle.getFile();
+        const fileType = file.type;
+        const fileName = file.name;
+        
+        console.log(`Handling file: ${fileName}, type: ${fileType}`);
+        
+        let content = '';
+        
+        if (fileType.startsWith('text/') || 
+            fileType === 'application/javascript' || 
+            fileType === 'application/json') {
+            // Read text files
+            content = await file.text();
+            displayFileContent(fileName, content, fileType);
+        } else if (fileType.startsWith('audio/')) {
+            // Handle audio files
+            await handleAudioFile(file, fileName);
+        } else {
+            content = `Cannot display file type: ${fileType}`;
+            displayFileContent(fileName, content, fileType);
+        }
+        
+    } catch (error) {
+        console.error('Error handling file:', error);
+        showNotification('File Error', `Could not open file: ${error.message}`);
+    }
+}
+
+// Display file content in modal
+function displayFileContent(fileName, content, fileType) {
+    const modal = document.getElementById('SC1-file-handler-modal');
+    const title = document.getElementById('SC1-file-handler-title');
+    const contentDiv = document.getElementById('SC1-file-handler-content');
+    
+    // Set title
+    title.textContent = `File: ${fileName}`;
+    
+    // Format content based on file type
+    let formattedContent = '';
+    
+    if (fileType === 'application/json') {
+        try {
+            const jsonObj = JSON.parse(content);
+            formattedContent = `<pre>${JSON.stringify(jsonObj, null, 2)}</pre>`;
+        } catch (e) {
+            formattedContent = `<pre>${content}</pre>`;
+        }
+    } else if (fileType === 'application/javascript') {
+        formattedContent = `<pre class="SC1-code">${content}</pre>`;
+    } else {
+        formattedContent = `<pre>${content}</pre>`;
+    }
+    
+    contentDiv.innerHTML = formattedContent;
+    modal.classList.add('SC1-active');
+}
+
+// Handle audio files
+async function handleAudioFile(file, fileName) {
+    const modal = document.getElementById('SC1-file-handler-modal');
+    const title = document.getElementById('SC1-file-handler-title');
+    const contentDiv = document.getElementById('SC1-file-handler-content');
+    
+    title.textContent = `Audio: ${fileName}`;
+    
+    const audioUrl = URL.createObjectURL(file);
+    contentDiv.innerHTML = `
+        <audio controls style="width: 100%; margin: 10px 0;">
+            <source src="${audioUrl}" type="${file.type}">
+            Your browser does not support the audio element.
+        </audio>
+        <p>Now playing: ${fileName}</p>
+    `;
+    
+    modal.classList.add('SC1-active');
+    
+    // Clean up URL when modal closes
+    const closeHandler = () => {
+        URL.revokeObjectURL(audioUrl);
+        modal.removeEventListener('close', closeHandler);
+    };
+    modal.addEventListener('close', closeHandler);
+}
+
+// Protocol handler for external URLs
+function handleProtocolNavigation() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const protocolType = urlParams.get('type');
+    
+    if (protocolType) {
+        console.log('Protocol handler triggered:', protocolType);
+        
+        // Handle different protocol types
+        if (protocolType.includes('https://spiritual-consultation.netlify.app')) {
+            showExternalWebsiteModal('https://spiritual-consultation.netlify.app');
+        } else if (protocolType.startsWith('spiritual-guide:')) {
+            // Handle custom spiritual-guide protocol
+            const action = protocolType.replace('spiritual-guide:', '');
+            handleCustomProtocol(action);
+        } else if (protocolType.startsWith('web+spiritual:')) {
+            // Handle web+spiritual protocol
+            const action = protocolType.replace('web+spiritual:', '');
+            handleCustomProtocol(action);
+        }
+    }
+}
+
+// Show external website confirmation modal
+function showExternalWebsiteModal(url) {
+    const modal = document.getElementById('SC1-protocol-handler-modal');
+    const urlDisplay = document.getElementById('SC1-protocol-handler-url');
+    const cancelBtn = document.getElementById('SC1-protocol-handler-cancel');
+    const openBtn = document.getElementById('SC1-protocol-handler-open');
+    
+    urlDisplay.textContent = url;
+    
+    // Remove existing event listeners
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    const newOpenBtn = openBtn.cloneNode(true);
+    
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    openBtn.parentNode.replaceChild(newOpenBtn, openBtn);
+    
+    // Add new event listeners
+    newCancelBtn.addEventListener('click', () => {
+        modal.classList.remove('SC1-active');
+    });
+    
+    newOpenBtn.addEventListener('click', () => {
+        modal.classList.remove('SC1-active');
+        // Open in new tab
+        window.open(url, '_blank', 'noopener,noreferrer');
+    });
+    
+    modal.classList.add('SC1-active');
+}
+
+// Handle custom protocol actions
+function handleCustomProtocol(action) {
+    console.log('Custom protocol action:', action);
+    
+    switch (action) {
+        case 'start-test':
+            if (welcomeCard.classList.contains('SC1-active')) {
+                startBtn.click();
+            }
+            break;
+        case 'show-results':
+            // Navigate to results if available
+            if (resultCard) {
+                welcomeCard.classList.remove('SC1-active');
+                questionCard.classList.remove('SC1-active');
+                resultCard.classList.add('SC1-active');
+            }
+            break;
+        case 'open-settings':
+            settingsBtn.click();
+            break;
+        default:
+            console.log('Unknown protocol action:', action);
+    }
+}
+
+
 // معالجة أحداث الأزرار
 startBtn.addEventListener('click', () => {
     welcomeCard.classList.remove('SC1-active');
@@ -1078,3 +1265,48 @@ resumeTestFromSavedState();
 
 updateProgressBar();
 updateNavButtons();
+
+// Initialize file handlers when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    initializeFileHandlers();
+    handleProtocolNavigation();
+    
+    // Add event listeners for file handler modal
+    const fileHandlerModal = document.getElementById('SC1-file-handler-modal');
+    const fileHandlerClose = document.getElementById('SC1-file-handler-close');
+    const fileHandlerCloseBtn = document.getElementById('SC1-file-handler-close-btn');
+    
+    if (fileHandlerClose) {
+        fileHandlerClose.addEventListener('click', () => {
+            fileHandlerModal.classList.remove('SC1-active');
+        });
+    }
+    
+    if (fileHandlerCloseBtn) {
+        fileHandlerCloseBtn.addEventListener('click', () => {
+            fileHandlerModal.classList.remove('SC1-active');
+        });
+    }
+    
+    // Add event listener for protocol handler modal close
+    const protocolHandlerClose = document.getElementById('SC1-protocol-handler-close');
+    if (protocolHandlerClose) {
+        protocolHandlerClose.addEventListener('click', () => {
+            document.getElementById('SC1-protocol-handler-modal').classList.remove('SC1-active');
+        });
+    }
+    
+    // Close modals when clicking outside
+    document.addEventListener('click', (e) => {
+        const fileModal = document.getElementById('SC1-file-handler-modal');
+        const protocolModal = document.getElementById('SC1-protocol-handler-modal');
+        
+        if (fileModal && e.target === fileModal) {
+            fileModal.classList.remove('SC1-active');
+        }
+        
+        if (protocolModal && e.target === protocolModal) {
+            protocolModal.classList.remove('SC1-active');
+        }
+    });
+});
