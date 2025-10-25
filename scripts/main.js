@@ -367,8 +367,8 @@ if ('serviceWorker' in navigator) {
 				}
 			});
 			
-			// Check for updates every hour
-			setInterval(() => checkForUpdates(registration), 60 * 60 * 1000);
+			// Check for updates every 6 hour
+			setInterval(() => checkForUpdates(registration), 6 * 60 * 60 * 1000);
 			
 			} catch (registrationError) {
 			console.log('SW registration failed: ', registrationError);

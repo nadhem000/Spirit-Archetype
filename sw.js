@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
-const CACHE_NAME = 'spiritual-guide-v1.3.4'; // Increment version
+const CACHE_NAME = 'spiritual-guide-v1.3.5'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -26,7 +26,7 @@ const VAPID_PUBLIC_KEY = 'BLx5g7YF4a0zQwK8cJ3d2nH6mP9rT1sW3vZ7yA8bC4eX0uD5fG2hK6
 
 // Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing... Version: 1.3.0');
+  console.log('Service Worker installing... Version: 1.3.5');
   
   // Force the waiting service worker to become active
   self.skipWaiting();
@@ -70,28 +70,21 @@ self.addEventListener('fetch', event => {
 
   const requestUrl = new URL(event.request.url);
   
-  // For HTML documents, use network-first strategy to ensure updates
-  if (event.request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(
-      networkFirstThenCache(event.request)
-    );
+  // For HTML documents, use network-first strategy
+  if (event.request.destination === 'document') {
+    event.respondWith(networkFirstThenCache(event.request));
     return;
   }
 
-  // For CSS, JS, and other assets, use stale-while-revalidate
+  // For assets, use cache-first with background update
   if (requestUrl.pathname.match(/\.(css|js|json|png|jpg|jpeg|gif|svg|ico)$/)) {
-    event.respondWith(
-      staleWhileRevalidate(event.request)
-    );
+    event.respondWith(cacheFirstWithUpdate(event.request));
     return;
   }
 
-  // Default: cache-first strategy
-  event.respondWith(
-    cacheFirstWithUpdate(event.request)
-  );
+  // Default: network first
+  event.respondWith(networkFirstThenCache(event.request));
 });
-
 // Push event handler
 self.addEventListener('push', event => {
   console.log('Push event received:', event);
