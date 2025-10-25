@@ -313,3 +313,26 @@ body {
         width: 100%;
     }
 }
+.SC1-install-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    color: var(--SC1-primary-color);
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border: 2px solid transparent;
+}
+
+.SC1-install-btn:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: var(--SC1-primary-color);
+}
+
+.SC1-install-btn:active {
+    transform: translateY(0);
+}

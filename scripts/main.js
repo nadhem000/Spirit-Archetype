@@ -267,19 +267,7 @@ const kpiElement = document.getElementById('SC1-kpi');
 const allianceTipElement = document.getElementById('SC1-alliance-tip');
 const installBtn = document.getElementById('SC1-install-btn');
 
-// PWA Install Logic
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent the mini-infobar from appearing on mobile
-  e.preventDefault();
-  // Stash the event so it can be triggered later
-  deferredPrompt = e;
-  // Show the install button
-  installBtn.style.display = 'block';
-  
-  // Apply translation to install button
-  const installText = translate('SC1.install.installApp');
-  installBtn.querySelector('span').textContent = installText;
-});
+
 
 // Enhanced service worker registration with background sync support
 if ('serviceWorker' in navigator) {
@@ -380,36 +368,54 @@ navigator.serviceWorker.addEventListener('message', event => {
 
 // Enhanced install button handler
 installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
+  if (!deferredPrompt) {
+    console.log('No install prompt available');
+    return;
+  }
   
-  // Show the install prompt
-  const result = await deferredPrompt.prompt();
-  
-  // Wait for the user to respond to the prompt
-  const { outcome } = await deferredPrompt.userChoice;
-  
-  if (outcome === 'accepted') {
-    console.log('User accepted the install prompt');
+  try {
+    // Show the install prompt
+    deferredPrompt.prompt();
     
-    // Register background sync after installation
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-      navigator.serviceWorker.ready.then(registration => {
-        return registration.sync.register('background-sync');
-      }).then(() => {
-        console.log('Background Sync registered after install');
-      }).catch(error => {
-        console.log('Background Sync registration failed:', error);
-      });
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    console.log(`User ${outcome === 'accepted' ? 'accepted' : 'dismissed'} the install prompt`);
+    
+    if (outcome === 'accepted') {
+      console.log('PWA was installed');
+      // Hide the install button after successful installation
+      installBtn.style.display = 'none';
     }
     
-    // Hide the install button after successful installation
-    installBtn.style.display = 'none';
-  } else {
-    console.log('User dismissed the install prompt');
+  } catch (error) {
+    console.error('Error showing install prompt:', error);
   }
   
   // Clear the saved prompt since it can't be used again
   deferredPrompt = null;
+});
+
+// Enhanced beforeinstallprompt handler
+window.addEventListener('beforeinstallprompt', (e) => {
+  console.log('beforeinstallprompt event fired');
+  
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  
+  // Stash the event so it can be triggered later
+  deferredPrompt = e;
+  
+  // Show the install button
+  installBtn.style.display = 'block';
+  console.log('Install button should be visible now');
+  
+  // Apply translation to install button
+  const installText = translate('SC1.install.installApp');
+  installBtn.querySelector('span').textContent = installText;
+  
+  // Optional: Log for debugging
+  console.log('Install button displayed, ready for user interaction');
 });
 
 // Request background sync when coming online
