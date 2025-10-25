@@ -13,7 +13,9 @@ const urlsToCache = [
   '/assets/icons/icon-152x152.png',
   '/assets/icons/icon-192x192.png',
   '/assets/icons/icon-384x384.png',
-  '/assets/icons/icon-512x512.png'
+  '/assets/icons/icon-512x512.png',
+  '/assets/screenshots/screenshot-desktop_1280x720.png',
+  '/assets/screenshots/screenshot-mobile_375x667.png'
 ];
 
 // Background Sync queue name

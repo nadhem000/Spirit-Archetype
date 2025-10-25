@@ -1,6 +1,7 @@
 {
   "name": "Spiritual Guide Test",
   "short_name": "SpiritualGuide",
+  "id": "SpiritualGuide",
   "description": "Discover your spiritual pattern through this interactive test",
   "start_url": "/",
   "display": "standalone",
@@ -51,5 +52,21 @@
   ],
   "categories": ["education", "lifestyle", "personalization"],
   "lang": "en",
-  "scope": "/"
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "assets/screenshots/screenshot-desktop_1280x720.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Interactive Spiritual Test"
+    },
+    {
+      "src": "assets/screenshots/screenshot-mobile_375x667.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Interactive Spiritual Test"
+    }
+  ]
 }
