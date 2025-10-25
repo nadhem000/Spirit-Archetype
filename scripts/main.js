@@ -1052,6 +1052,27 @@ langButtons.forEach(btn => {
     }
 });
 
+// handle shortcut URLs
+window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash;
+    
+    switch(hash) {
+        case '#start':
+            // Auto-start the test
+            if (welcomeCard.classList.contains('SC1-active')) {
+                startBtn.click();
+            }
+            break;
+        case '#results':
+            // Show results if available
+            //  might want to check if test was completed
+            break;
+        case '#settings':
+            // Open settings modal
+            settingsBtn.click();
+            break;
+    }
+});
 // Check for saved test progress
 resumeTestFromSavedState();
 

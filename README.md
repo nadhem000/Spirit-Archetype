@@ -2,6 +2,10 @@
 
 An interactive web application that helps users discover their spiritual archetype through an 8-question personality test. Available in both English and Arabic.
 
+## URL
+
+https://spirit-archetype.netlify.app/
+
 ## Features
 
 - 🌍 Bilingual support (English/Arabic)
@@ -45,7 +49,8 @@ This app is a Progressive Web App (PWA) that can be installed on your device:
 ├── sw.js              # Service Worker
 ├── netlify.toml       # Netlify deployment config
 ├── scripts/
-│   └── main.js         # Application logic and data
+│   └── main.js         # Application logic
+│   └── data.js         # Application data
 └── styles/
     └── main.css        # Styling and responsive design
 └── assets/
