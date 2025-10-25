@@ -388,25 +388,26 @@ if (window.matchMedia('(display-mode: standalone)').matches ||
 
 // وظيفة الترجمة باستخدام المفاتيح المتداخلة
 function translate(key, params = {}) {
-	const keys = key.split('.');
-	let value = translations[currentLanguage];
-	
-	for (const k of keys) {
-		if (value && value.hasOwnProperty(k)) {
-			value = value[k];
-			} else {
-			console.warn(`Translation key not found: ${key}`);
-			return key;
-		}
-	}
-	
-	// استبدال المتغيرات في النص
-	let translatedText = value;
-	for (const param in params) {
-		translatedText = translatedText.replace(`{${param}}`, params[param]);
-	}
-	
-	return translatedText;
+    const keys = key.split('.');
+    let value = translations[currentLanguage];
+    
+    for (const k of keys) {
+        if (value && value.hasOwnProperty(k)) {
+            value = value[k];
+        } else {
+            console.warn(`Translation key not found: ${key}`);
+            // Return the key itself instead of showing an error
+            return key.split('.').pop(); // Returns "installApp" instead of full key
+        }
+    }
+    
+    // استبدال المتغيرات في النص
+    let translatedText = value;
+    for (const param in params) {
+        translatedText = translatedText.replace(`{${param}}`, params[param]);
+    }
+    
+    return translatedText;
 }
 
 // تطبيق الترجمات على جميع العناصر

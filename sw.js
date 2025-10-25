@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA
-const CACHE_NAME = 'spiritual-guide-v1.2.0';
+const CACHE_NAME = 'spiritual-guide-v1.2.1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -330,10 +330,3 @@ async function registerPeriodicSync() {
     console.log('Periodic Background Sync not supported');
   }
 }
-
-// Initialize periodic sync when service worker activates
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    registerPeriodicSync()
-  );
-});
