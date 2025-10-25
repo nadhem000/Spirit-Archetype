@@ -90,24 +90,8 @@
 			</div>
 		</div>
 		
+		<!-- Load data first, then main application logic -->
+		<script src="scripts/data.js"></script>
 		<script src="scripts/main.js"></script>
-<!-- 		<script>
-    // Register service worker for PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            // Fixed path - remove the dot
-            navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('SW registered successfully: ', registration);
-                
-                // Check for updates
-                registration.update();
-            })
-            .catch(registrationError => {
-                console.log('SW registration failed: ', registrationError);
-            });
-        });
-    }
-</script> -->
 	</body>
 </html>
