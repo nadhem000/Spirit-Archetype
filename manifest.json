@@ -157,7 +157,7 @@
 	],
 	"protocol_handlers": [
 		{
-			"protocol": "spiritual-guide",
+			"protocol": "web+spiritualguide",
 			"url": "/protocol-handler?type=%s",
 			"name": "Spiritual Guide Protocol"
 		},
