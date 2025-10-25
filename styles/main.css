@@ -336,3 +336,173 @@ body {
 .SC1-install-btn:active {
     transform: translateY(0);
 }
+
+/* Push Notification Styles */
+.SC1-push-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.SC1-push-toggle {
+  display: none;
+}
+
+.SC1-push-label {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.SC1-push-label::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.SC1-push-toggle:checked + .SC1-push-label {
+  background-color: var(--SC1-success-color);
+}
+
+.SC1-push-toggle:checked + .SC1-push-label::after {
+  transform: translateX(26px);
+}
+
+.SC1-push-status {
+  font-size: 0.9rem;
+  margin-left: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.SC1-push-enabled {
+  background-color: rgba(42, 157, 143, 0.1);
+  color: var(--SC1-success-color);
+}
+
+.SC1-push-disabled {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+/* Update Banner Styles */
+.SC1-update-banner {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, var(--SC1-primary-color), var(--SC1-secondary-color));
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  animation: slideIn 0.3s ease-out;
+  max-width: 350px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.SC1-refresh-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: var(--SC1-primary-color);
+  padding: 6px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.SC1-refresh-btn:hover {
+  background: white;
+  transform: translateY(-1px);
+}
+
+.SC1-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.SC1-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* RTL Support for Push Controls */
+[dir="rtl"] .SC1-push-status {
+  margin-left: 0;
+  margin-right: 10px;
+}
+
+[dir="rtl"] .SC1-update-banner {
+  right: auto;
+  left: 20px;
+  animation: slideInRTL 0.3s ease-out;
+}
+
+@keyframes slideInRTL {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsiveness for Push Controls */
+@media (max-width: 768px) {
+  .SC1-push-container {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  
+  .SC1-update-banner {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  [dir="rtl"] .SC1-update-banner {
+    right: 10px;
+    left: 10px;
+  }
+}
