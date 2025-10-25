@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA
-const CACHE_NAME = 'spiritual-guide-v1.1.0';
+const CACHE_NAME = 'spiritual-guide-v1.2.0';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -286,6 +286,17 @@ self.addEventListener('activate', event => {
     }).then(() => {
       // Claim clients to ensure the service worker controls all pages
       return self.clients.claim();
+    }).then(() => {
+      // Register periodic sync only if supported
+      if ('periodicSync' in self.registration) {
+        return self.registration.periodicSync.register('content-update', {
+          minInterval: 24 * 60 * 60 * 1000 // 24 hours
+        }).then(() => {
+          console.log('Periodic Sync registered on activate');
+        }).catch(error => {
+          console.log('Periodic Sync not registered:', error);
+        });
+      }
     })
   );
 });
