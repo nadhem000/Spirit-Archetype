@@ -8,6 +8,7 @@
 	--SC1-warning-color: #e9c46a;
 }
 
+/* ===== RESET & BASE STYLES ===== */
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -21,6 +22,12 @@ body {
 	line-height: 1.6;
 }
 
+/* Base text alignment for RTL */
+[dir="rtl"] {
+	text-align: right;
+}
+
+/* ===== LAYOUT COMPONENTS ===== */
 .SC1-container {
 	max-width: 800px;
 	margin: 0 auto;
@@ -51,45 +58,6 @@ body {
 	margin-top: 15px;
 }
 
-.SC1-language-switcher {
-	display: flex;
-	justify-content: center;
-}
-
-.SC1-lang-btn {
-	background: rgba(255, 255, 255, 0.2);
-	border: none;
-	color: white;
-	padding: 8px 15px;
-	margin: 0 5px;
-	border-radius: 20px;
-	cursor: pointer;
-	transition: all 0.3s;
-}
-
-.SC1-lang-btn.SC1-active {
-	background: white;
-	color: var(--SC1-primary-color);
-}
-
-.SC1-install-btn {
-	background: rgba(255, 255, 255, 0.9);
-	border: none;
-	color: var(--SC1-primary-color);
-	padding: 8px 15px;
-	border-radius: 20px;
-	cursor: pointer;
-	transition: all 0.3s;
-	font-weight: 600;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.SC1-install-btn:hover {
-	background: white;
-	transform: translateY(-2px);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
 .SC1-card {
 	background-color: white;
 	border-radius: 10px;
@@ -103,6 +71,66 @@ body {
 	display: block;
 }
 
+/* ===== NAVIGATION & BUTTONS ===== */
+.SC1-nav-buttons {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 30px;
+}
+
+.SC1-button {
+	padding: 12px 25px;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 1rem;
+	transition: all 0.3s;
+}
+
+.SC1-btn-primary {
+	background-color: var(--SC1-primary-color);
+	color: white;
+}
+
+.SC1-btn-primary:hover {
+	background-color: var(--SC1-secondary-color);
+}
+
+.SC1-btn-secondary {
+	background-color: #e0e0e0;
+	color: var(--SC1-dark-color);
+}
+
+.SC1-btn-secondary:hover {
+	background-color: #d0d0d0;
+}
+
+/* ===== INSTALL BUTTON ===== */
+.SC1-install-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: none;
+	color: var(--SC1-primary-color);
+	padding: 10px 20px;
+	border-radius: 25px;
+	cursor: pointer;
+	transition: all 0.3s;
+	font-weight: 600;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	border: 2px solid transparent;
+}
+
+.SC1-install-btn:hover {
+	background: white;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	border-color: var(--SC1-primary-color);
+}
+
+.SC1-install-btn:active {
+	transform: translateY(0);
+}
+
+/* ===== QUESTION & OPTIONS ===== */
 .SC1-question-number {
 	font-size: 1.2rem;
 	color: var(--SC1-primary-color);
@@ -139,39 +167,23 @@ body {
 	background-color: rgba(74, 111, 165, 0.1);
 }
 
-.SC1-nav-buttons {
-	display: flex;
-	justify-content: space-between;
-	margin-top: 30px;
-}
-
-.SC1-button {
-	padding: 12px 25px;
-	border: none;
-	border-radius: 5px;
-	cursor: pointer;
-	font-size: 1rem;
-	transition: all 0.3s;
-}
-
-.SC1-btn-primary {
-	background-color: var(--SC1-primary-color);
-	color: white;
-}
-
-.SC1-btn-primary:hover {
-	background-color: var(--SC1-secondary-color);
-}
-
-.SC1-btn-secondary {
+/* ===== PROGRESS BAR ===== */
+.SC1-progress-bar {
+	height: 10px;
 	background-color: #e0e0e0;
-	color: var(--SC1-dark-color);
+	border-radius: 5px;
+	margin: 20px 0;
+	overflow: hidden;
 }
 
-.SC1-btn-secondary:hover {
-	background-color: #d0d0d0;
+.SC1-progress {
+	height: 100%;
+	background-color: var(--SC1-primary-color);
+	width: 0%;
+	transition: width 0.5s;
 }
 
+/* ===== RESULTS ===== */
 .SC1-result-card {
 	text-align: center;
 }
@@ -203,21 +215,6 @@ body {
 	padding-bottom: 5px;
 }
 
-.SC1-progress-bar {
-	height: 10px;
-	background-color: #e0e0e0;
-	border-radius: 5px;
-	margin: 20px 0;
-	overflow: hidden;
-}
-
-.SC1-progress {
-	height: 100%;
-	background-color: var(--SC1-primary-color);
-	width: 0%;
-	transition: width 0.5s;
-}
-
 .SC1-pattern-score {
 	display: flex;
 	justify-content: space-between;
@@ -228,6 +225,112 @@ body {
 	font-weight: bold;
 }
 
+/* ===== UPDATE BANNER STYLES ===== */
+.SC1-update-banner {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	background: linear-gradient(135deg, var(--SC1-primary-color), var(--SC1-secondary-color));
+	color: white;
+	padding: 15px 20px;
+	border-radius: 10px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	gap: 15px;
+	animation: slideIn 0.3s ease-out;
+	max-width: 350px;
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+.SC1-refresh-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: none;
+	color: var(--SC1-primary-color);
+	padding: 6px 12px;
+	border-radius: 15px;
+	cursor: pointer;
+	font-weight: 600;
+	transition: all 0.3s;
+}
+
+.SC1-refresh-btn:hover {
+	background: white;
+	transform: translateY(-1px);
+}
+
+.SC1-close-btn {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 1.2rem;
+	cursor: pointer;
+	padding: 0;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	transition: background-color 0.3s;
+}
+
+.SC1-close-btn:hover {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== RTL SPECIFIC STYLES ===== */
+[dir="rtl"] .SC1-nav-buttons {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-controls {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-option,
+[dir="rtl"] .SC1-question-text,
+[dir="rtl"] .SC1-result-section,
+[dir="rtl"] .SC1-result-section h3 {
+	text-align: right;
+}
+
+/* Ensure proper alignment for headers in RTL */
+[dir="rtl"] .SC1-header,
+[dir="rtl"] .SC1-result-title,
+[dir="rtl"] .SC1-result-guide {
+	text-align: center;
+}
+
+[dir="rtl"] .SC1-update-banner {
+	right: auto;
+	left: 20px;
+	animation: slideInRTL 0.3s ease-out;
+}
+
+@keyframes slideInRTL {
+	from {
+		transform: translateX(-100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+/* ===== RESPONSIVE STYLES ===== */
 @media (max-width: 768px) {
 	.SC1-container {
 		padding: 10px;
@@ -249,260 +352,268 @@ body {
 		flex-direction: column;
 		gap: 10px;
 	}
+	
+	/* Mobile adjustments for RTL */
+	[dir="rtl"] .SC1-controls {
+		flex-direction: column;
+	}
+	
+	[dir="rtl"] .SC1-nav-buttons {
+		flex-direction: column-reverse;
+		gap: 10px;
+	}
+	
+	[dir="rtl"] .SC1-button {
+		width: 100%;
+	}
+	
+	.SC1-update-banner {
+		top: 10px;
+		right: 10px;
+		left: 10px;
+		max-width: none;
+	}
+	
+	[dir="rtl"] .SC1-update-banner {
+		right: 10px;
+		left: 10px;
+	}
 }
 
-/* RTL Specific Styles */
-[dir="rtl"] .SC1-nav-buttons {
-    flex-direction: row-reverse;
+/* ===== SETTINGS BUTTON STYLES ===== */
+.SC1-settings-btn {
+	background: rgba(255, 255, 255, 0.2);
+	border: none;
+	color: white;
+	padding: 10px;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: all 0.3s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
 }
 
-[dir="rtl"] .SC1-controls {
-    flex-direction: row-reverse;
+.SC1-settings-btn:hover {
+	background: rgba(255, 255, 255, 0.3);
+	transform: rotate(30deg);
 }
 
-[dir="rtl"] .SC1-language-switcher {
-    flex-direction: row-reverse;
+/* ===== MODAL STYLES ===== */
+.SC1-modal {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.5);
+	z-index: 1000;
+	backdrop-filter: blur(5px);
 }
 
-[dir="rtl"] .SC1-option {
-    text-align: right;
+.SC1-modal.SC1-active {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
-[dir="rtl"] .SC1-question-text {
-    text-align: right;
+.SC1-modal-content {
+	background: white;
+	border-radius: 15px;
+	width: 90%;
+	max-width: 500px;
+	max-height: 90vh;
+	overflow-y: auto;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+	animation: modalSlideIn 0.3s ease-out;
 }
 
-[dir="rtl"] .SC1-result-section {
-    text-align: right;
+@keyframes modalSlideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-50px) scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
 }
 
-[dir="rtl"] .SC1-result-section h3 {
-    text-align: right;
+.SC1-modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 25px;
+	border-bottom: 1px solid #e0e0e0;
+	background: linear-gradient(135deg, var(--SC1-primary-color), var(--SC1-secondary-color));
+	color: white;
+	border-radius: 15px 15px 0 0;
 }
 
-/* Base text alignment for RTL */
-[dir="rtl"] {
-    text-align: right;
+.SC1-modal-header h2 {
+	margin: 0;
+	font-size: 1.5rem;
 }
 
-/* Ensure proper alignment for headers in RTL */
-[dir="rtl"] .SC1-header {
-    text-align: center;
+.SC1-modal-close {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 2rem;
+	cursor: pointer;
+	padding: 0;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	transition: background-color 0.3s;
 }
 
-[dir="rtl"] .SC1-result-title {
-    text-align: center;
+.SC1-modal-close:hover {
+	background: rgba(255, 255, 255, 0.2);
 }
 
-[dir="rtl"] .SC1-result-guide {
-    text-align: center;
+.SC1-modal-body {
+	padding: 25px;
+	}
+
+.SC1-settings-section {
+	margin-bottom: 30px;
 }
 
-/* Mobile adjustments for RTL */
+.SC1-settings-section:last-child {
+	margin-bottom: 0;
+}
+
+.SC1-settings-section h3 {
+	color: var(--SC1-primary-color);
+	margin-bottom: 15px;
+	font-size: 1.2rem;
+	border-bottom: 2px solid var(--SC1-primary-color);
+	padding-bottom: 8px;
+}
+
+/* Modal language switcher */
+.SC1-modal .SC1-language-switcher {
+	display: flex;
+	gap: 10px;
+}
+
+.SC1-modal .SC1-lang-btn {
+	background: #f0f0f0;
+	border: 2px solid #e0e0e0;
+	color: var(--SC1-dark-color);
+	padding: 12px 20px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.3s;
+	flex: 1;
+	font-weight: 500;
+}
+
+.SC1-modal .SC1-lang-btn.SC1-active {
+	background: var(--SC1-primary-color);
+	color: white;
+	border-color: var(--SC1-primary-color);
+}
+
+.SC1-modal .SC1-lang-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal push notification styles */
+.SC1-modal .SC1-push-container {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+	padding: 15px;
+	background: #f8f9fa;
+	border-radius: 8px;
+	border: 1px solid #e0e0e0;
+}
+
+.SC1-modal .SC1-push-label {
+	position: relative;
+	display: inline-block;
+	width: 60px;
+	height: 30px;
+	background-color: #ccc;
+	border-radius: 15px;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.SC1-modal .SC1-push-label::after {
+	content: '';
+	position: absolute;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background-color: white;
+	top: 2px;
+	left: 2px;
+	transition: transform 0.3s;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.SC1-modal .SC1-push-toggle:checked + .SC1-push-label {
+	background-color: var(--SC1-success-color);
+}
+
+.SC1-modal .SC1-push-toggle:checked + .SC1-push-label::after {
+	transform: translateX(30px);
+}
+
+.SC1-modal .SC1-push-status {
+	font-size: 1rem;
+	font-weight: 500;
+	flex: 1;
+}
+
+.SC1-modal .SC1-push-enabled {
+	color: var(--SC1-success-color);
+}
+
+.SC1-modal .SC1-push-disabled {
+	color: #6c757d;
+}
+
+/* RTL Support for Modal */
+[dir="rtl"] .SC1-modal-header {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-modal .SC1-push-label::after {
+	left: auto;
+	right: 2px;
+}
+
+[dir="rtl"] .SC1-modal .SC1-push-toggle:checked + .SC1-push-label::after {
+	transform: translateX(-30px);
+}
+
+/* Responsive Modal */
 @media (max-width: 768px) {
-    [dir="rtl"] .SC1-controls {
-        flex-direction: column;
-    }
-    
-    [dir="rtl"] .SC1-nav-buttons {
-        flex-direction: column-reverse;
-        gap: 10px;
-    }
-    
-    [dir="rtl"] .SC1-button {
-        width: 100%;
-    }
-}
-.SC1-install-btn {
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    color: var(--SC1-primary-color);
-    padding: 10px 20px;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    border: 2px solid transparent;
-}
-
-.SC1-install-btn:hover {
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-color: var(--SC1-primary-color);
-}
-
-.SC1-install-btn:active {
-    transform: translateY(0);
-}
-
-/* Push Notification Styles */
-.SC1-push-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.SC1-push-toggle {
-  display: none;
-}
-
-.SC1-push-label {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-  background-color: #ccc;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.SC1-push-label::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: white;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.3s;
-}
-
-.SC1-push-toggle:checked + .SC1-push-label {
-  background-color: var(--SC1-success-color);
-}
-
-.SC1-push-toggle:checked + .SC1-push-label::after {
-  transform: translateX(26px);
-}
-
-.SC1-push-status {
-  font-size: 0.9rem;
-  margin-left: 10px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-}
-
-.SC1-push-enabled {
-  background-color: rgba(42, 157, 143, 0.1);
-  color: var(--SC1-success-color);
-}
-
-.SC1-push-disabled {
-  background-color: rgba(108, 117, 125, 0.1);
-  color: #6c757d;
-}
-
-/* Update Banner Styles */
-.SC1-update-banner {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: linear-gradient(135deg, var(--SC1-primary-color), var(--SC1-secondary-color));
-  color: white;
-  padding: 15px 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  animation: slideIn 0.3s ease-out;
-  max-width: 350px;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.SC1-refresh-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  color: var(--SC1-primary-color);
-  padding: 6px 12px;
-  border-radius: 15px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.SC1-refresh-btn:hover {
-  background: white;
-  transform: translateY(-1px);
-}
-
-.SC1-close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.3s;
-}
-
-.SC1-close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* RTL Support for Push Controls */
-[dir="rtl"] .SC1-push-status {
-  margin-left: 0;
-  margin-right: 10px;
-}
-
-[dir="rtl"] .SC1-update-banner {
-  right: auto;
-  left: 20px;
-  animation: slideInRTL 0.3s ease-out;
-}
-
-@keyframes slideInRTL {
-  from {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Mobile Responsiveness for Push Controls */
-@media (max-width: 768px) {
-  .SC1-push-container {
-    order: -1;
-    width: 100%;
-    justify-content: center;
-    margin-bottom: 10px;
-  }
-  
-  .SC1-update-banner {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    max-width: none;
-  }
-  
-  [dir="rtl"] .SC1-update-banner {
-    right: 10px;
-    left: 10px;
-  }
+	.SC1-modal-content {
+		width: 95%;
+		margin: 20px;
+	}
+	
+	.SC1-modal-body {
+		padding: 20px;
+	}
+	
+	.SC1-modal-header {
+		padding: 15px 20px;
+	}
+	
+	.SC1-modal .SC1-language-switcher {
+		flex-direction: column;
+	}
 }

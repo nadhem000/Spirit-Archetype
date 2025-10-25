@@ -201,7 +201,12 @@ const translations = {
                 disable: "Disable notifications",
                 enabled: "Notifications enabled",
                 disabled: "Notifications disabled"
-            }
+            },
+        settings: {
+            title: "Settings",
+            language: "Language",
+            notifications: "Notifications"
+        }
         }
     },
     ar: {
@@ -243,7 +248,12 @@ const translations = {
                 disable: "تعطيل الإشعارات",
                 enabled: "الإشعارات مفعلة",
                 disabled: "الإشعارات معطلة"
-            }
+            },
+        settings: {
+            title: "الإعدادات",
+            language: "اللغة",
+            notifications: "الإشعارات"
+        }
         }
     }
 };

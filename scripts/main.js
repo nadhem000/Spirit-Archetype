@@ -74,6 +74,10 @@ let scores = { A: 0, B: 0, C: 0, D: 0 };
 let deferredPrompt;
 
 // عناصر DOM
+// Settings modal elements
+const settingsBtn = document.getElementById('SC1-settings-btn');
+const settingsModal = document.getElementById('SC1-settings-modal');
+const modalClose = document.getElementById('SC1-modal-close');
 const welcomeCard = document.getElementById('SC1-welcome-card');
 const questionCard = document.getElementById('SC1-question-card');
 const resultCard = document.getElementById('SC1-result-card');
@@ -130,6 +134,32 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Settings modal functionality
+function initializeSettingsModal() {
+    // Open modal
+    settingsBtn.addEventListener('click', () => {
+        settingsModal.classList.add('SC1-active');
+    });
+    
+    // Close modal
+    modalClose.addEventListener('click', () => {
+        settingsModal.classList.remove('SC1-active');
+    });
+    
+    // Close modal when clicking outside
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.remove('SC1-active');
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
+            settingsModal.classList.remove('SC1-active');
+        }
+    });
+}
 // Function to check for updates
 function checkForUpdates(registration) {
     if (registration && registration.active) {
@@ -839,55 +869,67 @@ function showUpdateBanner() {
 
 // Add push notification controls to the header
 function addPushNotificationControls() {
-    const controls = document.querySelector('.SC1-controls');
+    const modalBody = document.querySelector('.SC1-modal-body');
     
-    const pushContainer = document.createElement('div');
-    pushContainer.className = 'SC1-push-container';
+    // Check if push container already exists in modal
+    let pushContainer = document.querySelector('.SC1-push-container');
     
-    const pushToggle = document.createElement('input');
-    pushToggle.type = 'checkbox';
-    pushToggle.id = 'SC1-push-toggle';
-    pushToggle.className = 'SC1-push-toggle';
-    
-    const pushLabel = document.createElement('label');
-    pushLabel.htmlFor = 'SC1-push-toggle';
-    pushLabel.className = 'SC1-push-label';
-    
-    const pushStatus = document.createElement('span');
-    pushStatus.id = 'SC1-push-status';
-    pushStatus.className = 'SC1-push-status';
-    
-    pushLabel.appendChild(pushStatus);
-    pushContainer.appendChild(pushToggle);
-    pushContainer.appendChild(pushLabel);
-    
-    // Insert before install button
-    const installBtn = document.getElementById('SC1-install-btn');
-    if (installBtn) {
-        controls.insertBefore(pushContainer, installBtn);
-    } else {
-        controls.appendChild(pushContainer);
-    }
-    
-    // Add event listener for toggle
-    pushToggle.addEventListener('change', async (e) => {
-        const shouldEnable = e.target.checked;
+    if (!pushContainer) {
+        // Create push notification section
+        const pushSection = document.createElement('div');
+        pushSection.className = 'SC1-settings-section';
         
-        try {
-            if (shouldEnable) {
-                await subscribeToPush();
-            } else {
-                await unsubscribeFromPush();
-                // Save notification preference
-                saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
+        const pushTitle = document.createElement('h3');
+        pushTitle.setAttribute('data-i18n', 'SC1.settings.notifications');
+        pushTitle.textContent = 'Notifications';
+        
+        pushContainer = document.createElement('div');
+        pushContainer.className = 'SC1-push-container';
+        
+        const pushToggle = document.createElement('input');
+        pushToggle.type = 'checkbox';
+        pushToggle.id = 'SC1-push-toggle';
+        pushToggle.className = 'SC1-push-toggle';
+        
+        const pushLabel = document.createElement('label');
+        pushLabel.htmlFor = 'SC1-push-toggle';
+        pushLabel.className = 'SC1-push-label';
+        
+        const pushStatus = document.createElement('span');
+        pushStatus.id = 'SC1-push-status';
+        pushStatus.className = 'SC1-push-status';
+        
+        pushLabel.appendChild(pushStatus);
+        pushContainer.appendChild(pushToggle);
+        pushContainer.appendChild(pushLabel);
+        
+        pushSection.appendChild(pushTitle);
+        pushSection.appendChild(pushContainer);
+        
+        // Add to modal body
+        const languageSection = document.querySelector('.SC1-settings-section');
+        modalBody.insertBefore(pushSection, languageSection.nextSibling);
+        
+        // Add event listener for toggle
+        pushToggle.addEventListener('change', async (e) => {
+            const shouldEnable = e.target.checked;
+            
+            try {
+                if (shouldEnable) {
+                    await subscribeToPush();
+                } else {
+                    await unsubscribeFromPush();
+                    // Save notification preference
+                    saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
+                }
+            } catch (error) {
+                // Revert the toggle if operation failed
+                pushToggle.checked = !shouldEnable;
+                updatePushUI(!shouldEnable);
+                console.error('Push notification operation failed:', error);
             }
-        } catch (error) {
-            // Revert the toggle if operation failed
-            pushToggle.checked = !shouldEnable;
-            updatePushUI(!shouldEnable);
-            console.error('Push notification operation failed:', error);
-        }
-    });
+        });
+    }
 }
 
 // Resume test from saved state
@@ -977,7 +1019,10 @@ restartBtn.addEventListener('click', () => {
 
 // Initialize push notifications when the app starts
 document.addEventListener('DOMContentLoaded', () => {
-    // Add push controls to UI
+    // Initialize settings modal
+    initializeSettingsModal();
+    
+    // Add push controls to modal
     addPushNotificationControls();
     
     // Initialize push notifications
