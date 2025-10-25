@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
-const CACHE_NAME = 'spiritual-guide-v1.3.1'; // Increment version
+const CACHE_NAME = 'spiritual-guide-v1.3.3'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
