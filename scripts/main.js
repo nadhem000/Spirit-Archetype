@@ -1027,6 +1027,14 @@ restartBtn.addEventListener('click', () => {
 	applyTranslations();
 });
 
+const updatedTranslations = {
+  en: {
+    // ... existing translations ...
+  },
+  ar: {
+    // ... existing translations ...
+  }
+};
 // Merge with existing translations
 Object.assign(translations.en, updatedTranslations.en);
 Object.assign(translations.ar, updatedTranslations.ar);
