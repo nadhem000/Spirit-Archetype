@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiritual Guide - Side Panel</title>
+    <style>
+        :root {
+            --SC1-primary-color: #4a6fa5;
+            --SC1-secondary-color: #6b8cbc;
+            --SC1-accent-color: #e76f51;
+            --SC1-light-color: #f8f9fa;
+            --SC1-dark-color: #343a40;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: white;
+            color: var(--SC1-dark-color);
+            line-height: 1.6;
+            padding: 15px;
+        }
+
+        .side-panel-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--SC1-primary-color);
+        }
+
+        .side-panel-header h1 {
+            color: var(--SC1-primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .side-panel-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid var(--SC1-primary-color);
+        }
+
+        .side-panel-section h3 {
+            color: var(--SC1-primary-color);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .side-panel-btn {
+            background: var(--SC1-primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .side-panel-btn:hover {
+            background: var(--SC1-secondary-color);
+        }
+
+        .side-panel-btn.secondary {
+            background: #6c757d;
+        }
+
+        .side-panel-btn.secondary:hover {
+            background: #5a6268;
+        }
+
+        .progress-info {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--SC1-success-color, #28a745);
+            transition: width 0.3s;
+        }
+
+        .language-switcher {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .lang-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--SC1-primary-color);
+            background: white;
+            color: var(--SC1-primary-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .lang-btn.active {
+            background: var(--SC1-primary-color);
+            color: white;
+        }
+
+        .test-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--SC1-primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        [dir="rtl"] .side-panel-section {
+            border-left: none;
+            border-right: 4px solid var(--SC1-primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="side-panel-header">
+        <h1>Spiritual Guide</h1>
+        <p>Quick Access Panel</p>
+    </div>
+
+    <div class="side-panel-section">
+        <h3>Test Progress</h3>
+        <div class="progress-info">
+            <div class="test-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="progress-percentage">0%</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="answered-questions">0</div>
+                    <div class="stat-label">Questions</div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-panel-section">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+            <button class="side-panel-btn" id="sp-start-test">Start New Test</button>
+            <button class="side-panel-btn secondary" id="sp-view-results">View Results</button>
+            <button class="side-panel-btn secondary" id="sp-open-settings">Open Settings</button>
+        </div>
+    </div>
+
+    <div class="side-panel-section">
+        <h3>Language</h3>
+        <div class="language-switcher">
+            <button class="lang-btn" data-lang="en">English</button>
+            <button class="lang-btn" data-lang="ar">العربية</button>
+        </div>
+    </div>
+
+    <div class="side-panel-section">
+        <h3>About</h3>
+        <p style="font-size: 0.9rem; color: #6c757d;">
+            Spiritual Guide Test helps you discover your spiritual pattern through interactive questions.
+        </p>
+    </div>
+
+    <script src="scripts/side-panel.js"></script>
+</body>
+</html>

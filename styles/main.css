@@ -699,3 +699,43 @@ audio {
 .SC1-modal-body a:hover {
   text-decoration: underline;
 }
+/* Edge Side Panel Button Styles */
+.SC1-side-panel-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.SC1-side-panel-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.SC1-side-panel-btn:active {
+    transform: translateY(0);
+}
+
+/* RTL support for side panel button */
+[dir="rtl"] .SC1-side-panel-btn {
+    flex-direction: row-reverse;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .SC1-side-panel-btn span {
+        display: none;
+    }
+    
+    .SC1-side-panel-btn {
+        padding: 10px;
+        border-radius: 50%;
+    }
+}
