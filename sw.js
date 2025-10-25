@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
-const CACHE_NAME = 'spiritual-guide-v1.3.7'; // Increment version
+const CACHE_NAME = 'spiritual-guide-v1.3.8'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -26,7 +26,7 @@ const VAPID_PUBLIC_KEY = 'BCk-q7nq79UoXZEG4sLuvyr0sxUXl4DR4mFPNPbVf9WmOlGZdj_3B2
 
 // Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing... Version: 1.3.7');
+  console.log('Service Worker installing... Version: 1.3.8');
   
   // Force the waiting service worker to become active
   self.skipWaiting();
@@ -414,6 +414,7 @@ async function checkForUpdates() {
     let hasUpdates = false;
     
     for (const url of resourcesToCheck) {
+      // Fetch fresh version
       const networkResponse = await fetch(url, {
         cache: 'no-cache',
         headers: {
@@ -423,21 +424,28 @@ async function checkForUpdates() {
       
       if (!networkResponse || networkResponse.status !== 200) continue;
       
+      // Clone the network response immediately for comparison
+      const networkClone = networkResponse.clone();
+      
       const cachedResponse = await cache.match(url);
       
       if (!cachedResponse) {
-        // New resource, update cache
-        await cache.put(url, networkResponse.clone());
+        // New resource, update cache with the original response
+        await cache.put(url, networkResponse);
         hasUpdates = true;
         continue;
       }
       
-      // Compare responses
-      const cachedText = await cachedResponse.text();
-      const networkText = await networkResponse.text();
+      // Clone cached response for comparison
+      const cachedClone = cachedResponse.clone();
+      
+      // Compare responses using the clones
+      const cachedText = await cachedClone.text();
+      const networkText = await networkClone.text();
       
       if (cachedText !== networkText) {
-        await cache.put(url, networkResponse.clone());
+        // Update cache with the original network response
+        await cache.put(url, networkResponse);
         hasUpdates = true;
         console.log(`Updated: ${url}`);
       }
