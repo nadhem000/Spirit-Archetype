@@ -1,44 +1,56 @@
-// Service Worker for Spiritual Guide Test PWA
-const CACHE_NAME = 'spiritual-guide-v1.2.4-' + new Date().toISOString().slice(0, 10); // Add date for daily cache busting
-
-// Add cache-busting query parameters to URLs
+// Service Worker for Spiritual Guide Test PWA - Enhanced Version
+const CACHE_NAME = 'spiritual-guide-v1.2.5'; // Increment version
 const urlsToCache = [
-  '/?v=1.2.4',
-  '/index.html?v=1.2.4',
-  '/styles/main.css?v=1.2.4',
-  '/scripts/main.js?v=1.2.4',
-  '/manifest.json?v=1.2.4',
-  '/assets/icons/icon-72x72.png?v=1.2.4',
-  '/assets/icons/icon-96x96.png?v=1.2.4',
-  '/assets/icons/icon-128x128.png?v=1.2.4',
-  '/assets/icons/icon-144x144.png?v=1.2.4',
-  '/assets/icons/icon-152x152.png?v=1.2.4',
-  '/assets/icons/icon-192x192.png?v=1.2.4',
-  '/assets/icons/icon-384x384.png?v=1.2.4',
-  '/assets/icons/icon-512x512.png?v=1.2.4',
-  '/assets/screenshots/screenshot-desktop_1280x720.png?v=1.2.4',
-  '/assets/screenshots/screenshot-mobile_375x667.png?v=1.2.4''
+  '/',
+  '/index.html',
+  '/styles/main.css',
+  '/scripts/main.js',
+  '/manifest.json',
+  '/assets/icons/icon-72x72.png',
+  '/assets/icons/icon-96x96.png',
+  '/assets/icons/icon-128x128.png',
+  '/assets/icons/icon-144x144.png',
+  '/assets/icons/icon-152x152.png',
+  '/assets/icons/icon-192x192.png',
+  '/assets/icons/icon-384x384.png',
+  '/assets/icons/icon-512x512.png',
+  '/assets/screenshots/screenshot-desktop_1280x720.png',
+  '/assets/screenshots/screenshot-mobile_375x667.png'
 ];
+
 // Background Sync queue name
 const BACKGROUND_SYNC_QUEUE = 'background-sync-queue';
 
-// Install event - cache essential files
+// Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing with version:', CACHE_NAME);
+  console.log('Service Worker installing... Version: 1.2.4');
+  
+  // Force the waiting service worker to become active
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache:', CACHE_NAME);
-        return cache.addAll(urlsToCache.map(url => {
-          // Remove version query for actual caching
-          const cleanUrl = url.split('?')[0];
-          return new Request(cleanUrl, {cache: 'reload'});
-        }));
+        // Use network-first for critical files, cache as fallback
+        return Promise.all(
+          urlsToCache.map(url => {
+            return fetch(url, { cache: 'no-cache' })
+              .then(response => {
+                if (response.status === 200) {
+                  console.log('Caching:', url);
+                  return cache.put(url, response);
+                }
+              })
+              .catch(error => {
+                console.warn('Could not fetch', url, 'will use cached version later');
+                // Don't throw error, we'll use stale-while-revalidate
+              });
+          })
+        );
       })
       .then(() => {
         console.log('All resources cached successfully');
-        // Skip waiting to activate immediately
-        return self.skipWaiting();
       })
       .catch(error => {
         console.error('Cache installation failed:', error);
@@ -46,70 +58,243 @@ self.addEventListener('install', event => {
   );
 });
 
-// Fetch event - serve from cache first, then network with background sync fallback
+// Enhanced fetch with version control and update detection
 self.addEventListener('fetch', event => {
   // Skip non-GET requests and external URLs
   if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
+  const requestUrl = new URL(event.request.url);
+  
+  // For HTML documents, use network-first strategy to ensure updates
+  if (event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      networkFirstThenCache(event.request)
+    );
+    return;
+  }
+
+  // For CSS, JS, and other assets, use stale-while-revalidate
+  if (requestUrl.pathname.match(/\.(css|js|json|png|jpg|jpeg|gif|svg|ico)$/)) {
+    event.respondWith(
+      staleWhileRevalidate(event.request)
+    );
+    return;
+  }
+
+  // Default: cache-first strategy
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version immediately
-        if (response) {
-          return response;
-        }
-
-        // Clone the request because it can only be used once
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest)
-          .then(response => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response because it can only be used once
-            const responseToCache = response.clone();
-
-            // Cache the new response
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch(error => {
-            console.log('Fetch failed; returning offline page:', error);
-            
-            // For HTML requests, return the cached homepage
-            if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('/');
-            }
-            
-            // Queue for background sync if network fails
-            if ('sync' in self.registration) {
-              event.waitUntil(
-                self.registration.sync.register('background-sync')
-                  .then(() => {
-                    console.log('Background Sync registered for failed request');
-                  })
-                  .catch(syncError => {
-                    console.error('Background Sync registration failed:', syncError);
-                  })
-              );
-            }
-            
-            throw error;
-          });
-      })
+    cacheFirstWithUpdate(event.request)
   );
 });
 
-// Background Sync event
+// Network first strategy for HTML
+async function networkFirstThenCache(request) {
+  try {
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse && networkResponse.status === 200) {
+      // Update cache with fresh response
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, networkResponse.clone());
+      return networkResponse;
+    }
+    throw new Error('Network response not ok');
+  } catch (error) {
+    // Network failed, try cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // If no cache and it's an HTML request, return offline page or homepage
+    if (request.headers.get('accept')?.includes('text/html')) {
+      return caches.match('/');
+    }
+    
+    throw error;
+  }
+}
+
+// Stale-while-revalidate for assets
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cachedResponse = await cache.match(request);
+  
+  // Return cached version immediately
+  if (cachedResponse) {
+    // Update cache in background
+    fetchAndCache(request, cache);
+    return cachedResponse;
+  }
+  
+  // Not in cache, fetch from network
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.status === 200) {
+      await cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Cache first with background update
+async function cacheFirstWithUpdate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cachedResponse = await cache.match(request);
+  
+  if (cachedResponse) {
+    // Update cache in background
+    fetchAndCache(request, cache);
+    return cachedResponse;
+  }
+  
+  // Not in cache, fetch from network
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.status === 200) {
+      await cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Helper function to fetch and cache in background
+async function fetchAndCache(request, cache) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.status === 200) {
+      await cache.put(request, networkResponse);
+    }
+  } catch (error) {
+    // Silent fail - we already returned cached response
+  }
+}
+
+// Enhanced activate event with better cleanup
+self.addEventListener('activate', event => {
+  console.log('Service Worker activating... Version: 1.2.4');
+  
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          // Delete all caches that are not the current version
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+    .then(() => {
+      console.log('Claiming clients for version:', CACHE_NAME);
+      // Take control of all clients immediately
+      return self.clients.claim();
+    })
+    .then(() => {
+      // Send message to all clients about update
+      return self.clients.matchAll();
+    })
+    .then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'SW_ACTIVATED',
+          version: CACHE_NAME,
+          message: 'Service Worker updated and activated'
+        });
+      });
+    })
+    .then(() => {
+      // Register periodic sync if supported
+      if ('periodicSync' in self.registration) {
+        return self.registration.periodicSync.register('content-update', {
+          minInterval: 24 * 60 * 60 * 1000 // 24 hours
+        }).then(() => {
+          console.log('Periodic Sync registered on activate');
+        }).catch(error => {
+          console.log('Periodic Sync not supported:', error);
+        });
+      }
+    })
+  );
+});
+
+// Enhanced message handling for updates
+self.addEventListener('message', event => {
+  console.log('Service Worker received message:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CHECK_FOR_UPDATES') {
+    checkForUpdates().then(hasUpdates => {
+      event.ports[0].postMessage({ hasUpdates });
+    });
+  }
+  
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.delete(CACHE_NAME).then(() => {
+      event.ports[0].postMessage({ cleared: true });
+    });
+  }
+});
+
+// Enhanced update checking with cache busting
+async function checkForUpdates() {
+  try {
+    console.log('Checking for updates with cache busting...');
+    
+    const cache = await caches.open(CACHE_NAME);
+    const resourcesToCheck = ['/', '/index.html', '/styles/main.css', '/scripts/main.js'];
+    let hasUpdates = false;
+    
+    for (const url of resourcesToCheck) {
+      const networkResponse = await fetch(url, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      }).catch(() => null);
+      
+      if (!networkResponse || networkResponse.status !== 200) continue;
+      
+      const cachedResponse = await cache.match(url);
+      
+      if (!cachedResponse) {
+        // New resource, update cache
+        await cache.put(url, networkResponse.clone());
+        hasUpdates = true;
+        continue;
+      }
+      
+      // Compare responses
+      const cachedText = await cachedResponse.text();
+      const networkText = await networkResponse.text();
+      
+      if (cachedText !== networkText) {
+        await cache.put(url, networkResponse.clone());
+        hasUpdates = true;
+        console.log(`Updated: ${url}`);
+      }
+    }
+    
+    return hasUpdates;
+    
+  } catch (error) {
+    console.error('Error checking for updates:', error);
+    return false;
+  }
+}
+
+// Keep the existing sync events (they remain the same)
 self.addEventListener('sync', event => {
   console.log('Background Sync event:', event.tag);
   
@@ -138,7 +323,6 @@ self.addEventListener('sync', event => {
   }
 });
 
-// Periodic Sync event
 self.addEventListener('periodicsync', event => {
   console.log('Periodic Sync event:', event.tag);
   
@@ -148,7 +332,6 @@ self.addEventListener('periodicsync', event => {
         .then(updated => {
           if (updated) {
             console.log('New content available after periodic sync');
-            // Send message to clients about update
             self.clients.matchAll().then(clients => {
               clients.forEach(client => {
                 client.postMessage({
@@ -166,15 +349,11 @@ self.addEventListener('periodicsync', event => {
   }
 });
 
-// Function to sync failed requests
+// Keep existing sync functions (they remain the same)
 async function syncFailedRequests() {
   try {
-    // In a real app, you would retrieve failed requests from IndexedDB
-    // and retry them here. For this demo, we'll update the cache.
-    
     console.log('Syncing failed requests...');
     
-    // Update cache with fresh content
     const cache = await caches.open(CACHE_NAME);
     const requestsToUpdate = [
       '/',
@@ -204,12 +383,10 @@ async function syncFailedRequests() {
   }
 }
 
-// Function to perform periodic sync tasks
 async function performPeriodicSync() {
   try {
     console.log('Performing periodic sync...');
     
-    // Update cache with latest versions
     const cache = await caches.open(CACHE_NAME);
     
     const updatePromises = urlsToCache.map(url => 
@@ -233,99 +410,9 @@ async function performPeriodicSync() {
   }
 }
 
-// Function to check for updates
-async function checkForUpdates() {
-  try {
-    console.log('Checking for updates...');
-    
-    const cache = await caches.open(CACHE_NAME);
-    let hasUpdates = false;
-    
-    // Check main resources for updates
-    const resourcesToCheck = ['/', '/index.html', '/styles/main.css', '/scripts/main.js'];
-    
-    for (const url of resourcesToCheck) {
-      const cachedResponse = await cache.match(url);
-      
-      if (!cachedResponse) continue;
-      
-      const networkResponse = await fetch(url, {
-        headers: {
-          'Cache-Control': 'max-age=0'
-        }
-      }).catch(() => null);
-      
-      if (networkResponse && networkResponse.status === 200) {
-        const cachedETag = cachedResponse.headers.get('etag');
-        const networkETag = networkResponse.headers.get('etag');
-        
-        // If ETags are different or we can't compare, assume update
-        if (!cachedETag || !networkETag || cachedETag !== networkETag) {
-          await cache.put(url, networkResponse.clone());
-          hasUpdates = true;
-          console.log(`Updated: ${url}`);
-        }
-      }
-    }
-    
-    return hasUpdates;
-    
-  } catch (error) {
-    console.error('Error checking for updates:', error);
-    return false;
-  }
-}
-
-// Activate event - clean up old caches and claim clients
-self.addEventListener('activate', event => {
-  console.log('Service Worker activating...');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          // Delete ALL old caches except current one
-          if (cacheName !== CACHE_NAME && cacheName.startsWith('spiritual-guide-')) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      // Claim clients immediately
-      return self.clients.claim();
-    }).then(() => {
-      // Send version update message to all clients
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'SW_VERSION_UPDATED',
-            version: CACHE_NAME,
-            timestamp: new Date().toISOString()
-          });
-        });
-      });
-    })
-  );
-});
-
-// Handle messages from the client
-self.addEventListener('message', event => {
-  console.log('Service Worker received message:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'REGISTER_PERIODIC_SYNC') {
-    registerPeriodicSync();
-  }
-});
-
-// Function to register periodic background sync
 async function registerPeriodicSync() {
   if ('periodicSync' in self.registration) {
     try {
-      // Request permission for periodic sync
       const status = await self.registration.periodicSync.register('content-update', {
         minInterval: 24 * 60 * 60 * 1000 // 24 hours
       });
