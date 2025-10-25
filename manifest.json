@@ -22,6 +22,9 @@
 			"id": "spiritual-consultation"
 		}
 	],
+	"launch_handler": {
+		"client_mode": "focus-existing"
+	},
 	"icons": [
 		{
 			"src": "assets/icons/icon-72x72.png",
