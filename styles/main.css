@@ -660,3 +660,42 @@ audio {
     font-size: 14px;
     line-height: 1.4;
 }
+
+/* Share target styles */
+.SC1-share-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.SC1-share-actions .SC1-button {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Image preview styles */
+.SC1-modal-body img {
+  max-height: 60vh;
+  object-fit: contain;
+}
+
+/* URL display styles */
+.SC1-url-display {
+  background: #f0f8ff;
+  border: 1px solid #4a6fa5;
+  border-radius: 4px;
+  padding: 10px;
+  word-break: break-all;
+  font-family: monospace;
+  margin: 10px 0;
+}
+
+.SC1-modal-body a {
+  color: var(--SC1-primary-color);
+  text-decoration: none;
+}
+
+.SC1-modal-body a:hover {
+  text-decoration: underline;
+}

@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
-const CACHE_NAME = 'spiritual-guide-v1.4.7'; // Increment version
+const CACHE_NAME = 'spiritual-guide-v1.4.8'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -27,7 +27,7 @@ const VAPID_PUBLIC_KEY = 'BCk-q7nq79UoXZEG4sLuvyr0sxUXl4DR4mFPNPbVf9WmOlGZdj_3B2
 
 // Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing... Version: 1.4.7');
+  console.log('Service Worker installing... Version: 1.4.8');
   
   // Force the waiting service worker to become active
   self.skipWaiting();
@@ -69,7 +69,20 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-    const requestUrl = new URL(event.request.url);
+  const requestUrl = new URL(event.request.url);
+  
+  // Handle share target route
+  if (requestUrl.pathname === '/share-target') {
+    event.respondWith(
+      new Response(JSON.stringify({
+        message: 'Share target endpoint',
+        sharedData: Object.fromEntries(requestUrl.searchParams)
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    return;
+  }
     
     // Handle file handler routes
     if (requestUrl.pathname === '/file-handler') {

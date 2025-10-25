@@ -811,31 +811,130 @@ function initializeFileHandlers() {
 		console.log('File Handling API is not supported in this browser');
 	}
 }
+
+// Share target functionality
+function initializeShareTarget() {
+  // Check if we were launched as a share target
+  if (window.location.search.includes('title=') || 
+      window.location.search.includes('text=') || 
+      window.location.search.includes('url=')) {
+    handleSharedContent();
+  }
+}
+
+function handleSharedContent() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const title = urlParams.get('title');
+  const text = urlParams.get('text');
+  const url = urlParams.get('url');
+  
+  if (title || text || url) {
+    showShareModal(title, text, url);
+    
+    // Clean URL without share parameters
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+}
+
+function showShareModal(title, text, url) {
+  const modal = document.createElement('div');
+  modal.className = 'SC1-modal SC1-active';
+  modal.innerHTML = `
+    <div class="SC1-modal-content">
+      <div class="SC1-modal-header">
+        <h2>Shared Content</h2>
+        <button class="SC1-modal-close" id="SC1-share-close">&times;</button>
+      </div>
+      <div class="SC1-modal-body">
+        ${title ? `<p><strong>Title:</strong> ${title}</p>` : ''}
+        ${text ? `<p><strong>Text:</strong> ${text}</p>` : ''}
+        ${url ? `<p><strong>URL:</strong> <a href="${url}" target="_blank">${url}</a></p>` : ''}
+        <div class="SC1-share-actions">
+          <button class="SC1-button SC1-btn-primary" id="SC1-share-start-test">Start Test with Shared Inspiration</button>
+          <button class="SC1-button SC1-btn-secondary" id="SC1-share-close-btn">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Add event listeners
+  document.getElementById('SC1-share-close').addEventListener('click', () => {
+    modal.remove();
+  });
+  
+  document.getElementById('SC1-share-close-btn').addEventListener('click', () => {
+    modal.remove();
+  });
+  
+  document.getElementById('SC1-share-start-test').addEventListener('click', () => {
+    modal.remove();
+    // Start the test when user clicks
+    if (welcomeCard.classList.contains('SC1-active')) {
+      startBtn.click();
+    }
+  });
+  
+  // Close when clicking outside
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
 // Handle file opening
 async function handleFile(fileHandle) {
-	try {
-		const file = await fileHandle.getFile();
-		const fileType = file.type;
-		const fileName = file.name;
-		console.log(`Handling file: ${fileName}, type: ${fileType}`);
-		let content = '';
-		if (fileType.startsWith('text/') || 
-			fileType === 'application/javascript' || 
-			fileType === 'application/json') {
-			// Read text files
-			content = await file.text();
-			displayFileContent(fileName, content, fileType);
-			} else if (fileType.startsWith('audio/')) {
-			// Handle audio files
-			await handleAudioFile(file, fileName);
-			} else {
-			content = `Cannot display file type: ${fileType}`;
-			displayFileContent(fileName, content, fileType);
-		}
-		} catch (error) {
-		console.error('Error handling file:', error);
-		showNotification('File Error', `Could not open file: ${error.message}`);
-	}
+  try {
+    const file = await fileHandle.getFile();
+    const fileType = file.type;
+    const fileName = file.name;
+    console.log(`Handling file: ${fileName}, type: ${fileType}`);
+    
+    let content = '';
+    if (fileType.startsWith('text/') || 
+        fileType === 'application/javascript' || 
+        fileType === 'application/json' ||
+        fileType === 'text/markdown' ||
+        fileType === 'text/html') {
+      // Read text files
+      content = await file.text();
+      displayFileContent(fileName, content, fileType);
+    } else if (fileType.startsWith('audio/')) {
+      // Handle audio files
+      await handleAudioFile(file, fileName);
+    } else if (fileType.startsWith('image/')) {
+      // Handle image files
+      await handleImageFile(file, fileName);
+    } else {
+      content = `Cannot display file type: ${fileType}`;
+      displayFileContent(fileName, content, fileType);
+    }
+  } catch (error) {
+    console.error('Error handling file:', error);
+    showNotification('File Error', `Could not open file: ${error.message}`);
+  }
+}
+function handleImageFile(file, fileName) {
+  const modal = document.getElementById('SC1-file-handler-modal');
+  const title = document.getElementById('SC1-file-handler-title');
+  const contentDiv = document.getElementById('SC1-file-handler-content');
+  
+  title.textContent = `Image: ${fileName}`;
+  const imageUrl = URL.createObjectURL(file);
+  contentDiv.innerHTML = `
+    <img src="${imageUrl}" alt="${fileName}" style="max-width: 100%; height: auto; border-radius: 8px;">
+    <p style="margin-top: 15px; text-align: center;">${fileName}</p>
+  `;
+  modal.classList.add('SC1-active');
+  
+  // Clean up URL when modal closes
+  const closeHandler = () => {
+    URL.revokeObjectURL(imageUrl);
+    modal.removeEventListener('close', closeHandler);
+  };
+  modal.addEventListener('close', closeHandler);
 }
 // Display file content in modal
 function displayFileContent(fileName, content, fileType) {
@@ -905,26 +1004,31 @@ function handleProtocolNavigation() {
 }
 // Show external website confirmation modal
 function showExternalWebsiteModal(url) {
-	const modal = document.getElementById('SC1-protocol-handler-modal');
-	const urlDisplay = document.getElementById('SC1-protocol-handler-url');
-	const cancelBtn = document.getElementById('SC1-protocol-handler-cancel');
-	const openBtn = document.getElementById('SC1-protocol-handler-open');
-	urlDisplay.textContent = url;
-	// Remove existing event listeners
-	const newCancelBtn = cancelBtn.cloneNode(true);
-	const newOpenBtn = openBtn.cloneNode(true);
-	cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-	openBtn.parentNode.replaceChild(newOpenBtn, openBtn);
-	// Add new event listeners
-	newCancelBtn.addEventListener('click', () => {
-		modal.classList.remove('SC1-active');
-	});
-	newOpenBtn.addEventListener('click', () => {
-		modal.classList.remove('SC1-active');
-		// Open in new tab
-		window.open(url, '_blank', 'noopener,noreferrer');
-	});
-	modal.classList.add('SC1-active');
+  const modal = document.getElementById('SC1-protocol-handler-modal');
+  const urlDisplay = document.getElementById('SC1-protocol-handler-url');
+  const cancelBtn = document.getElementById('SC1-protocol-handler-cancel');
+  const openBtn = document.getElementById('SC1-protocol-handler-open');
+  
+  urlDisplay.textContent = url;
+  
+  // Remove existing event listeners
+  const newCancelBtn = cancelBtn.cloneNode(true);
+  const newOpenBtn = openBtn.cloneNode(true);
+  cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+  openBtn.parentNode.replaceChild(newOpenBtn, openBtn);
+  
+  // Add new event listeners
+  newCancelBtn.addEventListener('click', () => {
+    modal.classList.remove('SC1-active');
+  });
+  
+  newOpenBtn.addEventListener('click', () => {
+    modal.classList.remove('SC1-active');
+    // Open in new tab
+    window.open(url, '_blank', 'noopener,noreferrer');
+  });
+  
+  modal.classList.add('SC1-active');
 }
 // Handle custom protocol actions
 function handleCustomProtocol(action) {
@@ -998,14 +1102,16 @@ restartBtn.addEventListener('click', () => {
 });
 // Initialize push notifications when the app starts
 document.addEventListener('DOMContentLoaded', () => {
-	// Initialize settings modal
-	initializeSettingsModal();
-	// Add push controls to modal
-	addPushNotificationControls();
-	// Initialize push notifications
-	initializePushNotifications();
-	// Check for updates periodically
-	setInterval(checkForUpdatesAndNotify, 30 * 60 * 1000); // Every 30 minutes
+  // Initialize settings modal
+  initializeSettingsModal();
+  // Add push controls to modal
+  addPushNotificationControls();
+  // Initialize push notifications
+  initializePushNotifications();
+  // Initialize share target
+  initializeShareTarget();
+  // Check for updates periodically
+  setInterval(checkForUpdatesAndNotify, 30 * 60 * 1000); // Every 30 minutes
 	// Listen for update messages from service worker
 	navigator.serviceWorker.addEventListener('message', event => {
 		if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
