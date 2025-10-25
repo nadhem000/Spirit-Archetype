@@ -9,8 +9,8 @@ const STORAGE_KEYS = {
 	CURRENT_QUESTION: 'spiritual-guide-current-question'
 };
 
-// Add this line - same key as in sw.js
-const VAPID_PUBLIC_KEY = 'BLx5g7YF4a0zQwK8cJ3d2nH6mP9rT1sW3vZ7yA8bC4eX0uD5fG2hK6jL9nM8pQ3tR7wV1zY4xE6bU9cH2mN5fP8rA0sW3vZ7y';
+// same key as in sw.js
+const VAPID_PUBLIC_KEY = 'BCk-q7nq79UoXZEG4sLuvyr0sxUXl4DR4mFPNPbVf9WmOlGZdj_3B2KpN4xLHJfyEWYMqA7RQxkuM1Nk1_mA1uY';
 
 // Save data to localStorage
 function saveToStorage(key, data) {
@@ -758,18 +758,39 @@ function updatePageDirection() {
         htmlElement.setAttribute('lang', 'en');
 	}
 }
+function isValidVapidKey(key) {
+    if (!key || typeof key !== 'string') {
+        return false;
+    }
+    
+    // VAPID keys should be URL-safe base64 strings
+    // They typically don't contain characters like +, /, or =
+    const vapidKeyRegex = /^[A-Za-z0-9_-]+$/;
+    
+    if (!vapidKeyRegex.test(key)) {
+        return false;
+    }
+    
+    // Try to decode the key to verify it's valid base64
+    try {
+        urlBase64ToUint8Array(key);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 
 // Initialize push notifications
 async function initializePushNotifications() {
-	if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-		console.log('Push notifications are not supported');
-		// Hide push controls if not supported
-		const pushContainer = document.querySelector('.SC1-push-container');
-		if (pushContainer) {
-			pushContainer.style.display = 'none';
-		}
-		return;
-	}
+    if (!isValidVapidKey(VAPID_PUBLIC_KEY)) {
+        console.error('Invalid VAPID public key configuration');
+        const pushContainer = document.querySelector('.SC1-push-container');
+        if (pushContainer) {
+            pushContainer.style.display = 'none';
+        }
+        return;
+    }
 
 	// Check if VAPID key is available
 	if (!VAPID_PUBLIC_KEY) {
@@ -821,59 +842,72 @@ async function initializePushNotifications() {
 
 // Request push notification permission
 async function subscribeToPush() {
-	try {
-		// Check if VAPID key is available
-		if (!VAPID_PUBLIC_KEY) {
-			throw new Error('VAPID public key is not configured');
-		}
+    try {
+        // Check if VAPID key is available and valid
+        if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.length < 20) {
+            throw new Error('VAPID public key is not properly configured');
+        }
 
-		const registration = await navigator.serviceWorker.ready;
-		
-		// Check permission first
-		const permission = await Notification.requestPermission();
-		
-		if (permission !== 'granted') {
-			throw new Error('Permission not granted for notifications');
-		}
-		
-		// Convert VAPID key to Uint8Array
-		const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-		
-		// Subscribe to push
-		const subscription = await registration.pushManager.subscribe({
-			userVisibleOnly: true,
-			applicationServerKey: applicationServerKey
-		});
-		
-		console.log('User subscribed to push:', subscription);
-		isPushEnabled = true;
-		updatePushUI(true);
-		
-		// Save notification preference
-		saveToStorage(STORAGE_KEYS.NOTIFICATIONS, true);
-		
-		// Send subscription to server (in a real app, you'd send this to your backend)
-		await sendSubscriptionToServer(subscription);
-		
-		return subscription;
-		
-	} catch (error) {
-		console.error('Error subscribing to push notifications:', error);
-		
-		// Update UI to reflect failure
-		isPushEnabled = false;
-		updatePushUI(false);
-		saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
-		
-		if (error.name === 'NotAllowedError') {
-			showNotification('Permission Denied', 'Please enable notifications in your browser settings to receive updates.');
-		} else if (error.message.includes('VAPID')) {
-			console.error('VAPID key issue:', error);
-			showNotification('Configuration Error', 'Push notifications are not properly configured.');
-		}
-		
-		throw error;
-	}
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Check permission first
+        const permission = await Notification.requestPermission();
+        
+        if (permission !== 'granted') {
+            throw new Error('Permission not granted for notifications');
+        }
+        
+        // Validate the VAPID key before using it
+        try {
+            // Test if the key can be decoded
+            urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        } catch (decodeError) {
+            throw new Error('Invalid VAPID public key format');
+        }
+        
+        // Convert VAPID key to Uint8Array
+        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        
+        // Subscribe to push
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey
+        });
+        
+        console.log('User subscribed to push:', subscription);
+        isPushEnabled = true;
+        updatePushUI(true);
+        
+        // Save notification preference
+        saveToStorage(STORAGE_KEYS.NOTIFICATIONS, true);
+        
+        // Send subscription to server (in a real app, you'd send this to your backend)
+        await sendSubscriptionToServer(subscription);
+        
+        return subscription;
+        
+    } catch (error) {
+        console.error('Error subscribing to push notifications:', error);
+        
+        // Update UI to reflect failure
+        isPushEnabled = false;
+        updatePushUI(false);
+        saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
+        
+        if (error.name === 'NotAllowedError') {
+            showNotification('Permission Denied', 'Please enable notifications in your browser settings to receive updates.');
+        } else if (error.message.includes('VAPID') || error.message.includes('key')) {
+            console.error('VAPID key issue:', error);
+            showNotification('Configuration Error', 'Push notifications are not properly configured. Please contact support.');
+            // Hide push controls if VAPID key is invalid
+            const pushContainer = document.querySelector('.SC1-push-container');
+            if (pushContainer) {
+                pushContainer.style.display = 'none';
+            }
+        }
+        
+        throw error;
+    }
 }
 
 // Unsubscribe from push notifications
