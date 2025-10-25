@@ -1,10 +1,11 @@
 // Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
-const CACHE_NAME = 'spiritual-guide-v1.3.8'; // Increment version
+const CACHE_NAME = 'spiritual-guide-v1.3.9'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
   '/styles/main.css',
   '/scripts/main.js',
+  '/scripts/data.js',
   '/manifest.json',
   '/assets/icons/icon-72x72.png',
   '/assets/icons/icon-96x96.png',
@@ -26,7 +27,7 @@ const VAPID_PUBLIC_KEY = 'BCk-q7nq79UoXZEG4sLuvyr0sxUXl4DR4mFPNPbVf9WmOlGZdj_3B2
 
 // Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing... Version: 1.3.8');
+  console.log('Service Worker installing... Version: 1.3.9');
   
   // Force the waiting service worker to become active
   self.skipWaiting();
@@ -410,7 +411,7 @@ async function checkForUpdates() {
     console.log('Checking for updates with cache busting...');
     
     const cache = await caches.open(CACHE_NAME);
-    const resourcesToCheck = ['/', '/index.html', '/styles/main.css', '/scripts/main.js'];
+    const resourcesToCheck = ['/', '/index.html', '/styles/main.css', '/scripts/main.js', '/scripts/data.js'];
     let hasUpdates = false;
     
     for (const url of resourcesToCheck) {
@@ -511,7 +512,8 @@ async function syncFailedRequests() {
       '/',
       '/index.html',
       '/styles/main.css',
-      '/scripts/main.js'
+      '/scripts/main.js',
+      '/scripts/data.js'
     ];
     
     const updatePromises = requestsToUpdate.map(url => 
