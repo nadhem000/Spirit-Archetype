@@ -269,38 +269,109 @@ const installBtn = document.getElementById('SC1-install-btn');
 
 // PWA Install Logic
 window.addEventListener('beforeinstallprompt', (e) => {
-	// Prevent the mini-infobar from appearing on mobile
-	e.preventDefault();
-	// Stash the event so it can be triggered later
-	deferredPrompt = e;
-	// Show the install button
-	installBtn.style.display = 'block';
-	
-	// Apply translation to install button
-	const installText = translate('SC1.install.installApp');
-	installBtn.querySelector('span').textContent = installText;
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  // Stash the event so it can be triggered later
+  deferredPrompt = e;
+  // Show the install button
+  installBtn.style.display = 'block';
+  
+  // Apply translation to install button
+  const installText = translate('SC1.install.installApp');
+  installBtn.querySelector('span').textContent = installText;
 });
 
-installBtn.addEventListener('click', async () => {
-	if (!deferredPrompt) return;
-	
-	// Show the install prompt
-	deferredPrompt.prompt();
-	
-	// Wait for the user to respond to the prompt
-	const { outcome } = await deferredPrompt.userChoice;
-	
-	if (outcome === 'accepted') {
-		console.log('User accepted the install prompt');
-		// Hide the install button after successful installation
-		installBtn.style.display = 'none';
-		} else {
-		console.log('User dismissed the install prompt');
-	}
-	
-	// Clear the saved prompt since it can't be used again
-	deferredPrompt = null;
+// Enhanced service worker registration with background sync support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('SW registered: ', registration);
+      
+      // Check if background sync is supported
+      if ('sync' in registration) {
+        console.log('Background Sync supported');
+      }
+      
+      // Check if periodic sync is supported
+      if ('periodicSync' in registration) {
+        console.log('Periodic Sync supported');
+        // Register for periodic updates
+        registration.periodicSync.register('content-update', {
+          minInterval: 24 * 60 * 60 * 1000 // 24 hours
+        }).then(() => {
+          console.log('Periodic sync registered');
+        }).catch(error => {
+          console.log('Periodic sync registration failed:', error);
+        });
+      }
+      
+    } catch (registrationError) {
+      console.log('SW registration failed: ', registrationError);
+    }
+  });
+}
+
+// Listen for service worker messages (like content updates)
+navigator.serviceWorker.addEventListener('message', event => {
+  if (event.data && event.data.type === 'CONTENT_UPDATED') {
+    // Show update notification to user
+    if (confirm(event.data.message + ' Would you like to refresh now?')) {
+      window.location.reload();
+    }
+  }
 });
+
+// Enhanced install button handler
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  
+  // Show the install prompt
+  const result = await deferredPrompt.prompt();
+  
+  // Wait for the user to respond to the prompt
+  const { outcome } = await deferredPrompt.userChoice;
+  
+  if (outcome === 'accepted') {
+    console.log('User accepted the install prompt');
+    
+    // Register background sync after installation
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        return registration.sync.register('background-sync');
+      }).then(() => {
+        console.log('Background Sync registered after install');
+      }).catch(error => {
+        console.log('Background Sync registration failed:', error);
+      });
+    }
+    
+    // Hide the install button after successful installation
+    installBtn.style.display = 'none';
+  } else {
+    console.log('User dismissed the install prompt');
+  }
+  
+  // Clear the saved prompt since it can't be used again
+  deferredPrompt = null;
+});
+
+// Request background sync when coming online
+window.addEventListener('online', () => {
+  console.log('App is online, triggering background sync');
+  
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    navigator.serviceWorker.ready.then(registration => {
+      return registration.sync.register('background-sync');
+    }).then(() => {
+      console.log('Background Sync registered when online');
+    }).catch(error => {
+      console.log('Background Sync registration failed:', error);
+    });
+  }
+});
+
+
 
 // Hide the install button when the app is successfully installed
 window.addEventListener('appinstalled', () => {
