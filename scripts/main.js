@@ -1054,6 +1054,22 @@ function handleCustomProtocol(action) {
 		console.log('Unknown protocol action:', action);
 	}
 }
+
+// Trigger widget update when test is completed
+function triggerWidgetUpdate() {
+    if (window.widgets && typeof window.widgets.triggerWidgetUpdate === 'function') {
+        window.widgets.triggerWidgetUpdate();
+    }
+    
+    // Also dispatch custom event for widgets
+    const testCompletedEvent = new CustomEvent('testCompleted', {
+        detail: {
+            pattern: calculateResult(),
+            timestamp: new Date().toISOString()
+        }
+    });
+    document.dispatchEvent(testCompletedEvent);
+}
 // معالجة أحداث الأزرار
 startBtn.addEventListener('click', () => {
 	welcomeCard.classList.remove('SC1-active');
@@ -1070,19 +1086,21 @@ prevBtn.addEventListener('click', () => {
 	}
 });
 nextBtn.addEventListener('click', () => {
-	if (currentQuestionIndex < questions.length - 1) {
-		currentQuestionIndex++;
-		displayQuestion(currentQuestionIndex);
-		saveTestProgress();
-		} else {
-		// انتهاء الاختبار وعرض النتيجة
-		questionCard.classList.remove('SC1-active');
-		resultCard.classList.add('SC1-active');
-		displayResult();
-		// Clear progress when test is completed
-		localStorage.removeItem(STORAGE_KEYS.ANSWERS);
-		localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
-	}
+    if (currentQuestionIndex < questions.length - 1) {
+        currentQuestionIndex++;
+        displayQuestion(currentQuestionIndex);
+        saveTestProgress();
+    } else {
+        // Test completed - show results
+        questionCard.classList.remove('SC1-active');
+        resultCard.classList.add('SC1-active');
+        displayResult();
+        // Clear progress when test is completed
+        localStorage.removeItem(STORAGE_KEYS.ANSWERS);
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+        // Trigger widget update
+        triggerWidgetUpdate();
+    }
 });
 restartBtn.addEventListener('click', () => {
 	// إعادة تعيين الحالة

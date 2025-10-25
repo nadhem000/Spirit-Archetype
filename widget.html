@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiritual Guide Widget</title>
+    <style>
+        .spiritual-widget {
+            background: linear-gradient(135deg, #4a6fa5, #6b8cbc);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .widget-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .widget-badge, .widget-progress {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .widget-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .widget-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0 0 5px 0;
+        }
+
+        .widget-message {
+            font-size: 12px;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            height: 6px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: white;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .widget-actions {
+            margin-top: 10px;
+        }
+
+        .widget-actions button {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            color: #4a6fa5;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .widget-actions button:hover {
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        /* RTL support */
+        [dir="rtl"] .widget-header {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .widget-actions button {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="widget-root"></div>
+    <script>
+        // Widget rendering logic
+        function renderWidget(data) {
+            const root = document.getElementById('widget-root');
+            
+            if (data.hasCompletedTest && data.result) {
+                root.innerHTML = `
+                    <div class="spiritual-widget completed">
+                        <div class="widget-header">
+                            <h3>${data.result.guide}</h3>
+                            <span class="widget-badge">${data.result.pattern}</span>
+                        </div>
+                        <div class="widget-content">
+                            <p class="widget-title">${data.result.title}</p>
+                            <p class="widget-message">Your spiritual guide is ready</p>
+                        </div>
+                        <div class="widget-actions">
+                            <button onclick="openApp('#results')">View Details</button>
+                        </div>
+                    </div>
+                `;
+            } else if (data.testProgress && data.testProgress.answered > 0) {
+                root.innerHTML = `
+                    <div class="spiritual-widget in-progress">
+                        <div class="widget-header">
+                            <h3>Spiritual Guide</h3>
+                            <span class="widget-progress">${data.testProgress.percentage}%</span>
+                        </div>
+                        <div class="widget-content">
+                            <p class="widget-message">Test in progress</p>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${data.testProgress.percentage}%"></div>
+                            </div>
+                        </div>
+                        <div class="widget-actions">
+                            <button onclick="openApp()">Continue Test</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                root.innerHTML = `
+                    <div class="spiritual-widget default">
+                        <div class="widget-header">
+                            <h3>Spiritual Guide</h3>
+                        </div>
+                        <div class="widget-content">
+                            <p class="widget-message">Discover your spiritual pattern</p>
+                        </div>
+                        <div class="widget-actions">
+                            <button onclick="openApp()">Start Test</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function openApp(hash = '') {
+            // This will be handled by the widget click event in the service worker
+            // The actual navigation is managed by the PWA
+        }
+
+        // Initial render with default data
+        renderWidget({
+            hasCompletedTest: false,
+            testProgress: { answered: 0, total: 8, percentage: 0 }
+        });
+    </script>
+</body>
+</html>
