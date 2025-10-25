@@ -1,5 +1,5 @@
 // Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
-const CACHE_NAME = 'spiritual-guide-v1.3.5'; // Increment version
+const CACHE_NAME = 'spiritual-guide-v1.3.6'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -26,7 +26,7 @@ const VAPID_PUBLIC_KEY = 'BLx5g7YF4a0zQwK8cJ3d2nH6mP9rT1sW3vZ7yA8bC4eX0uD5fG2hK6
 
 // Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing... Version: 1.3.5');
+  console.log('Service Worker installing... Version: 1.3.6');
   
   // Force the waiting service worker to become active
   self.skipWaiting();

@@ -9,6 +9,9 @@ const STORAGE_KEYS = {
 	CURRENT_QUESTION: 'spiritual-guide-current-question'
 };
 
+// Add this line - same key as in sw.js
+const VAPID_PUBLIC_KEY = 'BLx5g7YF4a0zQwK8cJ3d2nH6mP9rT1sW3vZ7yA8bC4eX0uD5fG2hK6jL9nM8pQ3tR7wV1zY4xE6bU9cH2mN5fP8rA0sW3vZ7y';
+
 // Save data to localStorage
 function saveToStorage(key, data) {
 	try {
@@ -760,6 +763,23 @@ function updatePageDirection() {
 async function initializePushNotifications() {
 	if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
 		console.log('Push notifications are not supported');
+		// Hide push controls if not supported
+		const pushContainer = document.querySelector('.SC1-push-container');
+		if (pushContainer) {
+			pushContainer.style.display = 'none';
+		}
+		return;
+	}
+
+	// Check if VAPID key is available
+	if (!VAPID_PUBLIC_KEY) {
+		console.error('VAPID public key is not configured in main.js');
+		// You might want to hide or disable the push toggle in this case
+		const pushToggle = document.getElementById('SC1-push-toggle');
+		if (pushToggle) {
+			pushToggle.disabled = true;
+			pushToggle.title = 'Push notifications not configured';
+		}
 		return;
 	}
 	
@@ -776,22 +796,25 @@ async function initializePushNotifications() {
 			console.log('User is already subscribed to push notifications');
 			isPushEnabled = true;
 			updatePushUI(true);
-			} else if (subscription && !savedNotifications) {
+		} else if (subscription && !savedNotifications) {
 			// User has subscription but preference is disabled - unsubscribe
 			await unsubscribeFromPush();
-			} else {
+		} else if (!subscription && savedNotifications) {
+			// User wants notifications but no subscription - try to subscribe
+			try {
+				await subscribeToPush();
+			} catch (error) {
+				console.error('Failed to restore push subscription:', error);
+				// If we can't restore, update preference to false
+				saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
+				updatePushUI(false);
+			}
+		} else {
 			console.log('User is not subscribed to push notifications');
 			updatePushUI(savedNotifications);
 		}
 		
-		// Listen for subscription changes
-		navigator.serviceWorker.addEventListener('message', event => {
-			if (event.data && event.data.type === 'PUSH_SUBSCRIPTION_CHANGE') {
-				updatePushUI(event.data.subscribed);
-			}
-		});
-		
-		} catch (error) {
+	} catch (error) {
 		console.error('Error initializing push notifications:', error);
 	}
 }
@@ -799,6 +822,11 @@ async function initializePushNotifications() {
 // Request push notification permission
 async function subscribeToPush() {
 	try {
+		// Check if VAPID key is available
+		if (!VAPID_PUBLIC_KEY) {
+			throw new Error('VAPID public key is not configured');
+		}
+
 		const registration = await navigator.serviceWorker.ready;
 		
 		// Check permission first
@@ -808,26 +836,40 @@ async function subscribeToPush() {
 			throw new Error('Permission not granted for notifications');
 		}
 		
+		// Convert VAPID key to Uint8Array
+		const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+		
 		// Subscribe to push
 		const subscription = await registration.pushManager.subscribe({
 			userVisibleOnly: true,
-			applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+			applicationServerKey: applicationServerKey
 		});
 		
 		console.log('User subscribed to push:', subscription);
 		isPushEnabled = true;
 		updatePushUI(true);
 		
+		// Save notification preference
+		saveToStorage(STORAGE_KEYS.NOTIFICATIONS, true);
+		
 		// Send subscription to server (in a real app, you'd send this to your backend)
 		await sendSubscriptionToServer(subscription);
 		
 		return subscription;
 		
-		} catch (error) {
+	} catch (error) {
 		console.error('Error subscribing to push notifications:', error);
+		
+		// Update UI to reflect failure
+		isPushEnabled = false;
+		updatePushUI(false);
+		saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
 		
 		if (error.name === 'NotAllowedError') {
 			showNotification('Permission Denied', 'Please enable notifications in your browser settings to receive updates.');
+		} else if (error.message.includes('VAPID')) {
+			console.error('VAPID key issue:', error);
+			showNotification('Configuration Error', 'Push notifications are not properly configured.');
 		}
 		
 		throw error;
@@ -1045,15 +1087,23 @@ function addPushNotificationControls() {
 	
 	// Add event listener for toggle
 	pushToggle.addEventListener('change', async (e) => {
-		if (e.target.checked) {
-			await subscribeToPush();
-			} else {
-			await unsubscribeFromPush();
-		}
-		
-		// Save notification preference
-		saveToStorage(STORAGE_KEYS.NOTIFICATIONS, e.target.checked);
-	});
+    const shouldEnable = e.target.checked;
+    
+    try {
+        if (shouldEnable) {
+            await subscribeToPush();
+        } else {
+            await unsubscribeFromPush();
+            // Save notification preference
+            saveToStorage(STORAGE_KEYS.NOTIFICATIONS, false);
+        }
+    } catch (error) {
+        // Revert the toggle if operation failed
+        pushToggle.checked = !shouldEnable;
+        updatePushUI(!shouldEnable);
+        console.error('Push notification operation failed:', error);
+    }
+});
 }
 
 
