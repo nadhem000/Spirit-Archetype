@@ -1,5 +1,5 @@
-// Service Worker for Spiritual Guide Test PWA - Enhanced Version
-const CACHE_NAME = 'spiritual-guide-v1.2.7'; // Increment version
+// Service Worker for Spiritual Guide Test PWA - Enhanced Version with Push Notifications
+const CACHE_NAME = 'spiritual-guide-v1.3.0'; // Increment version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -21,9 +21,12 @@ const urlsToCache = [
 // Background Sync queue name
 const BACKGROUND_SYNC_QUEUE = 'background-sync-queue';
 
+// VAPID public key (you'll need to generate your own for production)
+const VAPID_PUBLIC_KEY = 'BLx5g7YF4a0zQwK8cJ3d2nH6mP9rT1sW3vZ7yA8bC4eX0uD5fG2hK6jL9nM8pQ3tR7wV1zY4xE6bU9cH2mN5fP8rA0sW3vZ7y';
+
 // Install event - cache essential files with network-first approach for HTML
 self.addEventListener('install', event => {
-  console.log('Service Worker installing... Version: 1.2.4');
+  console.log('Service Worker installing... Version: 1.3.0');
   
   // Force the waiting service worker to become active
   self.skipWaiting();
@@ -88,6 +91,163 @@ self.addEventListener('fetch', event => {
     cacheFirstWithUpdate(event.request)
   );
 });
+
+// Push event handler
+self.addEventListener('push', event => {
+  console.log('Push event received:', event);
+  
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    console.error('Error parsing push data:', error);
+    data = {
+      title: 'Spiritual Guide Test',
+      body: 'New update available!',
+      icon: '/assets/icons/icon-192x192.png'
+    };
+  }
+
+  const options = {
+    body: data.body || 'New content is available!',
+    icon: data.icon || '/assets/icons/icon-192x192.png',
+    badge: '/assets/icons/icon-72x72.png',
+    vibrate: [100, 50, 100],
+    data: data.url || '/',
+    actions: [
+      {
+        action: 'open',
+        title: 'Open App',
+        icon: '/assets/icons/icon-72x72.png'
+      },
+      {
+        action: 'close',
+        title: 'Close',
+        icon: '/assets/icons/icon-72x72.png'
+      }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title || 'Spiritual Guide Test',
+      options
+    )
+  );
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', event => {
+  console.log('Notification click received:', event);
+  
+  event.notification.close();
+
+  if (event.action === 'close') {
+    return;
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        // Check if there's already a window open
+        for (const client of clientList) {
+          if (client.url === self.location.origin && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        
+        // If no window is open, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow(event.notification.data || '/');
+        }
+      })
+  );
+});
+
+// Notification close handler
+self.addEventListener('notificationclose', event => {
+  console.log('Notification closed:', event);
+});
+
+// Background sync for push subscription updates
+self.addEventListener('sync', event => {
+  console.log('Background Sync event:', event.tag);
+  
+  if (event.tag === 'push-subscription-sync') {
+    event.waitUntil(
+      syncPushSubscription()
+        .then(() => {
+          console.log('Push subscription synced successfully');
+        })
+        .catch(error => {
+          console.error('Push subscription sync failed:', error);
+        })
+    );
+  }
+  
+  if (event.tag === 'background-sync') {
+    event.waitUntil(
+      syncFailedRequests()
+        .then(() => {
+          console.log('Background Sync completed successfully');
+        })
+        .catch(error => {
+          console.error('Background Sync failed:', error);
+        })
+    );
+  }
+  
+  if (event.tag === 'periodic-sync-update') {
+    event.waitUntil(
+      performPeriodicSync()
+        .then(() => {
+          console.log('Periodic Sync completed successfully');
+        })
+        .catch(error => {
+          console.error('Periodic Sync failed:', error);
+        })
+    );
+  }
+});
+
+// Sync push subscription with server
+async function syncPushSubscription() {
+  try {
+    const registration = await self.registration;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (subscription) {
+      // Send subscription to server
+      await fetch('/api/push-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscription: subscription,
+          type: 'subscribe'
+        })
+      });
+      console.log('Push subscription synced with server');
+    }
+  } catch (error) {
+    console.error('Error syncing push subscription:', error);
+    throw error;
+  }
+}
+
+// Send update notification to all clients
+function sendUpdateNotification() {
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'UPDATE_AVAILABLE',
+        message: 'A new version of Spiritual Guide Test is available!',
+        timestamp: new Date().toISOString()
+      });
+    });
+  });
+}
 
 // Network first strategy for HTML
 async function networkFirstThenCache(request) {
@@ -179,7 +339,7 @@ async function fetchAndCache(request, cache) {
 
 // Enhanced activate event with better cleanup
 self.addEventListener('activate', event => {
-  console.log('Service Worker activating... Version: 1.2.4');
+  console.log('Service Worker activating... Version: 1.3.0');
   
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -245,6 +405,10 @@ self.addEventListener('message', event => {
       event.ports[0].postMessage({ cleared: true });
     });
   }
+  
+  if (event.data && event.data.type === 'SEND_UPDATE_NOTIFICATION') {
+    sendUpdateNotification();
+  }
 });
 
 // Enhanced update checking with cache busting
@@ -294,35 +458,7 @@ async function checkForUpdates() {
   }
 }
 
-// Keep the existing sync events (they remain the same)
-self.addEventListener('sync', event => {
-  console.log('Background Sync event:', event.tag);
-  
-  if (event.tag === 'background-sync') {
-    event.waitUntil(
-      syncFailedRequests()
-        .then(() => {
-          console.log('Background Sync completed successfully');
-        })
-        .catch(error => {
-          console.error('Background Sync failed:', error);
-        })
-    );
-  }
-  
-  if (event.tag === 'periodic-sync-update') {
-    event.waitUntil(
-      performPeriodicSync()
-        .then(() => {
-          console.log('Periodic Sync completed successfully');
-        })
-        .catch(error => {
-          console.error('Periodic Sync failed:', error);
-        })
-    );
-  }
-});
-
+// Keep the existing sync events
 self.addEventListener('periodicsync', event => {
   console.log('Periodic Sync event:', event.tag);
   
@@ -332,6 +468,21 @@ self.addEventListener('periodicsync', event => {
         .then(updated => {
           if (updated) {
             console.log('New content available after periodic sync');
+            // Send push notification about update
+            self.registration.showNotification('Spiritual Guide Test Update', {
+              body: 'New content is available! Tap to refresh.',
+              icon: '/assets/icons/icon-192x192.png',
+              badge: '/assets/icons/icon-72x72.png',
+              tag: 'content-update',
+              requireInteraction: true,
+              actions: [
+                {
+                  action: 'refresh',
+                  title: 'Refresh Now'
+                }
+              ]
+            });
+            
             self.clients.matchAll().then(clients => {
               clients.forEach(client => {
                 client.postMessage({
@@ -349,7 +500,7 @@ self.addEventListener('periodicsync', event => {
   }
 });
 
-// Keep existing sync functions (they remain the same)
+// Keep existing sync functions
 async function syncFailedRequests() {
   try {
     console.log('Syncing failed requests...');

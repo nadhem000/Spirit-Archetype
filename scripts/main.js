@@ -1,4 +1,6 @@
 
+// Push Notification Functions
+let isPushEnabled = false;
 // بيانات الأسئلة
 const questions = [
 	{
@@ -196,7 +198,13 @@ const translations = {
 			},
 			install: {
 				installApp: "Install App"
-			}
+			},
+    push: {
+      enable: "Enable notifications",
+      disable: "Disable notifications",
+      enabled: "Notifications enabled",
+      disabled: "Notifications disabled"
+    }
 		}
 	},
 	ar: {
@@ -232,7 +240,13 @@ const translations = {
 			},
 			install: {
 				installApp: "تثبيت التطبيق"
-			}
+			},
+    push: {
+      enable: "تفعيل الإشعارات",
+      disable: "تعطيل الإشعارات",
+      enabled: "الإشعارات مفعلة",
+      disabled: "الإشعارات معطلة"
+    }
 		}
 	}
 };
@@ -679,6 +693,297 @@ function updatePageDirection() {
     }
 }
 
+// Initialize push notifications
+async function initializePushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('Push notifications are not supported');
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    // Check current subscription
+    let subscription = await registration.pushManager.getSubscription();
+    
+    if (subscription) {
+      console.log('User is already subscribed to push notifications');
+      isPushEnabled = true;
+      updatePushUI(true);
+    } else {
+      console.log('User is not subscribed to push notifications');
+      updatePushUI(false);
+    }
+    
+    // Listen for subscription changes
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data && event.data.type === 'PUSH_SUBSCRIPTION_CHANGE') {
+        updatePushUI(event.data.subscribed);
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error initializing push notifications:', error);
+  }
+}
+
+// Request push notification permission
+async function subscribeToPush() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    // Check permission first
+    const permission = await Notification.requestPermission();
+    
+    if (permission !== 'granted') {
+      throw new Error('Permission not granted for notifications');
+    }
+    
+    // Subscribe to push
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    
+    console.log('User subscribed to push:', subscription);
+    isPushEnabled = true;
+    updatePushUI(true);
+    
+    // Send subscription to server (in a real app, you'd send this to your backend)
+    await sendSubscriptionToServer(subscription);
+    
+    return subscription;
+    
+  } catch (error) {
+    console.error('Error subscribing to push notifications:', error);
+    
+    if (error.name === 'NotAllowedError') {
+      showNotification('Permission Denied', 'Please enable notifications in your browser settings to receive updates.');
+    }
+    
+    throw error;
+  }
+}
+
+// Unsubscribe from push notifications
+async function unsubscribeFromPush() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (subscription) {
+      await subscription.unsubscribe();
+      console.log('User unsubscribed from push');
+      isPushEnabled = false;
+      updatePushUI(false);
+      
+      // Send unsubscribe to server
+      await sendUnsubscribeToServer(subscription);
+    }
+    
+  } catch (error) {
+    console.error('Error unsubscribing from push notifications:', error);
+    throw error;
+  }
+}
+
+// Convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Send subscription to server
+async function sendSubscriptionToServer(subscription) {
+  try {
+    // In a real application, you would send this to your backend server
+    console.log('Sending subscription to server:', subscription);
+    
+    // Store locally for demo purposes
+    localStorage.setItem('pushSubscription', JSON.stringify(subscription));
+    
+    // Show success message
+    showNotification('Notifications Enabled', 'You will now receive updates about new features and content.');
+    
+  } catch (error) {
+    console.error('Error sending subscription to server:', error);
+  }
+}
+
+// Send unsubscribe to server
+async function sendUnsubscribeToServer(subscription) {
+  try {
+    console.log('Sending unsubscribe to server:', subscription);
+    
+    // Remove local storage
+    localStorage.removeItem('pushSubscription');
+    
+    showNotification('Notifications Disabled', 'You will no longer receive update notifications.');
+    
+  } catch (error) {
+    console.error('Error sending unsubscribe to server:', error);
+  }
+}
+
+// Update UI based on push subscription status
+function updatePushUI(subscribed) {
+  const pushToggle = document.getElementById('SC1-push-toggle');
+  const pushStatus = document.getElementById('SC1-push-status');
+  
+  if (pushToggle && pushStatus) {
+    pushToggle.checked = subscribed;
+    
+    if (subscribed) {
+      pushStatus.textContent = currentLanguage === 'en' ? 'Notifications enabled' : 'الإشعارات مفعلة';
+      pushStatus.className = 'SC1-push-status SC1-push-enabled';
+    } else {
+      pushStatus.textContent = currentLanguage === 'en' ? 'Notifications disabled' : 'الإشعارات معطلة';
+      pushStatus.className = 'SC1-push-status SC1-push-disabled';
+    }
+  }
+}
+
+// Show local notification
+function showNotification(title, body) {
+  if (!('Notification' in window)) {
+    console.log('This browser does not support notifications');
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
+      icon: '/assets/icons/icon-192x192.png',
+      badge: '/assets/icons/icon-72x72.png'
+    });
+  }
+}
+
+// Check for updates and notify user
+async function checkForUpdatesAndNotify() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const channel = new MessageChannel();
+      
+      registration.active.postMessage({ type: 'CHECK_FOR_UPDATES' }, [channel.port2]);
+      
+      channel.port1.onmessage = (event) => {
+        if (event.data.hasUpdates) {
+          // Show update notification
+          if (isPushEnabled && Notification.permission === 'granted') {
+            showNotification(
+              'Spiritual Guide Test Updated', 
+              'A new version is available! Tap to see what\'s new.'
+            );
+          }
+          
+          // Show in-app notification
+          showUpdateBanner();
+        }
+      };
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+    }
+  }
+}
+
+// Show update banner
+function showUpdateBanner() {
+  const existingBanner = document.getElementById('SC1-update-banner');
+  if (existingBanner) {
+    existingBanner.remove();
+  }
+
+  const banner = document.createElement('div');
+  banner.id = 'SC1-update-banner';
+  banner.className = 'SC1-update-banner';
+  
+  const message = document.createElement('span');
+  message.textContent = currentLanguage === 'en' 
+    ? '✨ New update available!' 
+    : '✨ تحديث جديد متوفر!';
+  
+  const refreshBtn = document.createElement('button');
+  refreshBtn.textContent = currentLanguage === 'en' ? 'Refresh' : 'تحديث';
+  refreshBtn.className = 'SC1-refresh-btn';
+  refreshBtn.addEventListener('click', () => {
+    window.location.reload();
+  });
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.className = 'SC1-close-btn';
+  closeBtn.addEventListener('click', () => {
+    banner.remove();
+  });
+  
+  banner.appendChild(message);
+  banner.appendChild(refreshBtn);
+  banner.appendChild(closeBtn);
+  
+  document.body.appendChild(banner);
+  
+  // Auto-remove after 10 seconds
+  setTimeout(() => {
+    if (banner.parentNode) {
+      banner.remove();
+    }
+  }, 10000);
+}
+
+// Add push notification controls to the header
+function addPushNotificationControls() {
+  const controls = document.querySelector('.SC1-controls');
+  
+  const pushContainer = document.createElement('div');
+  pushContainer.className = 'SC1-push-container';
+  
+  const pushToggle = document.createElement('input');
+  pushToggle.type = 'checkbox';
+  pushToggle.id = 'SC1-push-toggle';
+  pushToggle.className = 'SC1-push-toggle';
+  
+  const pushLabel = document.createElement('label');
+  pushLabel.htmlFor = 'SC1-push-toggle';
+  pushLabel.className = 'SC1-push-label';
+  
+  const pushStatus = document.createElement('span');
+  pushStatus.id = 'SC1-push-status';
+  pushStatus.className = 'SC1-push-status';
+  
+  pushLabel.appendChild(pushStatus);
+  pushContainer.appendChild(pushToggle);
+  pushContainer.appendChild(pushLabel);
+  
+  // Insert before install button
+  const installBtn = document.getElementById('SC1-install-btn');
+  if (installBtn) {
+    controls.insertBefore(pushContainer, installBtn);
+  } else {
+    controls.appendChild(pushContainer);
+  }
+  
+  // Add event listener for toggle
+  pushToggle.addEventListener('change', async (e) => {
+    if (e.target.checked) {
+      await subscribeToPush();
+    } else {
+      await unsubscribeFromPush();
+    }
+  });
+}
+
 // معالجة أحداث الأزرار
 startBtn.addEventListener('click', () => {
 	welcomeCard.classList.remove('SC1-active');
@@ -722,6 +1027,28 @@ restartBtn.addEventListener('click', () => {
 	applyTranslations();
 });
 
+// Merge with existing translations
+Object.assign(translations.en, updatedTranslations.en);
+Object.assign(translations.ar, updatedTranslations.ar);
+
+// Initialize push notifications when the app starts
+document.addEventListener('DOMContentLoaded', () => {
+  // Add push controls to UI
+  addPushNotificationControls();
+  
+  // Initialize push notifications
+  initializePushNotifications();
+  
+  // Check for updates periodically
+  setInterval(checkForUpdatesAndNotify, 30 * 60 * 1000); // Every 30 minutes
+  
+  // Listen for update messages from service worker
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
+      showUpdateBanner();
+    }
+  });
+});
 // التهيئة الأولية
 updatePageDirection();
 applyTranslations();
