@@ -271,19 +271,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeSettingsModal();
     // Initialize header icon functionality
     initializeHeaderIcon();
-    // Initialize PWA functionality with error handling
-    try {
-        if (typeof initializePWA !== 'undefined') {
-            initializePWA();
-        } else {
-            console.warn('PWA functionality not available');
-            // Hide install button if PWA not available
-            const installBtn = document.getElementById('SC1-install-btn');
-            if (installBtn) installBtn.style.display = 'none';
-        }
-    } catch (error) {
-        console.warn('PWA initialization failed:', error);
-    }
+    const installBtn = document.getElementById('SC1-install-btn');
+	if (installBtn) {
+		installBtn.style.display = 'none';
+	}
     // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
@@ -1120,6 +1111,21 @@ FILE: index.html
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Spiritual Guide</title>
+<!-- Immediate service worker registration for PWA detection -->
+<script>
+    // Register service worker immediately for PWA detection
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch(function(error) {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+        });
+    }
+</script>
 		<link rel="manifest" href="manifest.json">
 		<link rel="stylesheet" href="styles/main.css">
 	</head>
@@ -1523,129 +1529,60 @@ window.showInfo = function(message, duration) {
 =====================
 FILE: pwa.js
 ================
-// pwa.js - PWA installation logic AND service worker registration
-let deferredPrompt;
-// Service Worker Registration
+// pwa.js - Simplified PWA installation logic
+console.log('PWA script loaded');
+// Simple service worker registration
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-        // Use relative path for Netlify compatibility
-        navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-                console.log('SW registered: ', registration);
-                // Check for updates
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    console.log('SW update found!', newWorker);
-                    // Show update notification to user
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            showUpdateNotification();
-                        }
-                    });
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch(function(error) {
+                    console.log('ServiceWorker registration failed: ', error);
                 });
-            })
-            .catch((registrationError) => {
-                console.log('SW registration failed: ', registrationError);
-            });
+        });
     }
 }
-// Show update notification
-function showUpdateNotification() {
-    if (window.showInfo) {
-        window.showInfo('New version available! Refresh to update.', 5000);
-    }
-}
-// Install Button Logic
+// Install Button Logic (keep your existing code, just remove the complex SW registration)
 function initializeInstallButton() {
     const installBtn = document.getElementById('SC1-install-btn');
-    // Check if the browser supports PWA installation
     if (!installBtn) {
         console.warn('Install button not found');
         return;
     }
-    // Initially hide the install button
     installBtn.style.display = 'none';
-    // Listen for the beforeinstallprompt event
+    let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent the mini-infobar from appearing on mobile
         e.preventDefault();
-        // Stash the event so it can be triggered later
         deferredPrompt = e;
-        // Show the install button
         installBtn.style.display = 'flex';
     });
-    // Handle install button click
     installBtn.addEventListener('click', async () => {
         if (!deferredPrompt) return;
-        // Show the install prompt
         deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User ${outcome} the install prompt`);
         if (outcome === 'accepted') {
-            // Hide the install button after successful installation
             installBtn.style.display = 'none';
         }
-        // Clear the saved prompt since it can't be used again
         deferredPrompt = null;
     });
-    // Hide the install button when the app is successfully installed
     window.addEventListener('appinstalled', () => {
         console.log('PWA was installed');
         installBtn.style.display = 'none';
         deferredPrompt = null;
     });
 }
-// Check if app is running as PWA
-function isRunningAsPWA() {
-    return window.matchMedia('(display-mode: standalone)').matches || 
-           window.navigator.standalone === true;
-}
-// Initialize all PWA functionality with error handling
-console.log('PWA script loaded');
-// Safe initialization function
+// Simple initialization
 function initializePWA() {
     console.log('Initializing PWA...');
-    // Service Worker Registration - FIXED PATH
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('SW registered successfully: ', registration);
-            })
-            .catch(registrationError => {
-                console.log('SW registration failed: ', registrationError);
-            });
-    }
-    // Install Button Handling
-    const installBtn = document.getElementById('SC1-install-btn');
-    if (installBtn) {
-        installBtn.style.display = 'none';
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            window.deferredPrompt = e;
-            installBtn.style.display = 'flex';
-        });
-        installBtn.addEventListener('click', async () => {
-            const promptEvent = window.deferredPrompt;
-            if (!promptEvent) return;
-            promptEvent.prompt();
-            const result = await promptEvent.userChoice;
-            console.log('User response to install prompt:', result);
-            window.deferredPrompt = null;
-            installBtn.style.display = 'none';
-        });
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
-            window.deferredPrompt = null;
-            installBtn.style.display = 'none';
-        });
-    }
+    registerServiceWorker();
+    initializeInstallButton();
 }
 // Make function available globally
 window.initializePWA = initializePWA;
-window.registerServiceWorker = registerServiceWorker;
-window.initializeInstallButton = initializeInstallButton;
-window.isRunningAsPWA = isRunningAsPWA;
 =====================
 FILE: music.js
 ===================
@@ -1882,11 +1819,12 @@ window.MusicPlayer = MusicPlayer;
 =====================
 FILE: sw.js
 =================
-// sw.js - Simple Service Worker
-const CACHE_NAME = 'spiritual-guide-v2.2.5';
-const urlsToCache = [
+// sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
+const CACHE_NAME = 'spiritual-guide-v2.2.7'; // Changed version to force update
+const FILES_TO_CACHE = [
   '/',
   '/index.html',
+  '/offline.html', // Make sure you create this file!
   '/styles/main.css',
   '/scripts/data.js',
   '/scripts/i18n_en.js',
@@ -1900,23 +1838,34 @@ const urlsToCache = [
   '/scripts/results.js',
   '/scripts/music.js',
   '/scripts/main.js',
-  '/manifest.json'
+  '/manifest.json',
+  // Add your icons
+  '/assets/icons/icon-72x72.png',
+  '/assets/icons/icon-96x96.png',
+  '/assets/icons/icon-128x128.png',
+  '/assets/icons/icon-144x144.png',
+  '/assets/icons/icon-152x152.png',
+  '/assets/icons/icon-192x192.png',
+  '/assets/icons/icon-384x384.png',
+  '/assets/icons/icon-512x512.png'
 ];
-// Install event
+
+// Install event - cache essential files
 self.addEventListener('install', event => {
-  console.log('Service Worker installing');
+  console.log('Service Worker: Installing and caching files');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        console.log('Caching essential files');
+        return cache.addAll(FILES_TO_CACHE);
       })
       .then(() => self.skipWaiting())
   );
 });
-// Activate event
+
+// Activate event - clean up old caches
 self.addEventListener('activate', event => {
-  console.log('Service Worker activating');
+  console.log('Service Worker: Activated');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -1930,15 +1879,55 @@ self.addEventListener('activate', event => {
     }).then(() => self.clients.claim())
   );
 });
-// Fetch event
+
+// Fetch event - Cache First with Network Fallback and Offline Support
 self.addEventListener('fetch', event => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+  
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      }
-    )
+      .then(cachedResponse => {
+        // If found in cache, return it
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // Not in cache - try network
+        return fetch(event.request)
+          .then(networkResponse => {
+            // If valid response, cache it for future
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, responseToCache);
+                });
+            }
+            return networkResponse;
+          })
+          .catch(error => {
+            console.log('Network failed, serving offline content:', error);
+            
+            // 🔑 CRITICAL: Provide offline fallback for navigation requests
+            if (event.request.mode === 'navigate') {
+              return caches.match('/offline.html');
+            }
+            
+            // For other requests (CSS, JS, images), try cache again
+            return caches.match(event.request)
+              .then(cachedResource => {
+                if (cachedResource) {
+                  return cachedResource;
+                }
+                // If nothing in cache, return empty response for non-HTML
+                return new Response('', { 
+                  status: 408, 
+                  statusText: 'Offline' 
+                });
+              });
+          });
+      })
   );
 });
 =====================
@@ -1950,17 +1939,25 @@ FILE: netlify.toml
   from = "/*"
   to = "/index.html"
   status = 200
+
 # CRITICAL: Service Worker Headers
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
+
 # Manifest headers
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=3600"
+
+# 🔑 Headers for offline page
+[[headers]]
+  for = "/offline.html"
+  [headers.values]
     Cache-Control = "public, max-age=3600"
 =====================
 FILE: .gitignore
@@ -1982,4 +1979,82 @@ npm-debug.log*
 .env.local
 # Cache directories
 .cache/
+=====================
+FILE: offline.html
+================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Spiritual Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a6fa5 0%, #2c3e50 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .offline-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        .retry-btn {
+            margin-top: 20px; 
+            padding: 12px 24px; 
+            background: white; 
+            color: #4a6fa5; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .retry-btn:hover {
+            transform: scale(1.05);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <h1>📡 You're Offline</h1>
+        <p>Don't worry! Your Spiritual Guide app is still available offline. We'll try to reconnect automatically...</p>
+        <div class="spinner"></div>
+        <button class="retry-btn" onclick="window.location.reload()">Try Again Now</button>
+    </div>
+</body>
+</html>
 [file content end]
