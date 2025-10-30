@@ -1,0 +1,1909 @@
+[file name]: api.txt
+[file content begin]
+=====================
+FILE: navigation.js
+===================
+// navigation.js - Button event handlers and navigation logic
+// Initialize navigation event handlers
+function initializeNavigation() {
+    // Start button
+    startBtn.addEventListener('click', () => {
+        welcomeCard.classList.remove('SC1-active');
+        questionCard.classList.add('SC1-active');
+        displayQuestion(currentQuestionIndex);
+        // Save initial progress
+        saveTestProgress();
+    });
+    // Previous button
+    prevBtn.addEventListener('click', () => {
+		if (currentQuestionIndex > 0) {
+			currentQuestionIndex--;
+			displayQuestion(currentQuestionIndex);
+		}
+	});
+    // Next button
+    nextBtn.addEventListener('click', () => {
+		if (currentQuestionIndex < questions.length - 1) {
+			// Save progress BEFORE moving to next question
+			saveTestProgress();
+			currentQuestionIndex++;
+			displayQuestion(currentQuestionIndex);
+			} else {
+			// Test completed - show results
+			// Save progress before showing results
+			saveTestProgress();
+			questionCard.classList.remove('SC1-active');
+			resultCard.classList.add('SC1-active');
+			displayResult();
+		}
+	});
+    // Restart button
+    restartBtn.addEventListener('click', () => {
+		// إعادة تعيين الحالة
+		currentQuestionIndex = 0;
+		userAnswers = Array(questions.length).fill(null);
+		scores = { A: 0, B: 0, C: 0, D: 0 };
+		// Clear saved progress ONLY when user explicitly restarts
+		localStorage.removeItem(STORAGE_KEYS.ANSWERS);
+		localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+		// العودة إلى بطاقة الترحيب
+		resultCard.classList.remove('SC1-active');
+		welcomeCard.classList.add('SC1-active');
+		// إعادة تعيين شريط التقدم
+		updateProgressBar();
+		// تطبيق الترجمات
+		applyTranslations();
+	});
+	// Save Results button
+	saveResultsBtn.addEventListener('click', () => {
+		saveCurrentResults();
+	});
+}
+// Initialize language buttons
+function initializeLanguageButtons() {
+    // First, set the active button based on current language
+    langButtons.forEach(button => {
+        const langCode = button.getAttribute('data-lang');
+        if (langCode === currentLanguage) {
+            button.classList.add('SC1-active');
+        } else {
+            button.classList.remove('SC1-active');
+        }
+        // Update button text with actual language name
+        button.textContent = getLanguageDisplayName(langCode);
+    });
+    // Then add click event listeners
+    langButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            currentLanguage = button.getAttribute('data-lang');
+            // Update active state for all buttons
+            langButtons.forEach(btn => {
+                if (btn.getAttribute('data-lang') === currentLanguage) {
+                    btn.classList.add('SC1-active');
+                } else {
+                    btn.classList.remove('SC1-active');
+                }
+            });
+            // Save language preference
+            saveToStorage(STORAGE_KEYS.LANGUAGE, currentLanguage);
+            // Use our new function instead of separate calls
+            initializeAppUI();
+        });
+    });
+}
+=====================
+FILE: results.js
+================
+// results.js - Result calculation and display logic
+// حساب النتيجة
+function calculateResult() {
+    // إعادة تعيين النقاط
+    scores = { A: 0, B: 0, C: 0, D: 0 };
+    // حساب النقاط
+    userAnswers.forEach(answer => {
+        if (answer && scores.hasOwnProperty(answer)) {
+            scores[answer] += 1;
+        }
+    });
+    // العثور على النمط المسيطر
+    let dominantPattern = 'A';
+    let maxScore = scores.A;
+    for (const pattern in scores) {
+        if (scores[pattern] > maxScore) {
+            maxScore = scores[pattern];
+            dominantPattern = pattern;
+        }
+    }
+    return dominantPattern;
+}
+=====================
+FILE: main.js
+=============
+// Main Application Logic - Spiritual Guide Test (Simplified)
+// Global variables
+window.STORAGE_KEYS = {
+    LANGUAGE: 'spiritual-guide-language',
+    ANSWERS: 'spiritual-guide-answers', 
+    CURRENT_QUESTION: 'spiritual-guide-current-question',
+    SAVED_RESULTS: 'spiritual-guide-saved-results'
+};
+// Make functions global so they can be accessed across files
+window.initializeNavigation = initializeNavigation;
+window.initializeLanguageButtons = initializeLanguageButtons;
+window.applyTranslations = applyTranslations;
+window.updatePageDirection = updatePageDirection;
+window.resumeTestFromSavedState = resumeTestFromSavedState;
+window.updateProgressBar = updateProgressBar;
+window.updateNavButtons = updateNavButtons;
+window.displayQuestion = displayQuestion;
+window.displayResult = displayResult;
+window.calculateResult = calculateResult;
+window.saveTestProgress = saveTestProgress;
+window.translate = translate;
+window.initializeAppUI = initializeAppUI; // NEW: Added this line
+// Global element assignments
+window.headerIcon = document.getElementById('SC1-header-icon');
+window.welcomeCard = document.getElementById('SC1-welcome-card');
+window.questionCard = document.getElementById('SC1-question-card');
+window.resultCard = document.getElementById('SC1-result-card');
+window.startBtn = document.getElementById('SC1-start-btn');
+window.settingsBtn = document.getElementById('SC1-settings-btn');
+window.prevBtn = document.getElementById('SC1-prev-btn');
+window.nextBtn = document.getElementById('SC1-next-btn');
+window.restartBtn = document.getElementById('SC1-restart-btn');
+window.currentQuestionElement = document.getElementById('SC1-current-question');
+window.questionTextElement = document.getElementById('SC1-question-text');
+window.optionsContainer = document.getElementById('SC1-options-container');
+window.progressElement = document.getElementById('SC1-progress');
+window.langButtons = document.querySelectorAll('.SC1-lang-btn');
+window.resultGuideElement = document.getElementById('SC1-result-guide');
+window.symbolicMeaningElement = document.getElementById('SC1-symbolic-meaning');
+window.coreChallengeElement = document.getElementById('SC1-core-challenge');
+window.mission90DaysElement = document.getElementById('SC1-mission-90-days');
+window.kpiElement = document.getElementById('SC1-kpi');
+window.allianceTipElement = document.getElementById('SC1-alliance-tip');
+window.saveResultsBtn = document.getElementById('SC1-save-results-btn');
+// Application state
+let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
+let currentQuestionIndex = 0;
+let userAnswers = Array(questions.length).fill(null);
+let scores = { A: 0, B: 0, C: 0, D: 0 };
+// NEW: Function to initialize app UI (replaces duplicate code)
+function initializeAppUI() {
+    updatePageDirection();
+    applyTranslations();
+    resumeTestFromSavedState();
+    updateProgressBar();
+    updateNavButtons();
+}
+// reset the test when header icon is clicked
+function resetTestFromHeader() {
+    // Reset state
+    currentQuestionIndex = 0;
+    userAnswers = Array(questions.length).fill(null);
+    scores = { A: 0, B: 0, C: 0, D: 0 };
+    // Clear saved progress
+    localStorage.removeItem(STORAGE_KEYS.ANSWERS);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+    // Return to welcome card
+    resultCard.classList.remove('SC1-active');
+    questionCard.classList.remove('SC1-active');
+    welcomeCard.classList.add('SC1-active');
+    // Reset progress bar
+    updateProgressBar();
+    // Apply translations
+    applyTranslations();
+    // Update navigation buttons
+    updateNavButtons();
+}
+// Settings modal functionality
+function initializeSettingsModal() {
+    const settingsModal = document.getElementById('SC1-settings-modal');
+    const modalClose = document.getElementById('SC1-modal-close');
+    // Open modal
+    settingsBtn.addEventListener('click', () => {
+        settingsModal.classList.add('SC1-active');
+    });
+    // Close modal
+    modalClose.addEventListener('click', () => {
+        settingsModal.classList.remove('SC1-active');
+    });
+    // Close modal when clicking outside
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.remove('SC1-active');
+        }
+    });
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
+            settingsModal.classList.remove('SC1-active');
+        }
+    });
+}
+function initializeHeaderIcon() {
+    headerIcon.addEventListener('click', () => {
+        resetTestFromHeader();
+    });
+    // Add hover effect to indicate it's clickable
+    headerIcon.style.cursor = 'pointer';
+}
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize settings modal first
+    initializeSettingsModal();
+    // Initialize header icon functionality
+    initializeHeaderIcon();
+    // Initialize PWA functionality (install button + service worker)
+    initializePWA();  // ← CHANGED: This now includes both install button AND service worker
+    // Initialize navigation and language
+    initializeNavigation();
+    initializeLanguageButtons();
+    // Use our new function to initialize everything
+    initializeAppUI();
+});
+=====================
+FILE: i18n_ar.js
+=================
+// i18n_ar.js - Arabic translations (Updated with questions and results)
+const translations_ar = {
+    general_rules: {
+        language_name: "العربية",
+        language_code: "ar",
+        language_english_name: "Arabic", 
+        dir: "rtl"
+    },
+    SC1: {
+        header: {
+            title: "المرشد الروحي",
+            subtitle: "اكتشف نمطك الروحي من خلال هذا الاختبار التفاعلي",
+    iconTooltip: "العودة إلى الصفحة الرئيسية وإعادة تعيين الاختبار",
+    installTooltip: "تثبيت التطبيق",
+            language: {
+                ar: "العربية",
+                en: "English"
+            }
+        },
+        login: {
+            usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
+            passwordPlaceholder: "كلمة المرور",
+            button: "تسجيل الدخول"
+        },
+        welcome: {
+            title: "مرحباً بك في اختبار المرشد الروحي",
+            description1: "هذا الاختبار سيساعدك على اكتشاف نمطك الروحي من خلال تحليل إجاباتك على مجموعة من الأسئلة.",
+            description2: "سيتم عرض 8 أسئلة، كل سؤال يحتوي على 4 خيارات. اختر الخيار الذي يعكس حالتك الحقيقية.",
+            startButton: "ابدأ الاختبار"
+        },
+        questions: {
+            questionCounter: "السؤال {current} من {total}",
+            previousButton: "السابق",
+            nextButton: "التالي",
+            finishButton: "اظهر النتيجة",
+            // Questions
+            q1: {
+                question: "عند مواجهة تحدي كبير، ما هو رد فعلك الغريزي؟",
+                options: {
+                    a: "أتولى القيادة وأضع خطة عمل حاسمة",
+                    b: "أبحث عن المعنى الروحي والغاية العليا من هذا التحدي",
+                    c: "أجمع معلومات وأحلل جميع الزوايا المحتملة بهدوء",
+                    d: "أستغل الأزمة لإعادة تشكيل مساري بالكامل"
+                }
+            },
+            q2: {
+                question: "ما هو المحفز الأعمق لك في الحياة المهنية؟",
+                options: {
+                    a: "السعي للسلطة والوصول إلى قمة النجاح",
+                    b: "الأحلام الداخلية والرؤى العميقة والاتصال بالمشاعر",
+                    c: "تراكم المعرفة وفهم النظم المعقدة",
+                    d: "التطور المستمر وتجاوز حدودي باستمرار"
+                }
+            },
+            q3: {
+                question: "ما هو الدور الذي تضمله في العمل الجماعي أو الاجتماعي؟",
+                options: {
+                    a: "القائد الذي يوجه ويوضح الرؤية للجميع",
+                    b: "المحفز الذي يلهم الفريق بالتفاؤل والطاقة",
+                    c: "المستشار الذي يقدم التحليل العميق والحلول",
+                    d: "المبتكر الذي يقترح أفكاراً غير تقليدية ومختلفة"
+                }
+            },
+            q4: {
+                question: "في أي بيئة تشعر بالهدوء والسكنية؟",
+                options: {
+                    a: "في المساحات المفتوحة التي تمنح رؤية بعيدة (جبل، مرتفع)",
+                    b: "قرب الماء أو في الطبيعة العميقة التي تغذي الحدس",
+                    c: "في المكتبات أو الأماكن الهادئة التي تسمح بالتأمل",
+                    d: "في اللحظات التي تتغير فيها البيئة بشكل جذري"
+                }
+            },
+            q5: {
+                question: "عندما تشعر بالإرهاق، ما الذي يعيدك إلى مركزك؟",
+                options: {
+                    a: "إنجاز مهمة مؤجلة لاستعادة السيطرة والتحكم",
+                    b: "أغرق نفسي في أحلام أو أكتب رواية أو نصاً رمزياً",
+                    c: "أبحث عن مهارة جديدة لتعلمها أو لغز لحله",
+                    d: "أغير مظهري أو أعيد ترتيب مساحتي بشكل جذري"
+                }
+            },
+            q6: {
+                question: "ما هو الخسارة الرمزية الأكثر أهمية التي تخشاها؟",
+                options: {
+                    a: "فقدان السيطرة على مسار حياتك ومصيرك",
+                    b: "فقدان اتصالك الداخلي بحدسك أو بالروح الجماعية",
+                    c: "فقدان وضوح عقلك أو قدرتك على التفكير المنطقي",
+                    d: "فقدان فرصة التحول والتطور والبدء من جديد"
+                }
+            },
+            q7: {
+                question: "كيف تتعامل مع شخص خان ثقتك؟",
+                options: {
+                    a: "أواجههم بشكل مباشر وحاسم",
+                    b: "أبتعد بهدوء، وأقدم التسامح إذا شعرت بالندم الصادق",
+                    c: "أحلل دوافعهم وأضع حدوداً لمنع التكرار",
+                    d: "أتغير وأتطور حتى لا يتمكنوا من إيذائي مجدداً"
+                }
+            },
+            q8: {
+                question: "ما هي القوة التي تستدعيها لتحدي ضغوط الحياة؟",
+                options: {
+                    a: "الشجاعة المطلقة والإرادة التي لا تلين",
+                    b: "التعاطف وفهم أن كل شيء سيمر",
+                    c: "الحكمة التي تستمد من دروس الماضي",
+                    d: "المرونة والقدرة على إعادة بناء الذات باستمرار"
+                }
+            }
+        },
+        results: {
+            title: "نتيجة اختبار المرشد الروحي",
+            symbolicMeaning: "المعنى الرمزي",
+            coreChallenge: "التحدي الأساسي",
+            mission90Days: "مهمة 90 يوم",
+            kpi: "مؤشر الأداء الرئيسي",
+            allianceTip: "نصيحة التحالف",
+			saveButton: "حفظ النتائج",
+			saveSuccess: "تم حفظ النتائج بنجاح!",
+			saveError: "خطأ في حفظ النتائج. يرجى المحاولة مرة أخرى.",
+            restartButton: "إعادة الاختبار",
+            // Results by pattern
+            A: {
+                guide: "الصقر/النسر",
+                title: "مرشد الإرادة",
+                symbolicMeaning: "القيادة، الرؤية، وقوة الإرادة. الصقر ينفذ الاستراتيجية بدقة متناهية.",
+                coreChallenge: "فخ السيطرة الكاملة. خطر الإرهاق من محاولة القيام بكل شيء بنفسك. هذا يعيق التفويض الضروري.",
+                mission90Days: "التفويض الإلزامي: حدد شخصاً وقم بتدريبه لإدارة 3 مهام روتينية. حرر 10 ساعات أسبوعياً للتخطيط الاستراتيجي فقط.",
+                kpi: "مؤشر الأداء: 'عدد القرارات الحرجة التي يتخذها عضو في الفريق دون تدخلي.'",
+                allianceTip: "لتحقيق التوازن، ابحث عن الحدسي (النمط B) لتخفيف اندفاعك، والمتحول (النمط D) لضمان المرونة."
+            },
+            B: {
+                guide: "الدلفين/الحوت",
+                title: "مرشد العمق",
+                symbolicMeaning: "الحدس، الوعي الجماعي، والعمق الإبداعي. الحوت يحمل حكمة الزمن العميقة.",
+                coreChallenge: "فخ تشتت النطاق. خيالك الواسع يؤدي إلى مشاريع متوازية، مما يمنع الإنجاز العميق والتجسيد المادي.",
+                mission90Days: "التجسيد المادي: التزم بمشروع MVP واحد يتوافق مع رؤيتك. مهمتك هي إكمال 70% منه فعلياً قبل التفكير في أي فكرة رئيسية أخرى.",
+                kpi: "مؤشر الأداء: 'الساعات التي تقضيها في التنفيذ المادي مقابل الساعات التي تقضيها في التخطيط المجرد.'",
+                allianceTip: "لتحقيق التوازن، ابحث عن القائد (النمط A) لفرض الحدود والتنفيذ، والحكيم (النمط C) لتنظيم رؤاك."
+            },
+            C: {
+                guide: "البومة/الذئب",
+                title: "مرشد الحكمة",
+                symbolicMeaning: "المعرفة الخفية، الاستراتيجية، والحماية. البومة ترى الحقيقة في الظلام؛ الذئب يحمي جوهره.",
+                coreChallenge: "فخ شلل التحليل. سعيك للمعرفة الكاملة (100% من البيانات) يمكن أن يوقف العمل الحاسم. تخاطر بفقدان الفرص المحسوبة.",
+                mission90Days: "عتبة العمل: حدد 'عتبة ثقة 80%' للقرارات الحرجة. بمجرد جمع 80% من البيانات، يجب أن تنفذ خلال 72 ساعة، حتى لو بقيت مجهولات بسيطة.",
+                kpi: "مؤشر الأداء: 'عدد القرارات الرئيسية التي تم تنفيذها (وليس فقط تخطيطها) هذا الأسبوع.'",
+                allianceTip: "لتحقيق التوازن، ابحث عن الحدسي (النمط B) لإلهام الاتصال العاطفي، والمتحول (النمط D) لدفعك نحو التغيير الضروري."
+            },
+            D: {
+                guide: "الأفعى/الفراشة",
+                title: "مرشد الدورات",
+                symbolicMeaning: "التحول الجذري، الشفاء، والمرونة. الأفعى تخلع جلدها؛ الفراشة تظهر من جديد.",
+                coreChallenge: "فخ عدم الاستقرار. التحولات الكبيرة المستمرة تمنعك من إنشاء الأساس المستدام اللازم لإرث يمتد لعقود.",
+                mission90Days: "استقرار الجوهر: حدد 'جوهر غير قابل للتفاوض' لحياتك/عملك (مثل هدف دخلك أو قيمتك الأساسية). تأكد من أن جميع التحولات تخدم تعزيز هذا الجوهر.",
+                kpi: "مؤشر الأداء: 'عدد الأيام المتتالية التي مرت دون بدء مشروع جديد أو تغيير الاتجاه الأساسي للمشروع الرئيسي.'",
+                allianceTip: "لتحقيق التوازن، ابحث عن القائد (النمط A) لفرض الانضباط والتركيز، والحكيم (النمط C) لتوفير الاستطالة أثناء تطوراتك السريعة."
+            }
+        },
+        settings: {
+            title: "الإعدادات",
+            tooltip: "الإعدادات",
+            language: "اللغة"
+        },
+        footer: {
+            developedBy: "تم التطوير بواسطة ماجري زياد",
+            version: "spiritual-guide-v2.1.6",
+            project: "منصة أطلانتس"
+        },
+		music: {
+			title: "مشغل الموسيقى",
+			tooltipTitle: "تشغيل/إيقاف الموسيقى الخلفية",
+			tooltipExpand: "انقر للتوسيع/طي مشغل الموسيقى",
+            noTrack: "لا يوجد موسيقى تعمل",
+			error: "تعذر تشغيل الصوت. يرجى التحقق من ملفات الموسيقى.",
+			tracks: {
+				track1: "velvetkeys-zen meditation buddhist",
+				track2: "velvetkeys1-zen meditation buddhist",
+				track3: "spiritualite nature"
+			}
+		}
+    }
+};
+=====================
+FILE: data.js
+=============
+// Application State Data - Spiritual Guide Test (Refactored for i18n)
+// Questions data with translation keys
+const questions = [
+    {
+        id: 1,
+        key: "q1",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 2,
+        key: "q2",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 3,
+        key: "q3",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 4,
+        key: "q4",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 5,
+        key: "q5",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 6,
+        key: "q6",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 7,
+        key: "q7",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    },
+    {
+        id: 8,
+        key: "q8",
+        options: [
+            {key: "a", score_key: "A"},
+            {key: "b", score_key: "B"},
+            {key: "c", score_key: "C"},
+            {key: "d", score_key: "D"}
+        ]
+    }
+];
+// Results data with translation keys
+const results = {
+    "A": {
+        key: "A",
+        guide_key: "eagle",
+        title_key: "guide_of_will"
+    },
+    "B": {
+        key: "B",
+        guide_key: "whale",
+        title_key: "guide_of_depth"
+    },
+    "C": {
+        key: "C",
+        guide_key: "owl",
+        title_key: "guide_of_wisdom"
+    },
+    "D": {
+        key: "D",
+        guide_key: "snake",
+        title_key: "guide_of_cycles"
+    }
+};
+=====================
+FILE: i18n_en.js
+=================
+// i18n_en.js - English translations (Updated with questions and results)
+const translations_en = {
+    general_rules: {
+        language_name: "English",
+        language_code: "en",
+        language_english_name: "English",
+        dir: "ltr"
+    },
+    SC1: {
+        header: {
+            title: "Spiritual Guide",
+            subtitle: "Discover your spiritual pattern through this interactive test",
+    iconTooltip: "Return to home and reset test",
+    installTooltip: "Install App",
+            language: {
+                ar: "Arabic",
+                en: "English"
+            }
+        },
+        login: {
+            usernamePlaceholder: "Email or username",
+            passwordPlaceholder: "Password",
+            button: "Login"
+        },
+        welcome: {
+            title: "Welcome to the Spiritual Guide Test",
+            description1: "This test will help you discover your spiritual pattern by analyzing your answers to a set of questions.",
+            description2: "8 questions will be displayed, each with 4 options. Choose the option that reflects your true state.",
+            startButton: "Start Test"
+        },
+        questions: {
+            questionCounter: "Question {current} of {total}",
+            previousButton: "Previous",
+            nextButton: "Next",
+            finishButton: "Show Result",
+            // Questions
+            q1: {
+                question: "When faced with a major challenge, what is your instinctual reaction?",
+                options: {
+                    a: "I take charge and create a decisive action plan.",
+                    b: "I seek the spiritual meaning and higher purpose of the crisis.",
+                    c: "I gather information and calmly analyze all potential outcomes.",
+                    d: "I completely change direction and use the crisis to rebuild myself."
+                }
+            },
+            q2: {
+                question: "What is your deepest professional motivator?",
+                options: {
+                    a: "The pursuit of authority, influence, and reaching the pinnacle of success.",
+                    b: "Inner dreams, emotional connection, and inspiring collective consciousness.",
+                    c: "The accumulation of knowledge and understanding complex systems.",
+                    d: "Constant evolution, self-improvement, and pushing beyond past boundaries."
+                }
+            },
+            q3: {
+                question: "What role do you naturally assume in a team or social setting?",
+                options: {
+                    a: "The Leader who delegates tasks and clarifies the core vision.",
+                    b: "The Motivator who inspires the team with positive energy and vision.",
+                    c: "The Consultant who offers deep analysis and strategic solutions.",
+                    d: "The Innovator who proposes radical, effective, and unconventional ideas."
+                }
+            },
+            q4: {
+                question: "Where do you feel the greatest sense of profound peace?",
+                options: {
+                    a: "In open spaces that grant a broad, commanding view (e.g., mountains, high vantage points).",
+                    b: "Near water or in deep nature, where intuition flows freely.",
+                    c: "In libraries or quiet places allowing for contemplation and analysis.",
+                    d: "In moments of radical change or moving into a completely new environment."
+                }
+            },
+            q5: {
+                question: "When feeling burnt out, what brings you back to center?",
+                options: {
+                    a: "Completing an outstanding task to regain control and momentum.",
+                    b: "Engaging in creative writing, dreaming, or symbolic reflection.",
+                    c: "Learning a new skill or solving a complex puzzle.",
+                    d: "Changing my physical appearance or drastically reorganizing my space."
+                }
+            },
+            q6: {
+                question: "What is the most critical symbolic loss you fear?",
+                options: {
+                    a: "Losing control over your life's direction and destiny.",
+                    b: "Losing your deep connection to intuition or 'collective soul'.",
+                    c: "Losing the clarity of your mind or analytical capacity.",
+                    d: "Losing the opportunity to evolve, transform, or start anew."
+                }
+            },
+            q7: {
+                question: "How do you approach someone who has betrayed your trust?",
+                options: {
+                    a: "I confront them directly and decisively to establish boundaries.",
+                    b: "I quietly distance myself, offering forgiveness if sincerity is felt.",
+                    c: "I analyze their motives to prevent future risks, setting calculated limits.",
+                    d: "I focus on developing my own resilience so their actions cannot affect me again."
+                }
+            },
+            q8: {
+                question: "Which strength do you invoke to overcome life's pressures?",
+                options: {
+                    a: "Absolute courage and unyielding will.",
+                    b: "Empathy and the knowing that all things pass.",
+                    c: "Wisdom derived from past failures and lessons.",
+                    d: "Flexibility and the power to rebuild myself continuously."
+                }
+            }
+        },
+        results: {
+            title: "Spiritual Guide Test Result",
+            symbolicMeaning: "Symbolic Meaning",
+            coreChallenge: "Core Challenge",
+            mission90Days: "90-Day Mission",
+            kpi: "Key Performance Indicator",
+            allianceTip: "Alliance Tip",
+			saveButton: "Save Results",
+            restartButton: "Restart Test",
+			saveSuccess: "Results saved successfully!",
+			saveError: "Error saving results. Please try again.",
+            // Results by pattern
+            A: {
+                guide: "The Eagle/Hawk",
+                title: "The Guide of Will",
+                symbolicMeaning: "Leadership, Vision, and Willpower. The Eagle executes the strategy with pinpoint accuracy.",
+                coreChallenge: "The Trap of Total Control. Risk of burnout from attempting to do everything yourself. This hinders necessary Delegation.",
+                mission90Days: "Mandatory Delegation: Identify and train someone to manage 3 routine tasks. Free up 10 hours per week solely for strategic planning.",
+                kpi: "Execution KPI: Your daily focus metric is: 'Number of critical decisions made by a team member without my intervention.'",
+                allianceTip: "To find balance, seek the Intuitive (Pattern B) to temper your drive, and the Transformation (Pattern D) to ensure flexible pivots."
+            },
+            B: {
+                guide: "The Whale/Dolphin",
+                title: "The Guide of Depth",
+                symbolicMeaning: "Intuition, Collective Consciousness, and Creative Depth. The Whale carries the deep wisdom of time.",
+                coreChallenge: "The Trap of Scope Creep. Your vast imagination leads to parallel projects, preventing deep completion and physical grounding.",
+                mission90Days: "Physical Grounding: Commit to one single MVP project aligned with your vision. Your mission is to physically complete 70% of it before entertaining any other major idea.",
+                kpi: "Execution KPI: Your daily focus metric is: 'Hours spent on physical execution versus hours spent on abstract planning.'",
+                allianceTip: "To find balance, seek the Leadership (Pattern A) to enforce boundaries and execution, and the Wisdom (Pattern C) to structure your insights."
+            },
+            C: {
+                guide: "The Owl/Wolf",
+                title: "The Guide of Wisdom",
+                symbolicMeaning: "Hidden Knowledge, Strategy, and Protection. The Owl sees truth in the darkness; the Wolf protects its core.",
+                coreChallenge: "The Trap of Analysis Paralysis. Your drive for complete knowledge (100% data) can halt critical action. You risk missing calculated opportunities.",
+                mission90Days: "Action Threshold: Define an '80% Confidence Threshold' for critical decisions. Once 80% of data is collected, you must execute within 72 hours, even if minor unknowns remain.",
+                kpi: "Execution KPI: Your daily focus metric is: 'Number of major decisions executed (not just planned) this week.'",
+                allianceTip: "To find balance, seek the Intuitive (Pattern B) to inspire emotional connection, and the Transformation (Pattern D) to push you into necessary change."
+            },
+            D: {
+                guide: "The Snake/Butterfly",
+                title: "The Guide of Cycles",
+                symbolicMeaning: "Radical Transformation, Healing, and Resilience. The Snake sheds its skin; the Butterfly emerges reborn.",
+                coreChallenge: "The Trap of Instability. Constant, major transformations prevent you from establishing the Sustainable Foundation needed for a multi-decade legacy.",
+                mission90Days: "Core Stability: Define a 'Non-Negotiable Core' for your life/business (e.g., your income goal or core value). Ensure all transformations serve to strengthen this core.",
+                kpi: "Execution KPI: Your daily focus metric is: 'Number of consecutive days passed without starting a new project or changing the core direction of the primary MVP.'",
+                allianceTip: "To find balance, seek the Leadership (Pattern A) to enforce discipline and focus, and the Wisdom (Pattern C) to provide stability during your rapid evolutions."
+            }
+        },
+        settings: {
+            title: "Settings",
+            tooltip: "Settings",
+            language: "Language"
+        },
+        footer: {
+            developedBy: "Developed by Mejri Ziad",
+            version: "spiritual-guide-v2.1.6",
+            project: "Atlantis Platform"
+        },
+		music: {
+			title: "Music Player",
+			tooltipTitle: "Play/Stop background music",
+			tooltipExpand: "Click to expand/collapse music player",
+			noTrack: "No track playing",
+			error: "Cannot play audio. Please check your music files.",
+			tracks: {
+				track1: "velvetkeys-zen meditation buddhist",
+				track2: "velvetkeys1-zen meditation buddhist",
+				track3: "spiritualite nature"
+			}
+		}
+    }
+};
+=====================
+FILE: storage.js
+================
+// Storage Management - Spiritual Guide Test PWA (Cleaned)
+// Use the global STORAGE_KEYS from main.js
+const STORAGE_KEYS = window.STORAGE_KEYS || {
+    LANGUAGE: 'spiritual-guide-language',
+    ANSWERS: 'spiritual-guide-answers',
+    CURRENT_QUESTION: 'spiritual-guide-current-question',
+    SAVED_RESULTS: 'spiritual-guide-saved-results'
+};
+// Save data to localStorage
+function saveToStorage(key, data) {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+        return true;
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
+        return false;
+    }
+}
+function loadFromStorage(key, defaultValue = null) {
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.error('Error loading from localStorage:', error);
+        return defaultValue;
+    }
+}
+// Save user preferences
+function saveUserPreferences() {
+    saveToStorage(STORAGE_KEYS.LANGUAGE, currentLanguage);
+}
+// Save test progress
+function saveTestProgress() {
+    saveToStorage(STORAGE_KEYS.ANSWERS, userAnswers);
+    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, currentQuestionIndex);
+}
+// Load user preferences
+function loadUserPreferences() {
+    const savedLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
+    return { savedLanguage };
+}
+// Load test progress
+function loadTestProgress() {
+    const savedAnswers = loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null));
+    const savedQuestionIndex = loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0);
+    return { savedAnswers, savedQuestionIndex };
+}
+// Resume test from saved state
+function resumeTestFromSavedState() {
+    const { savedAnswers, savedQuestionIndex } = loadTestProgress();
+    const hasSavedProgress = savedAnswers.some(answer => answer !== null);
+    if (hasSavedProgress) {
+        userAnswers = savedAnswers;
+        currentQuestionIndex = savedQuestionIndex;
+        // If we have completed answers (all questions answered)
+        const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
+        if (allQuestionsAnswered && currentQuestionIndex >= questions.length) {
+            // Show results if test was completed
+            welcomeCard.classList.remove('SC1-active');
+            questionCard.classList.remove('SC1-active');
+            resultCard.classList.add('SC1-active');
+            displayResult();
+        } 
+        // If we're in the middle of the test
+        else if (currentQuestionIndex < questions.length) {
+            welcomeCard.classList.remove('SC1-active');
+            resultCard.classList.remove('SC1-active');
+            questionCard.classList.add('SC1-active');
+            displayQuestion(currentQuestionIndex);
+        }
+        // If we're at the end but have saved answers, show results
+        else if (currentQuestionIndex >= questions.length && hasSavedProgress) {
+            welcomeCard.classList.remove('SC1-active');
+            questionCard.classList.remove('SC1-active');
+            resultCard.classList.add('SC1-active');
+            displayResult();
+        }
+    }
+}
+// Generate a unique ID for saved results
+function generateResultId() {
+    return 'result_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+// Save current results to saved results storage
+function saveCurrentResults() {
+    // Show immediate feedback to user
+    const originalText = saveResultsBtn.textContent;
+    saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
+    saveResultsBtn.disabled = true;
+    // Use setTimeout to break up the work and prevent blocking
+    setTimeout(() => {
+        try {
+            const resultPattern = calculateResult();
+            const resultId = generateResultId();
+            // Get translations more efficiently
+            const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
+            const resultData = {
+                id: resultId,
+                date: new Date().toISOString(),
+                dominantPattern: resultPattern,
+                scores: {...scores},
+                userAnswers: [...userAnswers],
+                resultDetails: {
+                    guide: resultTranslations.guide,
+                    title: resultTranslations.title,
+                    symbolicMeaning: resultTranslations.symbolicMeaning,
+                    coreChallenge: resultTranslations.coreChallenge,
+                    mission90Days: resultTranslations.mission90Days,
+                    kpi: resultTranslations.kpi,
+                    allianceTip: resultTranslations.allianceTip
+                }
+            };
+            // Load existing saved results
+            const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+            // Add new result
+            existingResults.push(resultData);
+            // Save back to storage
+            const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
+            // Show result using notification system
+			if (saved) {
+				showSuccess(translate('SC1.results.saveSuccess'));
+				} else {
+				showError(translate('SC1.results.saveError'));
+			}
+        } catch (error) {
+			console.error('Error saving results:', error);
+			showError(translate('SC1.results.saveError'));
+			} finally {
+            // Restore button state
+            saveResultsBtn.textContent = originalText;
+            saveResultsBtn.disabled = false;
+        }
+    }, 10); // Small delay to allow UI to update
+}
+// Load all saved results
+function loadSavedResults() {
+    return loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+}
+// Get a specific saved result by ID
+function getSavedResultById(resultId) {
+    const allResults = loadSavedResults();
+    return allResults.find(result => result.id === resultId);
+}
+// Delete a saved result by ID
+function deleteSavedResult(resultId) {
+    const allResults = loadSavedResults();
+    const filteredResults = allResults.filter(result => result.id !== resultId);
+    return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
+}
+// Make functions global
+window.saveCurrentResults = saveCurrentResults;
+window.loadSavedResults = loadSavedResults;
+window.getSavedResultById = getSavedResultById;
+window.deleteSavedResult = deleteSavedResult;
+=====================
+FILE: translations.js
+=====================
+// translations.js - Updated to use separate language files
+function translate(key, params = {}) {
+    const keys = key.split('.');
+    // Use the helper function to get the correct translation object
+    let translationObj = getCurrentTranslationObject();
+    let value = translationObj;
+    for (const k of keys) {
+        if (value && value.hasOwnProperty(k)) {
+            value = value[k];
+        } else {
+            console.warn(`Translation key not found: ${key}`);
+            // Return the key itself instead of showing an error
+            return key.split('.').pop();
+        }
+    }
+    // استبدال المتغيرات في النص
+    let translatedText = value;
+    for (const param in params) {
+        translatedText = translatedText.replace(`{${param}}`, params[param]);
+    }
+    return translatedText;
+}
+// تطبيق الترجمات على جميع العناصر
+function applyTranslations() {
+    // Translate all elements with data-i18n
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        let translatedText = translate(key);
+        // Handle special elements
+        if (element.id === 'SC1-current-question') {
+            return;
+        }
+        // Handle elements with variable text
+        if (element.id === 'SC1-next-btn' && currentQuestionIndex === questions.length - 1) {
+            translatedText = translate('SC1.questions.finishButton');
+        }
+        element.textContent = translatedText;
+    });
+    // Translate placeholder attributes
+    const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+    placeholderElements.forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        const translatedText = translate(key);
+        element.setAttribute('placeholder', translatedText);
+    });
+    // Update screens
+    if (welcomeCard.classList.contains('SC1-active')) {
+        // No additional action needed
+    } 
+    else if (questionCard.classList.contains('SC1-active')) {
+        displayQuestion(currentQuestionIndex);
+    } 
+    else if (resultCard.classList.contains('SC1-active')) {
+        displayResult();
+    }
+    // Update navigation buttons
+    updateNavButtons();
+}
+// وظيفة تبديل اتجاه الصفحة
+function updatePageDirection() {
+    const htmlElement = document.getElementById('SC1-html-direction');
+    // Get the current language object dynamically
+    const currentLangObj = getCurrentTranslationObject();
+    // Get direction and language code from the general_rules
+    const dir = currentLangObj.general_rules.dir;
+    const langCode = currentLangObj.general_rules.language_code;
+    htmlElement.setAttribute('dir', dir);
+    htmlElement.setAttribute('lang', langCode);
+}
+// Helper function to get the current translation object
+function getCurrentTranslationObject() {
+    // This will automatically use the correct translation file based on currentLanguage
+    if (currentLanguage === 'en') {
+        return translations_en;
+    } else if (currentLanguage === 'ar') {
+        return translations_ar;
+    }
+    // Add more languages here
+    // For now, fallback to English
+    return translations_en;
+}
+// Get display name for a language
+function getLanguageDisplayName(langCode) {
+    // Temporarily switch to the requested language to get its name
+    const originalLanguage = currentLanguage;
+    currentLanguage = langCode;
+    const langObj = getCurrentTranslationObject();
+    currentLanguage = originalLanguage; // Restore original language
+    return langObj.general_rules.language_name;
+}
+function getLanguageEnglishName(langCode) {
+    // Temporarily switch to the requested language to get its English name
+    const originalLanguage = currentLanguage;
+    currentLanguage = langCode;
+    const langObj = getCurrentTranslationObject();
+    currentLanguage = originalLanguage; // Restore original language
+    return langObj.general_rules.language_english_name;
+}
+=====================
+FILE: ui.js
+===========
+// ui.js - UI and Display Functions (Updated for i18n keys)
+// عرض السؤال الحالي
+function displayQuestion(index) {
+    const question = questions[index];
+    // تحديث عداد السؤال
+    const questionCounterText = translate('SC1.questions.questionCounter', {
+        current: index + 1,
+        total: questions.length
+    });
+    document.querySelector('.SC1-question-number').textContent = questionCounterText;
+    // تحديث نص السؤال باستخدام مفتاح الترجمة
+    const questionKey = `SC1.questions.${question.key}.question`;
+    questionTextElement.textContent = translate(questionKey);
+    // تحديث الخيارات
+    optionsContainer.innerHTML = '';
+    question.options.forEach((option, optionIndex) => {
+        const optionElement = document.createElement('div');
+        optionElement.classList.add('SC1-option');
+        if (userAnswers[index] === option.score_key) {
+            optionElement.classList.add('SC1-selected');
+        }
+        // استخدام مفتاح الترجمة للخيار
+        const optionKey = `SC1.questions.${question.key}.options.${option.key}`;
+        optionElement.textContent = translate(optionKey);
+        optionElement.addEventListener('click', () => {
+			// إزالة التحديد من جميع الخيارات
+			document.querySelectorAll('.SC1-option').forEach(opt => {
+				opt.classList.remove('SC1-selected');
+			});
+			// تحديد الخيار المختار
+			optionElement.classList.add('SC1-selected');
+			userAnswers[index] = option.score_key;
+			// تحديث حالة الأزرار (نعم، ابق هذا)
+			updateNavButtons();
+		});
+        optionsContainer.appendChild(optionElement);
+    });
+    // تحديث شريط التقدم
+    updateProgressBar();
+    // تحديث حالة الأزرار
+    updateNavButtons();
+}
+// تحديث شريط التقدم
+function updateProgressBar() {
+    const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
+    progressElement.style.width = `${progressPercentage}%`;
+}
+// تحديث حالة أزرار التنقل
+function updateNavButtons() {
+    // زر السابق
+    if (currentQuestionIndex === 0) {
+        prevBtn.style.visibility = 'hidden';
+    } else {
+        prevBtn.style.visibility = 'visible';
+    }
+    // زر التالي/إنهاء
+    if (userAnswers[currentQuestionIndex] !== null) {
+        nextBtn.disabled = false;
+        if (currentQuestionIndex === questions.length - 1) {
+            nextBtn.textContent = translate('SC1.questions.finishButton');
+        } else {
+            nextBtn.textContent = translate('SC1.questions.nextButton');
+        }
+    } else {
+        nextBtn.disabled = true;
+    }
+}
+// عرض النتيجة
+function displayResult() {
+    const resultPattern = calculateResult();
+    const result = results[resultPattern];
+    // استخدام مفاتيح الترجمة لعرض النتيجة
+    resultGuideElement.textContent = `${translate(`SC1.results.${result.key}.guide`)} - ${translate(`SC1.results.${result.key}.title`)}`;
+    symbolicMeaningElement.textContent = translate(`SC1.results.${result.key}.symbolicMeaning`);
+    coreChallengeElement.textContent = translate(`SC1.results.${result.key}.coreChallenge`);
+    mission90DaysElement.textContent = translate(`SC1.results.${result.key}.mission90Days`);
+    kpiElement.textContent = translate(`SC1.results.${result.key}.kpi`);
+    allianceTipElement.textContent = translate(`SC1.results.${result.key}.allianceTip`);
+}
+=====================
+FILE: index.html
+================
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="SC1-html-direction">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Spiritual Guide</title>
+		<link rel="stylesheet" href="styles/main.css">
+	</head>
+	<body>
+		<div class="SC1-container">
+			<header class="SC1-header">
+				<div class="SC1-header-grid">
+					<!-- 1/4: Icon -->
+					<div class="SC1-header-icon">
+						<div class="SC1-icon-circle" id="SC1-header-icon">
+							<img src="assets/icons/icon-96x96.png" alt="Spiritual Guide Icon" class="SC1-icon-img">
+							<span class="SC1-tooltip" data-i18n="SC1.header.iconTooltip">Return to home and reset test</span>
+						</div>
+					</div>
+					<!-- 2/4: Title + Subtitle -->
+					<div class="SC1-header-text">
+						<h1 class="SC1-main-title" data-i18n="SC1.header.title">Spiritual Guide</h1>
+						<p class="SC1-subtitle" data-i18n="SC1.header.subtitle">Discover your spiritual pattern through this interactive test</p>
+					</div>
+					<!-- 1/4: Language Controls -->
+					<div class="SC1-header-controls">
+						<form class="SC1-login-form" onsubmit="return false;">
+							<div class="SC1-input-line">
+								<input type="text" class="SC1-input-field" data-i18n-placeholder="SC1.login.usernamePlaceholder" placeholder="Email or username" id="SC1-username" autocomplete="username">
+							</div>
+							<div class="SC1-input-line">
+								<input type="password" class="SC1-input-field" data-i18n-placeholder="SC1.login.passwordPlaceholder" placeholder="Password" id="SC1-password" autocomplete="current-password">
+							</div>
+							<div class="SC1-input-line">
+								<button type="submit" class="SC1-login-btn" id="SC1-login-btn" data-i18n="SC1.login.button">Login</button>
+							</div>
+						</form>
+						<div class="SC1-controls-line">
+							<button class="SC1-install-btn" id="SC1-install-btn">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/>
+								</svg>
+								<span class="SC1-tooltip" data-i18n="SC1.header.installTooltip">Install App</span>
+							</button>
+							<button class="SC1-settings-btn" id="SC1-settings-btn">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04.32.07.64.07.97 0 .33-.03.65-.07.97l2.11 1.65c.19.15.24.42.12.64l-2 3.46c-.12.22-.39.3-.61.22l-2.49-1c-.52.39-1.08.73-1.69.98l-.38 2.65c-.03.24-.24.42-.49.42h-4c-.25 0-.46-.18-.49-.42l-.38-2.65c-.61-.25-1.17-.59-1.69-.98l-2.49 1c-.23.09-.49 0-.61-.22l-2-3.46c-.12-.22-.07-.49.12-.64l2.11-1.65c-.04-.32-.07-.65-.07-.97 0-.32.03-.65.07-.97L2.46 11.2c-.19-.15-.24-.42-.12-.64l2-3.46c.12-.22.39-.3.61-.22l2.49 1c.52-.39 1.08-.73 1.69-.98l.38-2.65c.03-.24.24-.42.49-.42h4c.25 0 .46.18.49.42l.38 2.65c.61.25 1.17.59 1.69.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12.22.07.49-.12.64l-2.11 1.65z"/>
+								</svg>
+								<span class="SC1-tooltip" data-i18n="SC1.settings.tooltip">Settings</span>
+							</button>
+						</div>
+					</div>
+				</div>
+			</header>
+			<!-- Settings Modal -->
+			<div class="SC1-modal" id="SC1-settings-modal">
+				<div class="SC1-modal-content">
+					<div class="SC1-modal-header">
+						<h2 data-i18n="SC1.settings.title">Settings</h2>
+						<button class="SC1-modal-close" id="SC1-modal-close">&times;</button>
+					</div>
+					<div class="SC1-modal-body">
+						<div class="SC1-settings-section">
+							<h3 data-i18n="SC1.settings.language">Language</h3>
+							<div class="SC1-language-switcher">
+								<button class="SC1-lang-btn" data-lang="ar" data-i18n="SC1.header.language.ar">العربية</button>
+								<button class="SC1-lang-btn SC1-active" data-lang="en" data-i18n="SC1.header.language.en">English</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="SC1-progress-bar">
+				<div class="SC1-progress" id="SC1-progress"></div>
+			</div>
+			<div class="SC1-card SC1-active" id="SC1-welcome-card">
+				<div class="SC1-question-text">
+					<h2 data-i18n="SC1.welcome.title">Welcome to the Spiritual Guide Test</h2>
+					<p data-i18n="SC1.welcome.description1">This test will help you discover your spiritual pattern by analyzing your answers to a set of questions.</p>
+					<p data-i18n="SC1.welcome.description2">8 questions will be displayed, each with 4 options. Choose the option that reflects your true state.</p>
+				</div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-primary" id="SC1-start-btn" data-i18n="SC1.welcome.startButton">Start Test</button>
+				</div>
+			</div>
+			<div class="SC1-card" id="SC1-question-card">
+				<div class="SC1-question-number" data-i18n="SC1.questions.questionCounter">Question <span id="SC1-current-question">1</span> of 8</div>
+				<div class="SC1-question-text" id="SC1-question-text"></div>
+				<div class="SC1-options-container" id="SC1-options-container"></div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-secondary" id="SC1-prev-btn" data-i18n="SC1.questions.previousButton">Previous</button>
+					<button class="SC1-button SC1-btn-primary" id="SC1-next-btn" data-i18n="SC1.questions.nextButton">Next</button>
+				</div>
+			</div>
+			<div class="SC1-card" id="SC1-result-card">
+				<div class="SC1-result-title" data-i18n="SC1.results.title">Spiritual Guide Test Result</div>
+				<div class="SC1-result-guide" id="SC1-result-guide"></div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.symbolicMeaning">Symbolic Meaning</h3>
+					<p id="SC1-symbolic-meaning"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.coreChallenge">Core Challenge</h3>
+					<p id="SC1-core-challenge"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.mission90Days">90-Day Mission</h3>
+					<p id="SC1-mission-90-days"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.kpi">Key Performance Indicator</h3>
+					<p id="SC1-kpi"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.allianceTip">Alliance Tip</h3>
+					<p id="SC1-alliance-tip"></p>
+				</div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-primary" id="SC1-save-results-btn" data-i18n="SC1.results.saveButton">Save Results</button>
+					<button class="SC1-button SC1-btn-secondary" id="SC1-restart-btn" data-i18n="SC1.results.restartButton">Restart Test</button>
+				</div>
+			</div>
+		</div>
+		<!-- Footer Section -->
+		<footer class="SC1-footer">
+			<!-- Music Player -->
+			<div class="SC1-music-player SC1-collapsed" id="SC1-music-player">
+				<div class="SC1-music-header" id="SC1-music-header">
+					<span class="SC1-music-label" data-i18n="SC1.music.title">Music Player</span>
+					<span class="SC1-expand-icon">▼</span>
+					<span class="SC1-tooltip" data-i18n="SC1.music.tooltipTitle">Play/Stop background music</span>
+				</div>
+				<div class="SC1-music-body">
+					<div class="SC1-music-main-controls">
+						<button id="SC1-music-prev" class="SC1-music-control-btn">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+							</svg>
+						</button>
+						<button id="SC1-music-toggle" class="SC1-music-btn">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+							</svg>
+						</button>
+						<button id="SC1-music-next" class="SC1-music-control-btn">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+							</svg>
+						</button>
+					</div>
+					<div class="SC1-music-track-info">
+						<span id="SC1-music-title" class="SC1-music-title" data-i18n="SC1.music.noTrack">No track playing</span>
+					</div>
+					<div class="SC1-music-progress-container">
+						<div class="SC1-music-progress">
+							<div id="SC1-music-progress-bar" class="SC1-music-progress-bar"></div>
+						</div>
+						<div class="SC1-music-time">
+							<span id="SC1-music-current-time">0:00</span> / <span id="SC1-music-total-time">0:00</span>
+						</div>
+					</div>
+					<div class="SC1-music-volume-container">
+						<button id="SC1-music-volume-btn" class="SC1-music-volume-btn">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+							</svg>
+						</button>
+						<div class="SC1-music-volume-slider-container">
+							<input type="range" id="SC1-music-volume-slider" class="SC1-music-volume-slider" min="0" max="100" value="50">
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="SC1-footer-content">
+				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.1.6</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
+			</div>
+		</footer>
+<!-- Load PWA functionality FIRST -->
+<script src="scripts/pwa.js"></script>
+<!-- Then load other scripts -->
+<script src="scripts/data.js"></script>
+<script src="scripts/i18n_en.js"></script>
+<script src="scripts/i18n_ar.js"></script>
+<script src="scripts/translations.js"></script>
+<script src="scripts/notifications.js"></script>
+<script src="scripts/storage.js"></script>
+<!-- Load UI and navigation -->
+<script src="scripts/ui.js"></script>
+<script src="scripts/navigation.js"></script>
+<script src="scripts/results.js"></script>
+<!-- Load music player -->
+<script src="scripts/music.js"></script>
+<!-- Finally load main.js -->
+<script src="scripts/main.js"></script>
+	</body>
+</html>
+=====================
+FILE: main.css
+================
+=====================
+FILE: manifest.json
+===================
+{
+	"name": "Spiritual Guide Test",
+	"short_name": "Spiritual_Guide",
+	"id": "SpiritualGuide1",
+	"description": "Discover your spiritual pattern through this interactive test",
+	"start_url": "/",
+	"display": "standalone",
+	"display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+	"background_color": "#4a6fa5",
+	"theme_color": "#4a6fa5",
+	"orientation": "portrait-primary",
+	"dir": "auto",
+	"lang": "en",
+	"scope": "/",
+	"iarc_rating_id": "e58f13d1-5619-4cbc-8c0f-98bc5e5a75d9",
+	"categories": ["education", "lifestyle", "personalization"],
+	"prefer_related_applications": false,
+	"related_applications": [
+		{
+			"platform": "web",
+			"url": "https://spiritual-consultation.netlify.app/",
+			"id": "spiritual-consultation"
+		}
+	],
+	"launch_handler": {
+		"client_mode": "focus-existing"
+	},
+	"icons": [
+		{
+			"src": "assets/icons/icon-72x72.png",
+			"sizes": "72x72",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "assets/icons/icon-96x96.png",
+			"sizes": "96x96",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "assets/icons/icon-128x128.png",
+			"sizes": "128x128",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "assets/icons/icon-144x144.png",
+			"sizes": "144x144",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "assets/icons/icon-152x152.png",
+			"sizes": "152x152",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "assets/icons/icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "assets/icons/icon-384x384.png",
+			"sizes": "384x384",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "assets/icons/icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "assets/screenshots/screenshot-desktop_1280x720.png",
+			"sizes": "1280x720",
+			"type": "image/png",
+			"form_factor": "wide",
+			"label": "Interactive Spiritual Test"
+		},
+		{
+			"src": "assets/screenshots/screenshot-mobile_375x667.png",
+			"sizes": "375x667",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "Interactive Spiritual Test"
+		},
+		{
+			"src": "assets/screenshots/widget-screenshot-384x384.png",
+			"sizes": "384x384",
+			"type": "image/png",
+			"platform": "windows",
+			"label": "Interactive Spiritual Test"
+		}
+	]
+}
+=====================
+FILE: notifications.js
+================
+// notifications.js - Custom notification system
+class NotificationSystem {
+    constructor() {
+        this.container = null;
+        this.setupContainer();
+    }
+    setupContainer() {
+        // Create notification container if it doesn't exist
+        this.container = document.getElementById('SC1-notification-container');
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.id = 'SC1-notification-container';
+            this.container.className = 'SC1-notification-container';
+            document.body.appendChild(this.container);
+        }
+    }
+    show(options) {
+        const {
+            type = 'info',
+            message = '',
+            duration = 4000,
+            icon = true
+        } = options;
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `SC1-notification ${type}`;
+        // Set icon based on type
+        let iconChar = 'ℹ️';
+        switch (type) {
+            case 'success': iconChar = '✅'; break;
+            case 'error': iconChar = '❌'; break;
+            case 'warning': iconChar = '⚠️'; break;
+            case 'info': iconChar = 'ℹ️'; break;
+        }
+        notification.innerHTML = `
+            ${icon ? `<span class="SC1-notification-icon">${iconChar}</span>` : ''}
+            <span class="SC1-notification-message">${message}</span>
+        `;
+        // Add to container
+        this.container.appendChild(notification);
+        // Animate in
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        // Auto remove after duration
+        const removeNotification = () => {
+            notification.classList.remove('show');
+            notification.classList.add('hide');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        };
+        // Click to dismiss
+        notification.addEventListener('click', removeNotification);
+        // Auto dismiss after duration
+        if (duration > 0) {
+            setTimeout(removeNotification, duration);
+        }
+        return {
+            dismiss: removeNotification,
+            element: notification
+        };
+    }
+    // Convenience methods
+    success(message, duration = 4000) {
+        return this.show({ type: 'success', message, duration });
+    }
+    error(message, duration = 5000) {
+        return this.show({ type: 'error', message, duration });
+    }
+    warning(message, duration = 5000) {
+        return this.show({ type: 'warning', message, duration });
+    }
+    info(message, duration = 3000) {
+        return this.show({ type: 'info', message, duration });
+    }
+}
+// Create global instance
+window.SC1Notification = new NotificationSystem();
+// Make it available globally
+window.showNotification = function(options) {
+    return window.SC1Notification.show(options);
+};
+window.showSuccess = function(message, duration) {
+    return window.SC1Notification.success(message, duration);
+};
+window.showError = function(message, duration) {
+    return window.SC1Notification.error(message, duration);
+};
+window.showWarning = function(message, duration) {
+    return window.SC1Notification.warning(message, duration);
+};
+window.showInfo = function(message, duration) {
+    return window.SC1Notification.info(message, duration);
+};
+=====================
+FILE: main.css
+================
+// pwa.js - PWA installation logic AND service worker registration
+let deferredPrompt;
+// Service Worker Registration
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registered: ', registration);
+                // Check for updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    console.log('SW update found!', newWorker);
+                });
+            })
+            .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    }
+}
+// Install Button Logic
+function initializeInstallButton() {
+    const installBtn = document.getElementById('SC1-install-btn');
+    // Check if the browser supports PWA installation
+    if (!installBtn) {
+        console.warn('Install button not found');
+        return;
+    }
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show the install button
+        installBtn.classList.add('SC1-visible');
+    });
+    // Handle install button click
+    installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+            // Hide the install button after successful installation
+            installBtn.classList.remove('SC1-visible');
+        } else {
+            console.log('User dismissed the install prompt');
+        }
+        // Clear the saved prompt since it can't be used again
+        deferredPrompt = null;
+    });
+    // Hide the install button when the app is successfully installed
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        installBtn.classList.remove('SC1-visible');
+        deferredPrompt = null;
+    });
+}
+// Initialize all PWA functionality
+function initializePWA() {
+    registerServiceWorker();
+    initializeInstallButton();
+}
+// Make functions available globally
+window.initializePWA = initializePWA;
+window.registerServiceWorker = registerServiceWorker;
+window.initializeInstallButton = initializeInstallButton;
+=====================
+FILE: music.js
+===================
+// music.js - Enhanced Background music player with full controls
+class MusicPlayer {
+    constructor() {
+        this.audio = null;
+        this.isPlaying = false;
+        this.currentTrack = 0;
+        this.volume = 0.5; // Default volume
+        this.tracks = [
+            'assets/musics/default/velvetkeys-zen-meditation-buddhist.mp3',
+            'assets/musics/default/velvetkeys-zen-meditation-buddhist-1.mp3', 
+            'assets/musics/default/spiritualite-nature.mp3'
+        ];
+        // Track names will be set using translations
+        this.trackNames = [];
+        this.initializeElements();
+        this.setupEventListeners();
+        this.updateTrackNames(); // Set initial track names
+        this.updateTrackInfo(); // Set initial display text
+        this.setVolume(this.volume); // Set initial volume
+    }
+    initializeElements() {
+        this.toggleBtn = document.getElementById('SC1-music-toggle');
+        this.prevBtn = document.getElementById('SC1-music-prev');
+        this.nextBtn = document.getElementById('SC1-music-next');
+        this.musicTitle = document.getElementById('SC1-music-title');
+        this.progressBar = document.getElementById('SC1-music-progress-bar');
+        this.progressContainer = document.querySelector('.SC1-music-progress');
+        this.currentTimeElement = document.getElementById('SC1-music-current-time');
+        this.totalTimeElement = document.getElementById('SC1-music-total-time');
+        this.volumeBtn = document.getElementById('SC1-music-volume-btn');
+        this.volumeSlider = document.getElementById('SC1-music-volume-slider');
+        // Add these two lines for expand/collapse
+        this.musicPlayerElement = document.getElementById('SC1-music-player');
+        this.musicHeaderElement = document.getElementById('SC1-music-header');
+    }
+    setupEventListeners() {
+        // Toggle play/pause
+        this.toggleBtn.addEventListener('click', () => {
+            this.togglePlay();
+        });
+        // Previous track
+        this.prevBtn.addEventListener('click', () => {
+            this.previousTrack();
+        });
+        // Next track
+        this.nextBtn.addEventListener('click', () => {
+            this.nextTrack();
+        });
+        // Progress bar click to seek
+        this.progressContainer.addEventListener('click', (e) => {
+            this.seek(e);
+        });
+        // Volume slider change
+        this.volumeSlider.addEventListener('input', () => {
+            this.setVolume(this.volumeSlider.value / 100);
+        });
+        // Volume button click to mute/unmute
+        this.volumeBtn.addEventListener('click', () => {
+            this.toggleMute();
+        });
+        // Update progress bar and time
+        setInterval(() => {
+            this.updateProgress();
+            this.updateTime();
+        }, 1000);
+        // Listen for language changes to update track names
+        document.addEventListener('languageChanged', () => {
+            this.updateTrackNames();
+            this.updateTrackInfo();
+        });
+        // Add expand/collapse functionality HERE
+        if (this.musicHeaderElement) {
+            this.musicHeaderElement.addEventListener('click', () => {
+                this.musicPlayerElement.classList.toggle('SC1-expanded');
+            });
+        }
+    }
+    // Update track names based on current language
+    updateTrackNames() {
+        this.trackNames = [
+            translate('SC1.music.tracks.track1'),
+            translate('SC1.music.tracks.track2'),
+            translate('SC1.music.tracks.track3')
+        ];
+    }
+    togglePlay() {
+        if (this.isPlaying) {
+            this.pause();
+        } else {
+            this.play();
+        }
+    }
+    play() {
+        if (!this.audio) {
+            this.audio = new Audio(this.tracks[this.currentTrack]);
+            this.audio.volume = this.volume;
+            // When track ends, play next one
+            this.audio.addEventListener('ended', () => {
+                this.nextTrack();
+            });
+            // When metadata is loaded, update total time
+            this.audio.addEventListener('loadedmetadata', () => {
+                this.updateTime();
+            });
+        }
+        this.audio.play().then(() => {
+            this.isPlaying = true;
+            this.toggleBtn.classList.add('playing');
+            this.updateTrackInfo();
+        }).catch(error => {
+            console.error('Error playing audio:', error);
+            this.showError(translate('SC1.music.error'));
+        });
+    }
+    pause() {
+        if (this.audio) {
+            this.audio.pause();
+            this.isPlaying = false;
+            this.toggleBtn.classList.remove('playing');
+        }
+    }
+    nextTrack() {
+        this.currentTrack = (this.currentTrack + 1) % this.tracks.length;
+        this.changeTrack();
+    }
+    previousTrack() {
+        this.currentTrack = (this.currentTrack - 1 + this.tracks.length) % this.tracks.length;
+        this.changeTrack();
+    }
+    changeTrack() {
+        if (this.audio) {
+            this.audio.pause();
+            this.audio = null;
+        }
+        if (this.isPlaying) {
+            this.play();
+        } else {
+            // If not playing, still update the track info
+            this.updateTrackInfo();
+        }
+    }
+    updateTrackInfo() {
+		if (this.isPlaying && this.audio) {
+			this.musicTitle.textContent = this.trackNames[this.currentTrack];
+			} else {
+			this.musicTitle.textContent = translate('SC1.music.noTrack');
+		}
+	}
+    updateProgress() {
+        if (this.audio && this.isPlaying && this.progressBar) {
+            const progress = (this.audio.currentTime / this.audio.duration) * 100;
+            this.progressBar.style.width = progress + '%';
+        }
+    }
+    updateTime() {
+        if (this.audio && this.currentTimeElement && this.totalTimeElement) {
+            // Update current time
+            const currentMinutes = Math.floor(this.audio.currentTime / 60);
+            const currentSeconds = Math.floor(this.audio.currentTime % 60);
+            this.currentTimeElement.textContent = 
+                `${currentMinutes}:${currentSeconds.toString().padStart(2, '0')}`;
+            // Update total time
+            if (this.audio.duration) {
+                const totalMinutes = Math.floor(this.audio.duration / 60);
+                const totalSeconds = Math.floor(this.audio.duration % 60);
+                this.totalTimeElement.textContent = 
+                    `${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`;
+            }
+        }
+    }
+    seek(e) {
+        if (this.audio && this.isPlaying) {
+            const rect = this.progressContainer.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            this.audio.currentTime = percent * this.audio.duration;
+        }
+    }
+    setVolume(volume) {
+        this.volume = volume;
+        if (this.audio) {
+            this.audio.volume = volume;
+        }
+        // Update the volume slider position
+        this.volumeSlider.value = volume * 100;
+        // Update volume icon based on volume level
+        this.updateVolumeIcon();
+    }
+    toggleMute() {
+        if (this.volume > 0) {
+            this.lastVolume = this.volume;
+            this.setVolume(0);
+        } else {
+            this.setVolume(this.lastVolume || 0.5);
+        }
+    }
+    updateVolumeIcon() {
+        if (this.volumeBtn) {
+            let iconPath = '';
+            if (this.volume === 0) {
+                iconPath = 'M3 9v6h4l5 5V4L7 9H3z';
+            } else if (this.volume < 0.5) {
+                iconPath = 'M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z';
+            } else {
+                iconPath = 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
+            }
+            this.volumeBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="${iconPath}"/></svg>`;
+        }
+    }
+    updateTrackNames() {
+        this.trackNames = [
+            translate('SC1.music.tracks.track1'),
+            translate('SC1.music.tracks.track2'),
+            translate('SC1.music.tracks.track3')
+        ];
+    }
+    showError(message) {
+        const errorMessage = translate(message);
+        if (window.showError) {
+            window.showError(errorMessage);
+        } else {
+            console.error(errorMessage);
+        }
+    }
+}
+// Initialize music player when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.musicPlayer = new MusicPlayer();
+});
+// Make it available globally
+window.MusicPlayer = MusicPlayer;
+=====================
+FILE: sw.js
+=================
+// sw.js - Basic Service Worker with Cache-First Strategy
+const CACHE_NAME = 'spiritual-guide-v2.1.6';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/styles/main.css',
+  '/scripts/data.js',
+  '/scripts/i18n_en.js',
+  '/scripts/i18n_ar.js',
+  '/scripts/translations.js',
+  '/scripts/notifications.js',
+  '/scripts/storage.js',
+  '/scripts/pwa.js',
+  '/scripts/ui.js',
+  '/scripts/navigation.js',
+  '/scripts/results.js',
+  '/scripts/music.js',
+  '/scripts/main.js',
+  '/assets/icons/icon-96x96.png',
+  '/manifest.json'
+];
+// Install event - cache essential files
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        console.log('All resources cached successfully');
+        return self.skipWaiting(); // Activate immediately
+      })
+      .catch((error) => {
+        console.error('Cache installation failed:', error);
+      })
+  );
+});
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      console.log('Service Worker activated');
+      return self.clients.claim(); // Take control immediately
+    })
+  );
+});
+// Fetch event - Cache First strategy
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  event.respondWith(
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        // Return cached version if found
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // Otherwise, fetch from network
+        return fetch(event.request)
+          .then((networkResponse) => {
+            // Check if we received a valid response
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+              return networkResponse;
+            }
+            // Clone the response and cache it
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            return networkResponse;
+          })
+          .catch((error) => {
+            console.log('Fetch failed:', error);
+            // If both cache and network fail, return a simple offline page
+            if (event.request.destination === 'document') {
+              return caches.match('/index.html');
+            }
+          });
+      })
+  );
+});
+=====================
+FILE: netlify.toml
+================
+[build]
+  publish = "."
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+[build.environment]
+  NODE_VERSION = "18"
+=====================
+FILE: .gitignore
+================
+# Operating System files
+.DS_Store
+Thumbs.db
+Desktop.ini
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+# Log files
+*.log
+npm-debug.log*
+# Environment variables
+.env
+.env.local
+# Cache directories
+.cache/
+[file content end]

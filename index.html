@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="SC1-html-direction">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Spiritual Guide</title>
+		<link rel="stylesheet" href="styles/main.css">
+	</head>
+	<body>
+		<div class="SC1-container">
+			<header class="SC1-header">
+				<div class="SC1-header-grid">
+					<!-- 1/4: Icon -->
+					<div class="SC1-header-icon">
+						<div class="SC1-icon-circle" id="SC1-header-icon">
+							<img src="assets/icons/icon-96x96.png" alt="Spiritual Guide Icon" class="SC1-icon-img">
+							<span class="SC1-tooltip" data-i18n="SC1.header.iconTooltip">Return to home and reset test</span>
+						</div>
+					</div>
+					<!-- 2/4: Title + Subtitle -->
+					<div class="SC1-header-text">
+						<h1 class="SC1-main-title" data-i18n="SC1.header.title">Spiritual Guide</h1>
+						<p class="SC1-subtitle" data-i18n="SC1.header.subtitle">Discover your spiritual pattern through this interactive test</p>
+					</div>
+					<!-- 1/4: Language Controls -->
+					<div class="SC1-header-controls">
+						
+						<form class="SC1-login-form" onsubmit="return false;">
+							<div class="SC1-input-line">
+								<input type="text" class="SC1-input-field" data-i18n-placeholder="SC1.login.usernamePlaceholder" placeholder="Email or username" id="SC1-username" autocomplete="username">
+							</div>
+							<div class="SC1-input-line">
+								<input type="password" class="SC1-input-field" data-i18n-placeholder="SC1.login.passwordPlaceholder" placeholder="Password" id="SC1-password" autocomplete="current-password">
+							</div>
+							<div class="SC1-input-line">
+								<button type="submit" class="SC1-login-btn" id="SC1-login-btn" data-i18n="SC1.login.button">Login</button>
+							</div>
+						</form>
+						<div class="SC1-controls-line">
+							<button class="SC1-install-btn" id="SC1-install-btn">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/>
+								</svg>
+								<span class="SC1-tooltip" data-i18n="SC1.header.installTooltip">Install App</span>
+							</button>
+							<button class="SC1-settings-btn" id="SC1-settings-btn">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04.32.07.64.07.97 0 .33-.03.65-.07.97l2.11 1.65c.19.15.24.42.12.64l-2 3.46c-.12.22-.39.3-.61.22l-2.49-1c-.52.39-1.08.73-1.69.98l-.38 2.65c-.03.24-.24.42-.49.42h-4c-.25 0-.46-.18-.49-.42l-.38-2.65c-.61-.25-1.17-.59-1.69-.98l-2.49 1c-.23.09-.49 0-.61-.22l-2-3.46c-.12-.22-.07-.49.12-.64l2.11-1.65c-.04-.32-.07-.65-.07-.97 0-.32.03-.65.07-.97L2.46 11.2c-.19-.15-.24-.42-.12-.64l2-3.46c.12-.22.39-.3.61-.22l2.49 1c.52-.39 1.08-.73 1.69-.98l.38-2.65c.03-.24.24-.42.49-.42h4c.25 0 .46.18.49.42l.38 2.65c.61.25 1.17.59 1.69.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12.22.07.49-.12.64l-2.11 1.65z"/>
+								</svg>
+								<span class="SC1-tooltip" data-i18n="SC1.settings.tooltip">Settings</span>
+							</button>
+						</div>
+					</div>
+				</div>
+			</header>
+			
+			<!-- Settings Modal -->
+			<div class="SC1-modal" id="SC1-settings-modal">
+				<div class="SC1-modal-content">
+					<div class="SC1-modal-header">
+						<h2 data-i18n="SC1.settings.title">Settings</h2>
+						<button class="SC1-modal-close" id="SC1-modal-close">&times;</button>
+					</div>
+					<div class="SC1-modal-body">
+						<div class="SC1-settings-section">
+							<h3 data-i18n="SC1.settings.language">Language</h3>
+							<div class="SC1-language-switcher">
+								<button class="SC1-lang-btn" data-lang="ar" data-i18n="SC1.header.language.ar">العربية</button>
+								<button class="SC1-lang-btn SC1-active" data-lang="en" data-i18n="SC1.header.language.en">English</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="SC1-progress-bar">
+				<div class="SC1-progress" id="SC1-progress"></div>
+			</div>
+			
+			<div class="SC1-card SC1-active" id="SC1-welcome-card">
+				<div class="SC1-question-text">
+					<h2 data-i18n="SC1.welcome.title">Welcome to the Spiritual Guide Test</h2>
+					<p data-i18n="SC1.welcome.description1">This test will help you discover your spiritual pattern by analyzing your answers to a set of questions.</p>
+					<p data-i18n="SC1.welcome.description2">8 questions will be displayed, each with 4 options. Choose the option that reflects your true state.</p>
+				</div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-primary" id="SC1-start-btn" data-i18n="SC1.welcome.startButton">Start Test</button>
+				</div>
+			</div>
+			
+			<div class="SC1-card" id="SC1-question-card">
+				<div class="SC1-question-number" data-i18n="SC1.questions.questionCounter">Question <span id="SC1-current-question">1</span> of 8</div>
+				<div class="SC1-question-text" id="SC1-question-text"></div>
+				<div class="SC1-options-container" id="SC1-options-container"></div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-secondary" id="SC1-prev-btn" data-i18n="SC1.questions.previousButton">Previous</button>
+					<button class="SC1-button SC1-btn-primary" id="SC1-next-btn" data-i18n="SC1.questions.nextButton">Next</button>
+				</div>
+			</div>
+			
+			<div class="SC1-card" id="SC1-result-card">
+				<div class="SC1-result-title" data-i18n="SC1.results.title">Spiritual Guide Test Result</div>
+				<div class="SC1-result-guide" id="SC1-result-guide"></div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.symbolicMeaning">Symbolic Meaning</h3>
+					<p id="SC1-symbolic-meaning"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.coreChallenge">Core Challenge</h3>
+					<p id="SC1-core-challenge"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.mission90Days">90-Day Mission</h3>
+					<p id="SC1-mission-90-days"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.kpi">Key Performance Indicator</h3>
+					<p id="SC1-kpi"></p>
+				</div>
+				<div class="SC1-result-section">
+					<h3 data-i18n="SC1.results.allianceTip">Alliance Tip</h3>
+					<p id="SC1-alliance-tip"></p>
+				</div>
+				<div class="SC1-nav-buttons">
+					<button class="SC1-button SC1-btn-primary" id="SC1-save-results-btn" data-i18n="SC1.results.saveButton">Save Results</button>
+					<button class="SC1-button SC1-btn-secondary" id="SC1-restart-btn" data-i18n="SC1.results.restartButton">Restart Test</button>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Footer Section -->
+		<footer class="SC1-footer">
+			
+			<!-- Music Player -->
+			<div class="SC1-music-player SC1-collapsed" id="SC1-music-player">
+				<div class="SC1-music-header" id="SC1-music-header">
+					<span class="SC1-music-label" data-i18n="SC1.music.title">Music Player</span>
+					<span class="SC1-expand-icon">▼</span>
+					<span class="SC1-tooltip" data-i18n="SC1.music.tooltipTitle">Play/Stop background music</span>
+				</div>
+				<div class="SC1-music-body">
+					<div class="SC1-music-main-controls">
+						<button id="SC1-music-prev" class="SC1-music-control-btn">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+							</svg>
+						</button>
+						<button id="SC1-music-toggle" class="SC1-music-btn">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+							</svg>
+						</button>
+						<button id="SC1-music-next" class="SC1-music-control-btn">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+							</svg>
+						</button>
+					</div>
+					<div class="SC1-music-track-info">
+						<span id="SC1-music-title" class="SC1-music-title" data-i18n="SC1.music.noTrack">No track playing</span>
+					</div>
+					<div class="SC1-music-progress-container">
+						<div class="SC1-music-progress">
+							<div id="SC1-music-progress-bar" class="SC1-music-progress-bar"></div>
+						</div>
+						<div class="SC1-music-time">
+							<span id="SC1-music-current-time">0:00</span> / <span id="SC1-music-total-time">0:00</span>
+						</div>
+					</div>
+					<div class="SC1-music-volume-container">
+						<button id="SC1-music-volume-btn" class="SC1-music-volume-btn">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+							</svg>
+						</button>
+						<div class="SC1-music-volume-slider-container">
+							<input type="range" id="SC1-music-volume-slider" class="SC1-music-volume-slider" min="0" max="100" value="50">
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="SC1-footer-content">
+				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.1.6</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
+			</div>
+		</footer>
+		
+<!-- Load PWA functionality FIRST -->
+<script src="scripts/pwa.js"></script>
+
+<!-- Then load other scripts -->
+<script src="scripts/data.js"></script>
+<script src="scripts/i18n_en.js"></script>
+<script src="scripts/i18n_ar.js"></script>
+<script src="scripts/translations.js"></script>
+<script src="scripts/notifications.js"></script>
+<script src="scripts/storage.js"></script>
+<!-- Load UI and navigation -->
+<script src="scripts/ui.js"></script>
+<script src="scripts/navigation.js"></script>
+<script src="scripts/results.js"></script>
+<!-- Load music player -->
+<script src="scripts/music.js"></script>
+<!-- Finally load main.js -->
+<script src="scripts/main.js"></script>
+	</body>
+</html>

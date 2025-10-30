@@ -1,0 +1,1281 @@
+:root {
+    --SC1-primary-color: #4a6fa5;
+    --SC1-secondary-color: #6b8cbc;
+    --SC1-accent-color: #e76f51;
+    --SC1-light-color: #f8f9fa;
+    --SC1-dark-color: #343a40;
+    --SC1-success-color: #2a9d8f;
+    --SC1-warning-color: #e9c46a;
+}
+
+/* ===== RESET & BASE STYLES ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: var(--SC1-dark-color);
+    line-height: 1.6;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Add these beautiful animated circles */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(74, 111, 165, 0.4) 0%, transparent 25%),
+        radial-gradient(circle at 80% 20%, rgba(231, 111, 81, 0.3) 0%, transparent 25%),
+        radial-gradient(circle at 40% 40%, rgba(42, 157, 143, 0.2) 0%, transparent 25%);
+    animation: float 15s ease-in-out infinite;
+    z-index: -1;
+}
+
+/* Add some moving particles */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.3), transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.2), transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.2), transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.1), transparent),
+        radial-gradient(2px 2px at 160px 30px, rgba(255,255,255,0.2), transparent);
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    animation: particles 20s linear infinite;
+    z-index: -1;
+    opacity: 0.4;
+}
+
+/* Animation for floating circles */
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    33% {
+        transform: translate(30px, -30px) rotate(120deg);
+    }
+    66% {
+        transform: translate(-20px, 20px) rotate(240deg);
+    }
+}
+
+/* Animation for moving particles */
+@keyframes particles {
+    0% {
+        transform: translateY(0px);
+    }
+    100% {
+        transform: translateY(-200px);
+    }
+}
+
+/* Base text alignment for RTL */
+[dir="rtl"] {
+    text-align: right;
+}
+
+/* ===== LAYOUT COMPONENTS ===== */
+.SC1-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.SC1-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--SC1-primary-color), var(--SC1-secondary-color));
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.SC1-h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.SC1-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.SC1-card {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.SC1-card.SC1-active {
+    display: block;
+}
+
+/* ===== NAVIGATION & BUTTONS ===== */
+.SC1-nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+.SC1-button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.SC1-btn-primary {
+    background-color: var(--SC1-primary-color);
+    color: white;
+}
+
+.SC1-btn-primary:hover {
+    background-color: var(--SC1-secondary-color);
+}
+
+.SC1-btn-secondary {
+    background-color: #e0e0e0;
+    color: var(--SC1-dark-color);
+}
+
+.SC1-btn-secondary:hover {
+    background-color: #d0d0d0;
+}
+
+/* ===== QUESTION & OPTIONS ===== */
+.SC1-question-number {
+    font-size: 1.2rem;
+    color: var(--SC1-primary-color);
+    margin-bottom: 10px;
+}
+
+.SC1-question-text {
+    font-size: 1.5rem;
+    margin-bottom: 25px;
+    min-height: 70px;
+}
+
+.SC1-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.SC1-option {
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.SC1-option:hover {
+    border-color: var(--SC1-secondary-color);
+    background-color: rgba(107, 140, 188, 0.05);
+}
+
+.SC1-option.SC1-selected {
+    border-color: var(--SC1-primary-color);
+    background-color: rgba(74, 111, 165, 0.1);
+}
+
+/* ===== PROGRESS BAR ===== */
+.SC1-progress-bar {
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.SC1-progress {
+    height: 100%;
+    background-color: var(--SC1-primary-color);
+    width: 0%;
+    transition: width 0.5s;
+}
+
+/* ===== RESULTS ===== */
+.SC1-result-card {
+    text-align: center;
+}
+
+.SC1-result-title {
+    font-size: 2rem;
+    color: var(--SC1-primary-color);
+    margin-bottom: 20px;
+}
+
+.SC1-result-guide {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--SC1-accent-color);
+}
+
+.SC1-result-section {
+    text-align: left;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.SC1-result-section h3 {
+    color: var(--SC1-primary-color);
+    margin-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 5px;
+}
+
+.SC1-pattern-score {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.SC1-pattern-name {
+    font-weight: bold;
+}
+
+/* ===== RTL SPECIFIC STYLES ===== */
+[dir="rtl"] .SC1-nav-buttons {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-controls {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-option,
+[dir="rtl"] .SC1-question-text,
+[dir="rtl"] .SC1-result-section,
+[dir="rtl"] .SC1-result-section h3 {
+    text-align: right;
+}
+
+/* Ensure proper alignment for headers in RTL */
+[dir="rtl"] .SC1-header,
+[dir="rtl"] .SC1-result-title,
+[dir="rtl"] .SC1-result-guide {
+    text-align: center;
+}
+
+/* ===== RESPONSIVE STYLES ===== */
+@media (max-width: 768px) {
+    .SC1-container {
+        padding: 10px;
+    }
+    
+    .SC1-h1 {
+        font-size: 2rem;
+    }
+    
+    .SC1-question-text {
+        font-size: 1.3rem;
+    }
+    
+    .SC1-card {
+        padding: 20px;
+    }
+    
+    .SC1-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    /* Mobile adjustments for RTL */
+    [dir="rtl"] .SC1-controls {
+        flex-direction: column;
+    }
+    
+    [dir="rtl"] .SC1-nav-buttons {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+    
+    [dir="rtl"] .SC1-button {
+        width: 100%;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .SC1-header-grid {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .SC1-header-icon,
+    .SC1-header-text,
+    .SC1-header-controls {
+        flex: none;
+        width: 100%;
+    }
+    
+    .SC1-main-title {
+        font-size: 1.8rem;
+    }
+    
+    .SC1-subtitle {
+        font-size: 0.85rem;
+    }
+    
+    .SC1-header-controls {
+        min-width: auto;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+    
+    .SC1-controls-line {
+        justify-content: center;
+    }
+    
+    /* Keep the logo larger but adjust for mobile */
+    .SC1-icon-circle {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .SC1-icon-img {
+        width: 55px;
+        height: 55px;
+    }
+    
+    [dir="rtl"] .SC1-header-grid {
+        flex-direction: column;
+    }
+    
+    [dir="rtl"] .SC1-controls-line {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .SC1-main-title {
+        font-size: 1.6rem;
+    }
+    
+    .SC1-subtitle {
+        font-size: 0.8rem;
+    }
+    
+    .SC1-icon-circle {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .SC1-icon-img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .SC1-header-controls {
+        max-width: 250px;
+    }
+}
+
+/* ===== SETTINGS BUTTON STYLES ===== */
+.SC1-settings-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    backdrop-filter: blur(10px);
+}
+
+.SC1-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(30deg);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== MODAL STYLES ===== */
+.SC1-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.SC1-modal.SC1-active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.SC1-modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.SC1-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e0e0e0;
+    background: linear-gradient(135deg, var(--SC1-primary-color), var(--SC1-secondary-color));
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.SC1-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.SC1-modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+}
+
+.SC1-modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.SC1-modal-body {
+    padding: 25px;
+}
+
+.SC1-settings-section {
+    margin-bottom: 30px;
+}
+
+.SC1-settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.SC1-settings-section h3 {
+    color: var(--SC1-primary-color);
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    border-bottom: 2px solid var(--SC1-primary-color);
+    padding-bottom: 8px;
+}
+
+/* Modal language switcher */
+.SC1-modal .SC1-language-switcher {
+    display: flex;
+    gap: 10px;
+}
+
+.SC1-modal .SC1-lang-btn {
+    background: #f0f0f0;
+    border: 2px solid #e0e0e0;
+    color: var(--SC1-dark-color);
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    flex: 1;
+    font-weight: 500;
+}
+
+.SC1-modal .SC1-lang-btn.SC1-active {
+    background: var(--SC1-primary-color);
+    color: white;
+    border-color: var(--SC1-primary-color);
+}
+
+.SC1-modal .SC1-lang-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+    .SC1-modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .SC1-modal-body {
+        padding: 20px;
+    }
+    
+    .SC1-modal-header {
+        padding: 15px 20px;
+    }
+    
+    .SC1-modal .SC1-language-switcher {
+        flex-direction: column;
+    }
+}
+
+/* ===== HEADER STYLES ===== */
+.SC1-header-grid {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 0;
+}
+
+/* Icon Section (1/4) */
+.SC1-header-icon {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.SC1-icon-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.SC1-icon-circle:hover {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.SC1-icon-img {
+    width: 80px;
+    height: 80px;
+}
+
+/* Text Section (2/4) */
+.SC1-header-text {
+    flex: 2;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.SC1-main-title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.SC1-subtitle {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.4;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Controls Section (1/4) */
+.SC1-header-controls {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 160px;
+}
+
+.SC1-input-line {
+    width: 100%;
+}
+
+.SC1-input-field {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.85rem;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.SC1-input-field::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.SC1-input-field:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.SC1-controls-line {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* RTL Support for New Header */
+[dir="rtl"] .SC1-header-grid {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .SC1-header-text {
+    text-align: center;
+}
+
+[dir="rtl"] .SC1-controls-line {
+    justify-content: flex-start;
+}
+
+[dir="rtl"] .SC1-input-field {
+    text-align: right;
+}
+
+[dir="rtl"] .SC1-input-field::placeholder {
+    text-align: right;
+}
+
+/* Header icon hover effects */
+.SC1-icon-circle {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.SC1-icon-circle:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Tooltip for better UX */
+
+.SC1-tooltip {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Show tooltip on hover for all buttons with tooltips */
+.SC1-icon-circle:hover .SC1-tooltip,
+.SC1-music-btn:hover .SC1-tooltip,
+.SC1-install-btn:hover .SC1-tooltip,
+.SC1-settings-btn:hover .SC1-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* Tooltip arrow */
+.SC1-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 5px 5px 5px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+.SC1-icon-circle::after {
+    display: none;
+}
+
+.SC1-icon-circle:hover::after {
+    opacity: 1;
+}
+
+.SC1-icon-circle:hover .SC1-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* RTL support for tooltip */
+[dir="rtl"] .SC1-tooltip {
+    text-align: center;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .SC1-tooltip {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+        bottom: -35px;
+    }
+}
+
+/* ===== LOGIN BUTTON STYLES ===== */
+.SC1-login-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    margin-top: 5px;
+}
+
+.SC1-login-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.SC1-login-btn:active {
+    transform: translateY(0);
+}
+
+/* RTL support for login button */
+[dir="rtl"] .SC1-login-btn {
+    text-align: center;
+}
+
+/* ===== NOTIFICATION STYLES ===== */
+.SC1-notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+.SC1-notification {
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.SC1-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+.SC1-notification.hide {
+    transform: translateX(100%);
+    opacity: 0;
+}
+.SC1-notification.success {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    border-left: 4px solid #27ae60;
+}
+.SC1-notification.error {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border-left: 4px solid #c0392b;
+}
+.SC1-notification.warning {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    border-left: 4px solid #e67e22;
+}
+.SC1-notification.info {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    border-left: 4px solid #2980b9;
+}
+.SC1-notification-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.SC1-notification-message {
+    flex: 1;
+    line-height: 1.4;
+}
+/* RTL support */
+[dir="rtl"] .SC1-notification-container {
+    right: auto;
+    left: 20px;
+}
+[dir="rtl"] .SC1-notification {
+    transform: translateX(-100%);
+    border-left: none;
+    border-right: 4px solid;
+}
+[dir="rtl"] .SC1-notification.show {
+    transform: translateX(0);
+}
+[dir="rtl"] .SC1-notification.hide {
+    transform: translateX(-100%);
+}
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .SC1-notification-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    [dir="rtl"] .SC1-notification-container {
+        right: 10px;
+        left: 10px;
+    }
+    .SC1-notification {
+        padding: 12px 15px;
+        font-size: 13px;
+    }
+}
+
+/* ===== INSTALL BUTTON STYLES ===== */
+.SC1-install-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    backdrop-filter: blur(10px);
+}
+
+.SC1-install-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Hide install button by default - we'll show it when needed */
+.SC1-install-btn {
+    display: none;
+}
+
+.SC1-install-btn.SC1-visible {
+    display: flex;
+}
+
+/* ===== FOOTER STYLES ===== */
+.SC1-footer {
+    background-color: rgba(74, 111, 165, 0.1);
+    padding: 12px 20px;
+    margin-top: 30px;
+    border-top: 1px solid rgba(74, 111, 165, 0.2);
+    border-radius: 0 0 10px 10px;
+}
+
+.SC1-footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 0.8rem;
+    color: var(--SC1-primary-color);
+}
+
+.SC1-footer-text {
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+/* Mobile responsive footer */
+@media (max-width: 768px) {
+    .SC1-footer-content {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+    
+    .SC1-footer-text {
+        font-size: 0.75rem;
+    }
+}
+
+/* RTL support for footer */
+[dir="rtl"] .SC1-footer-content {
+    text-align: center;
+}
+/* ===== MUSIC PLAYER STYLES ===== */
+.SC1-music-player {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(74, 111, 165, 0.3);
+    z-index: 1000;
+    min-width: 280px;
+    max-width: 320px;
+    /* Force LTR layout for the entire player */
+    direction: ltr;
+    text-align: left;
+    /* Collapse functionality */
+    max-height: 60px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.SC1-music-player.SC1-expanded {
+    max-height: 500px;
+}
+
+.SC1-music-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(74, 111, 165, 0.2);
+    cursor: pointer;
+    user-select: none;
+    position: relative; /* Add this for tooltip positioning */
+}
+
+.SC1-music-header:hover {
+    background-color: rgba(74, 111, 165, 0.05);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: -8px -12px 4px -12px;
+}
+
+.SC1-music-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--SC1-primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    /* Allow text direction to follow language */
+    direction: inherit;
+    text-align: center;
+    flex: 1;
+}
+
+.SC1-expand-icon {
+    font-size: 12px;
+    color: var(--SC1-primary-color);
+    transition: transform 0.3s ease;
+    margin-left: 10px;
+}
+
+.SC1-music-player.SC1-expanded .SC1-expand-icon {
+    transform: rotate(180deg);
+}
+
+.SC1-music-body {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.SC1-music-player.SC1-expanded .SC1-music-body {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Fix tooltip positioning for music player */
+.SC1-music-header .SC1-tooltip {
+    bottom: -35px; /* Adjust position */
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.SC1-music-btn .SC1-tooltip {
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.SC1-music-header:hover .SC1-tooltip,
+.SC1-music-btn:hover .SC1-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* Rest of your existing music player styles remain the same */
+.SC1-music-main-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.SC1-music-control-btn {
+    background: rgba(74, 111, 165, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    color: var(--SC1-primary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.SC1-music-control-btn:hover {
+    background: rgba(74, 111, 165, 0.2);
+    transform: scale(1.1);
+}
+
+.SC1-music-btn {
+    background: var(--SC1-primary-color);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(74, 111, 165, 0.3);
+    position: relative; /* For tooltip */
+}
+
+.SC1-music-btn:hover {
+    background: var(--SC1-secondary-color);
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(74, 111, 165, 0.4);
+}
+
+.SC1-music-btn.playing {
+    background: var(--SC1-accent-color);
+}
+
+.SC1-music-track-info {
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.SC1-music-title {
+    font-size: 0.85rem;
+    color: var(--SC1-dark-color);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 5px;
+    /* Allow text direction to follow language */
+    direction: inherit;
+    text-align: center;
+}
+
+.SC1-music-progress-container {
+    margin-bottom: 12px;
+}
+
+.SC1-music-progress {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+    margin-bottom: 5px;
+    position: relative;
+}
+
+.SC1-music-progress-bar {
+    height: 100%;
+    background: var(--SC1-primary-color);
+    width: 0%;
+    transition: width 0.1s linear;
+    border-radius: 3px;
+}
+
+.SC1-music-time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--SC1-dark-color);
+    opacity: 0.7;
+    /* Keep time display always LTR (numbers should read left to right) */
+    direction: ltr;
+}
+
+.SC1-music-volume-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.SC1-music-volume-btn {
+    background: none;
+    border: none;
+    color: var(--SC1-primary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    position: relative; /* For tooltip */
+}
+
+.SC1-music-volume-btn:hover {
+    background: rgba(74, 111, 165, 0.1);
+}
+
+.SC1-music-volume-slider-container {
+    flex: 1;
+}
+
+.SC1-music-volume-slider {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.SC1-music-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--SC1-primary-color);
+    cursor: pointer;
+}
+
+.SC1-music-volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--SC1-primary-color);
+    cursor: pointer;
+    border: none;
+}
+
+/* RTL-specific adjustments for text elements only */
+[dir="rtl"] .SC1-music-player {
+    /* Keep the player on the right side in RTL too */
+    right: 20px;
+    left: auto;
+}
+
+[dir="rtl"] .SC1-music-label,
+[dir="rtl"] .SC1-music-title {
+    direction: rtl;
+    text-align: center;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .SC1-music-player {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+    
+    [dir="rtl"] .SC1-music-player {
+        right: 10px;
+        left: 10px;
+    }
+}
