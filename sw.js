@@ -1,5 +1,5 @@
-// sw.js - Simple Service Worker
-const CACHE_NAME = 'spiritual-guide-v2.2.5';
+// sw.js - Simple Service Worker for Spiritual Guide
+const CACHE_NAME = 'spiritual-guide-v2.2.6';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -49,14 +49,12 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event
+// Fetch event - SIMPLIFIED
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Return cached version or fetch from network
         return response || fetch(event.request);
-      }
-    )
+      })
   );
 });

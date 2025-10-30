@@ -88,29 +88,29 @@ function initializeSettingsModal() {
     // Open modal
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.add('SC1-active');
-    });
+	});
     // Close modal
     modalClose.addEventListener('click', () => {
         settingsModal.classList.remove('SC1-active');
-    });
+	});
     // Close modal when clicking outside
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('SC1-active');
-        }
-    });
+		}
+	});
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
             settingsModal.classList.remove('SC1-active');
-        }
-    });
+		}
+	});
 }
 
 function initializeHeaderIcon() {
     headerIcon.addEventListener('click', () => {
         resetTestFromHeader();
-    });
+	});
     // Add hover effect to indicate it's clickable
     headerIcon.style.cursor = 'pointer';
 }
@@ -125,18 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeHeaderIcon();
     
     // Initialize PWA functionality with error handling
-    try {
-        if (typeof initializePWA !== 'undefined') {
-            initializePWA();
-        } else {
-            console.warn('PWA functionality not available');
-            // Hide install button if PWA not available
-            const installBtn = document.getElementById('SC1-install-btn');
-            if (installBtn) installBtn.style.display = 'none';
-        }
-    } catch (error) {
-        console.warn('PWA initialization failed:', error);
-    }
+    const installBtn = document.getElementById('SC1-install-btn');
+	if (installBtn) {
+		installBtn.style.display = 'none';
+	}
     
     // Initialize navigation and language
     initializeNavigation();
