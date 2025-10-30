@@ -4,14 +4,14 @@ let deferredPrompt;
 // Service Worker Registration
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
+        // Use relative path for Netlify compatibility
+        navigator.serviceWorker.register('./sw.js')
             .then((registration) => {
                 console.log('SW registered: ', registration);
                 // Check for updates
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
                     console.log('SW update found!', newWorker);
-                    
                     // Show update notification to user
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
