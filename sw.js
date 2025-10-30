@@ -1,8 +1,8 @@
 // sw.js - Basic Service Worker with Cache-First Strategy
-const CACHE_NAME = 'spiritual-guide-v2.1.9';
+const CACHE_NAME = 'spiritual-guide-v2.2.0';
 const urlsToCache = [
-  '/',,
-  '/sw.js'
+  '/',
+  '/sw.js',
   '/index.html',
   '/styles/main.css',
   '/scripts/data.js',
