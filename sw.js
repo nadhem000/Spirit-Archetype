@@ -1,5 +1,5 @@
-// sw.js - Basic Service Worker with Cache-First Strategy
-const CACHE_NAME = 'spiritual-guide-v2.2.1';
+// sw.js - Enhanced Service Worker with better caching
+const CACHE_NAME = 'spiritual-guide-v2.2.2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -60,38 +60,52 @@ self.addEventListener('activate', (event) => {
         })
       );
     }).then(() => {
-      console.log('Service Worker activated');
+      console.log('Service Worker activated and ready to control clients');
       return self.clients.claim();
     })
   );
 });
 
-// Fetch event - Cache First strategy
+// Fetch event - Network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
 
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
+    fetch(event.request)
+      .then((response) => {
+        // Check if we received a valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
         }
-        return fetch(event.request)
-          .then((networkResponse) => {
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
+
+        // Clone the response
+        const responseToCache = response.clone();
+
+        // Add to cache for future use
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+        return response;
+      })
+      .catch((error) => {
+        console.log('Network request failed, serving from cache:', error);
+        // Fallback to cache
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
             }
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            return networkResponse;
-          })
-          .catch((error) => {
-            console.log('Fetch failed:', error);
+            // If not in cache and we're looking for a page, return the homepage
             if (event.request.destination === 'document') {
               return caches.match('/index.html');
             }

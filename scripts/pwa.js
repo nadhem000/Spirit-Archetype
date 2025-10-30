@@ -7,16 +7,29 @@ function registerServiceWorker() {
         navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
                 console.log('SW registered: ', registration);
-                
                 // Check for updates
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
                     console.log('SW update found!', newWorker);
+                    
+                    // Show update notification to user
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateNotification();
+                        }
+                    });
                 });
             })
             .catch((registrationError) => {
                 console.log('SW registration failed: ', registrationError);
             });
+    }
+}
+
+// Show update notification
+function showUpdateNotification() {
+    if (window.showInfo) {
+        window.showInfo('New version available! Refresh to update.', 5000);
     }
 }
 
@@ -30,6 +43,9 @@ function initializeInstallButton() {
         return;
     }
 
+    // Initially hide the install button
+    installBtn.style.display = 'none';
+
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
         // Prevent the mini-infobar from appearing on mobile
@@ -37,7 +53,7 @@ function initializeInstallButton() {
         // Stash the event so it can be triggered later
         deferredPrompt = e;
         // Show the install button
-        installBtn.classList.add('SC1-visible');
+        installBtn.style.display = 'flex';
     });
 
     // Handle install button click
@@ -49,13 +65,11 @@ function initializeInstallButton() {
         
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User ${outcome} the install prompt`);
         
         if (outcome === 'accepted') {
-            console.log('User accepted the install prompt');
             // Hide the install button after successful installation
-            installBtn.classList.remove('SC1-visible');
-        } else {
-            console.log('User dismissed the install prompt');
+            installBtn.style.display = 'none';
         }
         
         // Clear the saved prompt since it can't be used again
@@ -65,18 +79,33 @@ function initializeInstallButton() {
     // Hide the install button when the app is successfully installed
     window.addEventListener('appinstalled', () => {
         console.log('PWA was installed');
-        installBtn.classList.remove('SC1-visible');
+        installBtn.style.display = 'none';
         deferredPrompt = null;
     });
+}
+
+// Check if app is running as PWA
+function isRunningAsPWA() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
 }
 
 // Initialize all PWA functionality
 function initializePWA() {
     registerServiceWorker();
     initializeInstallButton();
+    
+    // If running as PWA, you might want to adjust UI
+    if (isRunningAsPWA()) {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Optional: Adjust UI for standalone mode
+            console.log('Running as PWA');
+        });
+    }
 }
 
 // Make functions available globally
 window.initializePWA = initializePWA;
 window.registerServiceWorker = registerServiceWorker;
 window.initializeInstallButton = initializeInstallButton;
+window.isRunningAsPWA = isRunningAsPWA;

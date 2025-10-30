@@ -1473,7 +1473,7 @@ window.showInfo = function(message, duration) {
     return window.SC1Notification.info(message, duration);
 };
 =====================
-FILE: main.css
+FILE: pwa.js
 ================
 // pwa.js - PWA installation logic AND service worker registration
 let deferredPrompt;
@@ -1487,11 +1487,23 @@ function registerServiceWorker() {
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
                     console.log('SW update found!', newWorker);
+                    // Show update notification to user
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateNotification();
+                        }
+                    });
                 });
             })
             .catch((registrationError) => {
                 console.log('SW registration failed: ', registrationError);
             });
+    }
+}
+// Show update notification
+function showUpdateNotification() {
+    if (window.showInfo) {
+        window.showInfo('New version available! Refresh to update.', 5000);
     }
 }
 // Install Button Logic
@@ -1502,6 +1514,8 @@ function initializeInstallButton() {
         console.warn('Install button not found');
         return;
     }
+    // Initially hide the install button
+    installBtn.style.display = 'none';
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
         // Prevent the mini-infobar from appearing on mobile
@@ -1509,7 +1523,7 @@ function initializeInstallButton() {
         // Stash the event so it can be triggered later
         deferredPrompt = e;
         // Show the install button
-        installBtn.classList.add('SC1-visible');
+        installBtn.style.display = 'flex';
     });
     // Handle install button click
     installBtn.addEventListener('click', async () => {
@@ -1518,12 +1532,10 @@ function initializeInstallButton() {
         deferredPrompt.prompt();
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User ${outcome} the install prompt`);
         if (outcome === 'accepted') {
-            console.log('User accepted the install prompt');
             // Hide the install button after successful installation
-            installBtn.classList.remove('SC1-visible');
-        } else {
-            console.log('User dismissed the install prompt');
+            installBtn.style.display = 'none';
         }
         // Clear the saved prompt since it can't be used again
         deferredPrompt = null;
@@ -1531,19 +1543,32 @@ function initializeInstallButton() {
     // Hide the install button when the app is successfully installed
     window.addEventListener('appinstalled', () => {
         console.log('PWA was installed');
-        installBtn.classList.remove('SC1-visible');
+        installBtn.style.display = 'none';
         deferredPrompt = null;
     });
+}
+// Check if app is running as PWA
+function isRunningAsPWA() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
 }
 // Initialize all PWA functionality
 function initializePWA() {
     registerServiceWorker();
     initializeInstallButton();
+    // If running as PWA, you might want to adjust UI
+    if (isRunningAsPWA()) {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Optional: Adjust UI for standalone mode
+            console.log('Running as PWA');
+        });
+    }
 }
 // Make functions available globally
 window.initializePWA = initializePWA;
 window.registerServiceWorker = registerServiceWorker;
 window.initializeInstallButton = initializeInstallButton;
+window.isRunningAsPWA = isRunningAsPWA;
 =====================
 FILE: music.js
 ===================
@@ -1780,8 +1805,8 @@ window.MusicPlayer = MusicPlayer;
 =====================
 FILE: sw.js
 =================
-// sw.js - Basic Service Worker with Cache-First Strategy
-const CACHE_NAME = 'spiritual-guide-v2.2.0';
+// sw.js - Enhanced Service Worker with better caching
+const CACHE_NAME = 'spiritual-guide-v2.2.2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -1840,36 +1865,46 @@ self.addEventListener('activate', (event) => {
         })
       );
     }).then(() => {
-      console.log('Service Worker activated');
+      console.log('Service Worker activated and ready to control clients');
       return self.clients.claim();
     })
   );
 });
-// Fetch event - Cache First strategy
+// Fetch event - Network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
+    fetch(event.request)
+      .then((response) => {
+        // Check if we received a valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
         }
-        return fetch(event.request)
-          .then((networkResponse) => {
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
+        // Clone the response
+        const responseToCache = response.clone();
+        // Add to cache for future use
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        return response;
+      })
+      .catch((error) => {
+        console.log('Network request failed, serving from cache:', error);
+        // Fallback to cache
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
             }
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            return networkResponse;
-          })
-          .catch((error) => {
-            console.log('Fetch failed:', error);
+            // If not in cache and we're looking for a page, return the homepage
             if (event.request.destination === 'document') {
               return caches.match('/index.html');
             }
@@ -1882,11 +1917,17 @@ FILE: netlify.toml
 ================
 [build]
   publish = "."
-[[redirects]]
-  from = "/sw.js"
-  to = "/sw.js"
-  status = 200
-  force = true
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
 [[redirects]]
   from = "/*"
   to = "/index.html"
