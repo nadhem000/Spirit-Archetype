@@ -1,8 +1,7 @@
 // sw.js - Basic Service Worker with Cache-First Strategy
-const CACHE_NAME = 'spiritual-guide-v2.2.0';
+const CACHE_NAME = 'spiritual-guide-v2.2.1';
 const urlsToCache = [
   '/',
-  '/sw.js',
   '/index.html',
   '/styles/main.css',
   '/scripts/data.js',
@@ -17,14 +16,14 @@ const urlsToCache = [
   '/scripts/results.js',
   '/scripts/music.js',
   '/scripts/main.js',
-    '/assets/icons/icon-72x72.png',
-    '/assets/icons/icon-96x96.png',
-    '/assets/icons/icon-128x128.png',
-    '/assets/icons/icon-144x144.png',
-    '/assets/icons/icon-152x152.png',
-    '/assets/icons/icon-192x192.png',
-    '/assets/icons/icon-384x384.png',
-    '/assets/icons/icon-512x512.png',
+  '/assets/icons/icon-72x72.png',
+  '/assets/icons/icon-96x96.png',
+  '/assets/icons/icon-128x128.png',
+  '/assets/icons/icon-144x144.png',
+  '/assets/icons/icon-152x152.png',
+  '/assets/icons/icon-192x192.png',
+  '/assets/icons/icon-384x384.png',
+  '/assets/icons/icon-512x512.png',
   '/manifest.json'
 ];
 
@@ -39,7 +38,7 @@ self.addEventListener('install', (event) => {
       })
       .then(() => {
         console.log('All resources cached successfully');
-        return self.skipWaiting(); // Activate immediately
+        return self.skipWaiting();
       })
       .catch((error) => {
         console.error('Cache installation failed:', error);
@@ -62,14 +61,13 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => {
       console.log('Service Worker activated');
-      return self.clients.claim(); // Take control immediately
+      return self.clients.claim();
     })
   );
 });
 
 // Fetch event - Cache First strategy
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
@@ -77,31 +75,23 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {
-        // Return cached version if found
         if (cachedResponse) {
           return cachedResponse;
         }
-
-        // Otherwise, fetch from network
         return fetch(event.request)
           .then((networkResponse) => {
-            // Check if we received a valid response
             if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
               return networkResponse;
             }
-
-            // Clone the response and cache it
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
               .then((cache) => {
                 cache.put(event.request, responseToCache);
               });
-
             return networkResponse;
           })
           .catch((error) => {
             console.log('Fetch failed:', error);
-            // If both cache and network fail, return a simple offline page
             if (event.request.destination === 'document') {
               return caches.match('/index.html');
             }
