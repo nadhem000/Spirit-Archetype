@@ -1,7 +1,8 @@
 // sw.js - Basic Service Worker with Cache-First Strategy
-const CACHE_NAME = 'spiritual-guide-v2.1.8';
+const CACHE_NAME = 'spiritual-guide-v2.1.9';
 const urlsToCache = [
-  '/',
+  '/',,
+  '/sw.js'
   '/index.html',
   '/styles/main.css',
   '/scripts/data.js',
@@ -16,7 +17,14 @@ const urlsToCache = [
   '/scripts/results.js',
   '/scripts/music.js',
   '/scripts/main.js',
-  '/assets/icons/icon-96x96.png',
+    '/assets/icons/icon-72x72.png',
+    '/assets/icons/icon-96x96.png',
+    '/assets/icons/icon-128x128.png',
+    '/assets/icons/icon-144x144.png',
+    '/assets/icons/icon-152x152.png',
+    '/assets/icons/icon-192x192.png',
+    '/assets/icons/icon-384x384.png',
+    '/assets/icons/icon-512x512.png',
   '/manifest.json'
 ];
 
