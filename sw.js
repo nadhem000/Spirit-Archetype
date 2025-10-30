@@ -1,5 +1,5 @@
 // sw.js - Basic Service Worker with Cache-First Strategy
-const CACHE_NAME = 'spiritual-guide-v2.1.6';
+const CACHE_NAME = 'spiritual-guide-v2.1.7';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -100,4 +100,5 @@ self.addEventListener('fetch', (event) => {
           });
       })
   );
+
 });
