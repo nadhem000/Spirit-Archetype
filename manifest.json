@@ -14,17 +14,6 @@
 	"scope": "/",
 	"iarc_rating_id": "e58f13d1-5619-4cbc-8c0f-98bc5e5a75d9",
 	"categories": ["education", "lifestyle", "personalization"],
-	"prefer_related_applications": false,
-	"related_applications": [
-		{
-			"platform": "web",
-			"url": "https://spiritual-consultation.netlify.app/",
-			"id": "spiritual-consultation"
-		}
-	],
-	"launch_handler": {
-		"client_mode": "focus-existing"
-	},
 	"icons": [
 		{
 			"src": "assets/icons/icon-72x72.png",

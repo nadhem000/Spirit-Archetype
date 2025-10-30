@@ -1,5 +1,5 @@
 // sw.js - Simplified Service Worker for better PWA builder compatibility
-const CACHE_NAME = 'spiritual-guide-v2.2.3';
+const CACHE_NAME = 'spiritual-guide-v2.2.4';
 const OFFLINE_PAGE = '/index.html'; // Fallback to your main page
 
 // Install event - cache essential files
