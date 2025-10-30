@@ -1,4 +1,40 @@
 [file name]: api.txt
+site structure:
+├── index.html
+├── manifest.json
+├── sw.js
+├── netlify.toml
+├── .gitignore
+├── scripts/
+│		├──data.js
+│		├──i18n_en.js
+│		├──i18n_ar.js
+│		├──translations.js
+│		├──notifications.js
+│		├──storage.js
+│		├──pwa.js
+│		├──ui.js
+│		├──navigation.js
+│		├──results.js
+│		├──music.js
+│		└──main.js
+└── styles/
+│   	└── main.css
+└── assets/
+	│	└── icons/
+	│		├──icon-72x72.png
+	│		├──icon-96x96.png
+	│		├──icon-128x128.png
+	│		├──icon-144x144.png
+	│		├──icon-152x152.png
+	│		├──icon-192x192.png
+	│		├──icon-384x384.png
+	│		└──icon-512x512.png
+	└── screenshots/
+	│		├── screenshot-desktop_1280x720.png
+	│		└── screenshot-mobile_375x667.png
+	└── musics/
+			└── default/
 [file content begin]
 =====================
 FILE: navigation.js
@@ -229,115 +265,31 @@ function initializeHeaderIcon() {
     headerIcon.style.cursor = 'pointer';
 }
 // Initialize the application
+// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
     initializeSettingsModal();
     // Initialize header icon functionality
     initializeHeaderIcon();
-    // Initialize PWA functionality (install button + service worker)
-    initializePWA();  // ← CHANGED: This now includes both install button AND service worker
+    // Initialize PWA functionality with error handling
+    try {
+        if (typeof initializePWA !== 'undefined') {
+            initializePWA();
+        } else {
+            console.warn('PWA functionality not available');
+            // Hide install button if PWA not available
+            const installBtn = document.getElementById('SC1-install-btn');
+            if (installBtn) installBtn.style.display = 'none';
+        }
+    } catch (error) {
+        console.warn('PWA initialization failed:', error);
+    }
     // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
     // Use our new function to initialize everything
     initializeAppUI();
 });
-// ==================== PWA Functionality ====================
-// pwa.js - PWA installation logic AND service worker registration
-let deferredPrompt;
-// Service Worker Registration
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        // Use relative path for Netlify compatibility
-        navigator.serviceWorker.register('./sw.js')
-            .then((registration) => {
-                console.log('SW registered: ', registration);
-                // Check for updates
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    console.log('SW update found!', newWorker);
-                    // Show update notification to user
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            showUpdateNotification();
-                        }
-                    });
-                });
-            })
-            .catch((registrationError) => {
-                console.log('SW registration failed: ', registrationError);
-            });
-    }
-}
-// Show update notification
-function showUpdateNotification() {
-    if (window.showInfo) {
-        window.showInfo('New version available! Refresh to update.', 5000);
-    }
-}
-// Install Button Logic
-function initializeInstallButton() {
-    const installBtn = document.getElementById('SC1-install-btn');
-    // Check if the browser supports PWA installation
-    if (!installBtn) {
-        console.warn('Install button not found');
-        return;
-    }
-    // Initially hide the install button
-    installBtn.style.display = 'none';
-    // Listen for the beforeinstallprompt event
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent the mini-infobar from appearing on mobile
-        e.preventDefault();
-        // Stash the event so it can be triggered later
-        deferredPrompt = e;
-        // Show the install button
-        installBtn.style.display = 'flex';
-    });
-    // Handle install button click
-    installBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        // Show the install prompt
-        deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User ${outcome} the install prompt`);
-        if (outcome === 'accepted') {
-            // Hide the install button after successful installation
-            installBtn.style.display = 'none';
-        }
-        // Clear the saved prompt since it can't be used again
-        deferredPrompt = null;
-    });
-    // Hide the install button when the app is successfully installed
-    window.addEventListener('appinstalled', () => {
-        console.log('PWA was installed');
-        installBtn.style.display = 'none';
-        deferredPrompt = null;
-    });
-}
-// Check if app is running as PWA
-function isRunningAsPWA() {
-    return window.matchMedia('(display-mode: standalone)').matches || 
-           window.navigator.standalone === true;
-}
-// Initialize all PWA functionality
-function initializePWA() {
-    registerServiceWorker();
-    initializeInstallButton();
-    // If running as PWA, you might want to adjust UI
-    if (isRunningAsPWA()) {
-        document.addEventListener('DOMContentLoaded', () => {
-            // Optional: Adjust UI for standalone mode
-            console.log('Running as PWA');
-        });
-    }
-}
-// Make functions available globally
-window.initializePWA = initializePWA;
-window.registerServiceWorker = registerServiceWorker;
-window.initializeInstallButton = initializeInstallButton;
-window.isRunningAsPWA = isRunningAsPWA;
 =====================
 FILE: i18n_ar.js
 =================
@@ -1342,6 +1294,8 @@ FILE: index.html
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
+<!-- Load PWA functionality FIRST -->
+<script src="scripts/pwa.js"></script>
 <!-- Then load other scripts -->
 <script src="scripts/data.js"></script>
 <script src="scripts/i18n_en.js"></script>
@@ -1381,6 +1335,17 @@ FILE: manifest.json
 	"scope": "/",
 	"iarc_rating_id": "e58f13d1-5619-4cbc-8c0f-98bc5e5a75d9",
 	"categories": ["education", "lifestyle", "personalization"],
+	"prefer_related_applications": false,
+	"related_applications": [
+		{
+			"platform": "web",
+			"url": "https://spiritual-consultation.netlify.app/",
+			"id": "spiritual-consultation"
+		}
+	],
+	"launch_handler": {
+		"client_mode": "focus-existing"
+	},
 	"icons": [
 		{
 			"src": "assets/icons/icon-72x72.png",
@@ -1444,6 +1409,13 @@ FILE: manifest.json
 			"sizes": "375x667",
 			"type": "image/png",
 			"form_factor": "narrow",
+			"label": "Interactive Spiritual Test"
+		},
+		{
+			"src": "assets/screenshots/widget-screenshot-384x384.png",
+			"sizes": "384x384",
+			"type": "image/png",
+			"platform": "windows",
 			"label": "Interactive Spiritual Test"
 		}
 	]
@@ -1548,6 +1520,132 @@ window.showWarning = function(message, duration) {
 window.showInfo = function(message, duration) {
     return window.SC1Notification.info(message, duration);
 };
+=====================
+FILE: pwa.js
+================
+// pwa.js - PWA installation logic AND service worker registration
+let deferredPrompt;
+// Service Worker Registration
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        // Use relative path for Netlify compatibility
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registered: ', registration);
+                // Check for updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    console.log('SW update found!', newWorker);
+                    // Show update notification to user
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateNotification();
+                        }
+                    });
+                });
+            })
+            .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    }
+}
+// Show update notification
+function showUpdateNotification() {
+    if (window.showInfo) {
+        window.showInfo('New version available! Refresh to update.', 5000);
+    }
+}
+// Install Button Logic
+function initializeInstallButton() {
+    const installBtn = document.getElementById('SC1-install-btn');
+    // Check if the browser supports PWA installation
+    if (!installBtn) {
+        console.warn('Install button not found');
+        return;
+    }
+    // Initially hide the install button
+    installBtn.style.display = 'none';
+    // Listen for the beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show the install button
+        installBtn.style.display = 'flex';
+    });
+    // Handle install button click
+    installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User ${outcome} the install prompt`);
+        if (outcome === 'accepted') {
+            // Hide the install button after successful installation
+            installBtn.style.display = 'none';
+        }
+        // Clear the saved prompt since it can't be used again
+        deferredPrompt = null;
+    });
+    // Hide the install button when the app is successfully installed
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        installBtn.style.display = 'none';
+        deferredPrompt = null;
+    });
+}
+// Check if app is running as PWA
+function isRunningAsPWA() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
+}
+// Initialize all PWA functionality with error handling
+console.log('PWA script loaded');
+// Safe initialization function
+function initializePWA() {
+    console.log('Initializing PWA...');
+    // Service Worker Registration - FIXED PATH
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('SW registered successfully: ', registration);
+            })
+            .catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    }
+    // Install Button Handling
+    const installBtn = document.getElementById('SC1-install-btn');
+    if (installBtn) {
+        installBtn.style.display = 'none';
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPrompt = e;
+            installBtn.style.display = 'flex';
+        });
+        installBtn.addEventListener('click', async () => {
+            const promptEvent = window.deferredPrompt;
+            if (!promptEvent) return;
+            promptEvent.prompt();
+            const result = await promptEvent.userChoice;
+            console.log('User response to install prompt:', result);
+            window.deferredPrompt = null;
+            installBtn.style.display = 'none';
+        });
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            window.deferredPrompt = null;
+            installBtn.style.display = 'none';
+        });
+    }
+}
+// Make function available globally
+window.initializePWA = initializePWA;
+window.registerServiceWorker = registerServiceWorker;
+window.initializeInstallButton = initializeInstallButton;
+window.isRunningAsPWA = isRunningAsPWA;
 =====================
 FILE: music.js
 ===================
@@ -1784,120 +1882,86 @@ window.MusicPlayer = MusicPlayer;
 =====================
 FILE: sw.js
 =================
-// sw.js - Simplified Service Worker for better PWA builder compatibility
+// sw.js - Simple Service Worker
 const CACHE_NAME = 'spiritual-guide-v2.2.5';
-const OFFLINE_PAGE = '/index.html'; // Fallback to your main page
-// Install event - cache essential files
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/styles/main.css',
+  '/scripts/data.js',
+  '/scripts/i18n_en.js',
+  '/scripts/i18n_ar.js',
+  '/scripts/translations.js',
+  '/scripts/notifications.js',
+  '/scripts/storage.js',
+  '/scripts/pwa.js',
+  '/scripts/ui.js',
+  '/scripts/navigation.js',
+  '/scripts/results.js',
+  '/scripts/music.js',
+  '/scripts/main.js',
+  '/manifest.json'
+];
+// Install event
+self.addEventListener('install', event => {
+  console.log('Service Worker installing');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
+      .then(cache => {
         console.log('Opened cache');
-        return cache.addAll([
-          './',
-          './index.html',
-          './styles/main.css',
-          './scripts/data.js',
-          './scripts/i18n_en.js',
-          './scripts/i18n_ar.js',
-          './scripts/translations.js',
-          './scripts/notifications.js',
-          './scripts/storage.js',
-          './scripts/pwa.js',
-          './scripts/ui.js',
-          './scripts/navigation.js',
-          './scripts/results.js',
-          './scripts/music.js',
-          './scripts/main.js',
-          './manifest.json'
-        ]);
+        return cache.addAll(urlsToCache);
       })
-      .then(() => {
-        console.log('All resources cached successfully');
-        return self.skipWaiting();
-      })
+      .then(() => self.skipWaiting())
   );
 });
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+// Activate event
+self.addEventListener('activate', event => {
+  console.log('Service Worker activating');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
+        cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      console.log('Service Worker activated');
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
-// Fetch event - Network first, fallback to cache
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
+// Fetch event
+self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Cache successful responses
-        if (response.status === 200) {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache
-        return caches.match(event.request)
-          .then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // If navigation request, return offline page
-            if (event.request.mode === 'navigate') {
-              return caches.match(OFFLINE_PAGE);
-            }
-          });
-      })
+    caches.match(event.request)
+      .then(response => {
+        // Return cached version or fetch from network
+        return response || fetch(event.request);
+      }
+    )
   );
-});
-// Skip waiting message
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
 });
 =====================
 FILE: netlify.toml
 ================
 [build]
   publish = "."
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+# CRITICAL: Service Worker Headers
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
+# Manifest headers
 [[headers]]
-  for = "/*"
+  for = "/manifest.json"
   [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-[build.environment]
-  NODE_VERSION = "18"
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=3600"
 =====================
 FILE: .gitignore
 ================
