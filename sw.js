@@ -1,5 +1,5 @@
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.3.1'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.2'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -25,7 +25,9 @@ const FILES_TO_CACHE = [
   '/assets/icons/icon-152x152.png',
   '/assets/icons/icon-192x192.png',
   '/assets/icons/icon-384x384.png',
-  '/assets/icons/icon-512x512.png'
+  '/assets/icons/icon-512x512.png',
+  '/assets/screenshots/screenshot-desktop_1280x720.png',
+  '/assets/screenshots/screenshot-mobile_375x667.png'
 ];
 
 // Install event - cache essential files

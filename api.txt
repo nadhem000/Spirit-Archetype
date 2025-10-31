@@ -1124,6 +1124,8 @@ FILE: index.html
 </script>
 		<link rel="manifest" href="manifest.json">
 		<link rel="stylesheet" href="styles/main.css">
+		<meta name="theme-color" content="#667eea">
+		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -1906,7 +1908,7 @@ window.MusicPlayer = MusicPlayer;
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.3.0'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.2'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -1932,7 +1934,9 @@ const FILES_TO_CACHE = [
   '/assets/icons/icon-152x152.png',
   '/assets/icons/icon-192x192.png',
   '/assets/icons/icon-384x384.png',
-  '/assets/icons/icon-512x512.png'
+  '/assets/icons/icon-512x512.png',
+  '/assets/screenshots/screenshot-desktop_1280x720.png',
+  '/assets/screenshots/screenshot-mobile_375x667.png'
 ];
 
 // Install event - cache essential files
