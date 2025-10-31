@@ -1091,7 +1091,6 @@ body::after {
     transform: translateX(-50%) translateY(-5px);
 }
 
-/* Rest of your existing music player styles remain the same */
 .SC1-music-main-controls {
     display: flex;
     align-items: center;
@@ -1290,7 +1289,7 @@ body::after {
 .SC1-playlist-btn {
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
+    color: brown;
     padding: 6px;
     border-radius: 6px;
     cursor: pointer;
@@ -1358,7 +1357,7 @@ body::after {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
 .SC1-track-name {
@@ -1457,4 +1456,14 @@ body::after {
     .SC1-playlist-actions {
         flex-direction: column;
     }
+}
+
+.SC1-shared-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    background: var(--SC1-success-color);
+    color: white;
+    border-radius: 8px;
+    margin-top: 4px;
+    display: inline-block;
 }

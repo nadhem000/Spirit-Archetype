@@ -115,7 +115,20 @@ function initializeHeaderIcon() {
     headerIcon.style.cursor = 'pointer';
 }
 
-// Initialize the application
+// Handle shared music files
+function handleSharedMusic() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedMusic = urlParams.get('sharedMusic');
+    
+    if (sharedMusic && window.musicPlayer) {
+        window.musicPlayer.handleSharedMusic(sharedMusic);
+        
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -130,4 +143,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Use our new function to initialize everything
     initializeAppUI();
+    
+    // Initialize music player and playlist modal
+    window.musicPlayer = new MusicPlayer();
+    window.playlistModal = new PlaylistModal(window.musicPlayer);
+    
+    // Load saved playlist if available
+    window.playlistModal.loadPlaylist();
+    
+    // Handle shared music
+    setTimeout(() => {
+        handleSharedMusic();
+    }, 1000);
 });

@@ -248,43 +248,97 @@ class MusicPlayer {
             console.error(errorMessage);
 		}
 	}
-
+	
     // method to update Track Names
     updateTrackNames() {
         this.trackNames = [
             translate('SC1.music.tracks.track1'),
             translate('SC1.music.tracks.track2'),
             translate('SC1.music.tracks.track3')
-        ];
-    }
-
+		];
+	}
+	
     // method to handle track changes properly
     changeTrack() {
         if (this.audio) {
             this.audio.pause();
             this.audio = null;
-        }
+		}
         
         if (this.isPlaying) {
             this.play();
-        } else {
+			} else {
             this.updateTrackInfo();
-        }
+		}
         
         // Dispatch event for playlist modal to listen to
         this.dispatchTrackChange();
-    }
-
+	}
+	
     // Add event dispatching for track changes
     dispatchTrackChange() {
         const event = new CustomEvent('trackChanged', {
             detail: {
                 currentTrack: this.currentTrack,
                 isPlaying: this.isPlaying
-            }
-        });
+			}
+		});
         document.dispatchEvent(event);
-    }
+	}
+	
+	handleSharedMusic(fileName) {
+		if (!fileName) return;
+		
+		caches.open('shared-music-cache').then(cache => {
+			cache.match(`/shared-music/${fileName}`).then(response => {
+				if (response) {
+					response.blob().then(blob => {
+						// Create object URL from the blob
+						const objectUrl = URL.createObjectURL(blob);
+						
+						// Extract filename without the timestamp prefix
+						const originalName = fileName.replace(/^shared_\d+_/, '');
+						
+						// Add to playlist
+						this.addSharedTrack(objectUrl, originalName);
+						
+						// Clean up cache
+						cache.delete(`/shared-music/${fileName}`);
+						
+						// Show success message
+						showSuccess(`Added "${originalName}" to playlist`);
+					});
+				}
+			});
+		});
+	}
+	
+	// method to handle adding shared tracks
+	addSharedTrack(url, name) {
+		// Add to tracks array
+		this.tracks.push(url);
+		this.trackNames.push(name);
+		
+		// Switch to the new track
+		this.currentTrack = this.tracks.length - 1;
+		
+		// Play the new track
+		if (!this.isPlaying) {
+			this.play();
+			} else {
+			this.changeTrack();
+		}
+		
+		// Update playlist modal if open
+		if (window.playlistModal && window.playlistModal.modal.classList.contains('SC1-active')) {
+			window.playlistModal.renderTrackList();
+		}
+	}
+	
+	// method to get file extension
+	getFileExtension(filename) {
+		return filename.split('.').pop().toLowerCase();
+	}
 }
 
 // Playlist Modal Management
@@ -298,160 +352,162 @@ class PlaylistModal {
         this.saveBtn = document.getElementById('SC1-save-playlist-btn');
         
         this.initializeEventListeners();
-    }
-
+	}
+	
     initializeEventListeners() {
         // Open modal when playlist button is clicked
         document.getElementById('SC1-playlist-btn').addEventListener('click', () => {
             this.open();
-        });
-
+		});
+		
         // Close modal
         this.closeBtn.addEventListener('click', () => {
             this.close();
-        });
-
+		});
+		
         // Close when clicking outside modal
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
                 this.close();
-            }
-        });
-
+			}
+		});
+		
         // Close with Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal.classList.contains('SC1-active')) {
                 this.close();
-            }
-        });
-
+			}
+		});
+		
         // Reset playlist button
         this.resetBtn.addEventListener('click', () => {
             this.resetToDefault();
-        });
-
+		});
+		
         // Save playlist button
         this.saveBtn.addEventListener('click', () => {
             this.savePlaylist();
-        });
-    }
-
+		});
+	}
+	
     open() {
         this.modal.classList.add('SC1-active');
         this.renderTrackList();
-    }
-
+	}
+	
     close() {
         this.modal.classList.remove('SC1-active');
-    }
-
+	}
+	
     renderTrackList() {
         this.tracksContainer.innerHTML = '';
         
         this.musicPlayer.tracks.forEach((trackPath, index) => {
             const trackElement = this.createTrackElement(trackPath, index);
             this.tracksContainer.appendChild(trackElement);
-        });
-    }
-
+		});
+	}
+	
     createTrackElement(trackPath, index) {
         const trackDiv = document.createElement('div');
-        trackDiv.className = 'SC1-playlist-track';
-        
-        // Add active class if this is the current track
-        if (index === this.musicPlayer.currentTrack) {
-            trackDiv.classList.add('active');
-        }
+		trackDiv.className = 'SC1-playlist-track';
+		
+		// Add active class if this is the current track
+		if (index === this.musicPlayer.currentTrack) {
+			trackDiv.classList.add('active');
+		}
 
-        // Extract filename from path for display
-        const fileName = trackPath.split('/').pop();
-        const trackName = this.musicPlayer.trackNames[index] || fileName;
+		// Check if this is a shared track (blob URL)
+		const isSharedTrack = trackPath.startsWith('blob:');
+		const trackName = this.musicPlayer.trackNames[index] || 
+						 (isSharedTrack ? 'Shared Track' : trackPath.split('/').pop());
 
-        trackDiv.innerHTML = `
-            <div class="SC1-track-info">
-                <div class="SC1-track-name">${trackName}</div>
-                <div class="SC1-track-duration">${this.getTrackDuration(index)}</div>
-            </div>
-            <div class="SC1-track-status">${this.getTrackStatus(index)}</div>
-            <div class="SC1-track-actions">
-                <button class="SC1-track-action-btn SC1-track-play" data-index="${index}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z"/>
-                    </svg>
-                    <span class="SC1-tooltip">${translate('SC1.music.playlistModal.playTrack')}</span>
-                </button>
-                <button class="SC1-track-action-btn SC1-track-remove" data-index="${index}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                    <span class="SC1-tooltip">${translate('SC1.music.playlistModal.removeTrack')}</span>
-                </button>
-            </div>
-        `;
-
+		trackDiv.innerHTML = `
+			<div class="SC1-track-info">
+				<div class="SC1-track-name">${trackName}</div>
+				<div class="SC1-track-duration">${this.getTrackDuration(index)}</div>
+				${isSharedTrack ? '<div class="SC1-shared-badge">Shared</div>' : ''}
+			</div>
+			<div class="SC1-track-status">${this.getTrackStatus(index)}</div>
+			<div class="SC1-track-actions">
+				<button class="SC1-track-action-btn SC1-track-play" data-index="${index}">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+						<path d="M8 5v14l11-7z"/>
+					</svg>
+					<span class="SC1-tooltip">${translate('SC1.music.playlistModal.playTrack')}</span>
+				</button>
+				<button class="SC1-track-action-btn SC1-track-remove" data-index="${index}">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+						<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+					</svg>
+					<span class="SC1-tooltip">${translate('SC1.music.playlistModal.removeTrack')}</span>
+				</button>
+			</div>
+		`;
+		
         // Add event listeners for the buttons
         const playBtn = trackDiv.querySelector('.SC1-track-play');
         const removeBtn = trackDiv.querySelector('.SC1-track-remove');
-
+		
         playBtn.addEventListener('click', () => {
             this.playTrack(index);
-        });
-
+		});
+		
         removeBtn.addEventListener('click', () => {
             this.removeTrack(index);
-        });
-
+		});
+		
         return trackDiv;
-    }
-
+	}
+	
     getTrackDuration(index) {
         // This is a placeholder - in a real implementation, you'd load the audio file
         // and get its duration. For now, we'll return a placeholder.
         return '2:30'; // Placeholder duration
-    }
-
+	}
+	
     getTrackStatus(index) {
         if (index === this.musicPlayer.currentTrack && this.musicPlayer.isPlaying) {
             return translate('SC1.music.playlistModal.trackPlaying');
-        } else if (index === this.musicPlayer.currentTrack && !this.musicPlayer.isPlaying) {
+			} else if (index === this.musicPlayer.currentTrack && !this.musicPlayer.isPlaying) {
             return translate('SC1.music.playlistModal.trackPaused');
-        } else {
+			} else {
             return translate('SC1.music.playlistModal.trackStopped');
-        }
-    }
-
+		}
+	}
+	
     playTrack(index) {
         this.musicPlayer.currentTrack = index;
         this.musicPlayer.changeTrack();
         this.renderTrackList(); // Refresh to update status
         this.close(); // Close modal after selecting track
-    }
-
+	}
+	
     removeTrack(index) {
         // Don't remove if it's the last track
         if (this.musicPlayer.tracks.length <= 1) {
             showError('Cannot remove the last track');
             return;
-        }
-
+		}
+		
         // Remove track from arrays
         this.musicPlayer.tracks.splice(index, 1);
         this.musicPlayer.trackNames.splice(index, 1);
-
+		
         // Adjust currentTrack index if needed
         if (this.musicPlayer.currentTrack >= index) {
             this.musicPlayer.currentTrack = Math.max(0, this.musicPlayer.currentTrack - 1);
-        }
-
+		}
+		
         // If we removed the currently playing track, change to the new current track
         if (index === this.musicPlayer.currentTrack) {
             this.musicPlayer.changeTrack();
-        }
-
+		}
+		
         this.renderTrackList();
         showSuccess('Track removed from playlist');
-    }
-
+	}
+	
     resetToDefault() {
         if (confirm(translate('SC1.music.playlistModal.resetConfirm'))) {
             // Reset to default tracks
@@ -459,7 +515,7 @@ class PlaylistModal {
                 'assets/musics/default/velvetkeys-zen-meditation-buddhist.mp3',
                 'assets/musics/default/velvetkeys-zen-meditation-buddhist-1.mp3', 
                 'assets/musics/default/spiritualite-nature.mp3'
-            ];
+			];
             
             this.musicPlayer.updateTrackNames();
             this.musicPlayer.currentTrack = 0;
@@ -467,25 +523,25 @@ class PlaylistModal {
             this.renderTrackList();
             
             showSuccess(translate('SC1.music.playlistModal.resetSuccess'));
-        }
-    }
-
+		}
+	}
+	
     savePlaylist() {
         // Save current playlist to localStorage
         const playlistData = {
             tracks: this.musicPlayer.tracks,
             trackNames: this.musicPlayer.trackNames,
             lastSaved: new Date().toISOString()
-        };
+		};
         
         try {
             localStorage.setItem('SC1-music-playlist', JSON.stringify(playlistData));
             showSuccess(translate('SC1.music.playlistModal.saveSuccess'));
-        } catch (error) {
+			} catch (error) {
             showError('Failed to save playlist: ' + error.message);
-        }
-    }
-
+		}
+	}
+	
     loadPlaylist() {
         // Load saved playlist from localStorage
         try {
@@ -495,12 +551,12 @@ class PlaylistModal {
                 this.musicPlayer.tracks = playlistData.tracks;
                 this.musicPlayer.trackNames = playlistData.trackNames;
                 return true;
-            }
-        } catch (error) {
+			}
+			} catch (error) {
             console.error('Error loading playlist:', error);
-        }
+		}
         return false;
-    }
+	}
 }
 
 // Initialize music player and playlist modal when DOM is loaded
@@ -515,16 +571,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('trackChanged', () => {
         if (window.playlistModal.modal.classList.contains('SC1-active')) {
             window.playlistModal.renderTrackList();
-        }
-    });
+		}
+	});
     
     // Listen for language changes to update track names
     document.addEventListener('languageChanged', () => {
         window.musicPlayer.updateTrackNames();
         if (window.playlistModal.modal.classList.contains('SC1-active')) {
             window.playlistModal.renderTrackList();
-        }
-    });
+		}
+	});
 });
 
 
@@ -534,13 +590,13 @@ window.MusicPlayer = MusicPlayer;
 window.openPlaylistModal = function() {
     if (window.playlistModal) {
         window.playlistModal.open();
-    }
+	}
 };
 
 window.resetMusicPlaylist = function() {
     if (window.playlistModal) {
         window.playlistModal.resetToDefault();
-    }
+	}
 };
 
 // Update the existing MusicPlayer instance to work with playlist
@@ -551,6 +607,6 @@ if (window.musicPlayer) {
             translate('SC1.music.tracks.track1'),
             translate('SC1.music.tracks.track2'),
             translate('SC1.music.tracks.track3')
-        ];
-    };
+		];
+	};
 }

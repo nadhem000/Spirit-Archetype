@@ -1,5 +1,5 @@
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.3.5'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.6'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -185,4 +185,39 @@ self.addEventListener('periodicsync', event => {
             }).catch(err => console.log('Periodic sync failed:', err))
         );
     }
+});
+
+// ===== SHARE TARGET HANDLING =====
+self.addEventListener('fetch', event => {
+  // Handle share target POST requests
+  if (event.request.method === 'POST') {
+    event.respondWith(
+      (async () => {
+        try {
+          const formData = await event.request.formData();
+          const file = formData.get('music');
+          
+          if (file) {
+            // Store the shared file in cache
+            const cache = await caches.open('shared-music-cache');
+            const fileName = `shared_${Date.now()}_${file.name}`;
+            const response = new Response(file, {
+              headers: { 'Content-Type': file.type }
+            });
+            
+            await cache.put(`/shared-music/${fileName}`, response);
+            
+            // Redirect to main app with file info
+            return Response.redirect(`/?sharedMusic=${fileName}`, 303);
+          }
+        } catch (error) {
+          console.error('Error handling share:', error);
+        }
+        
+        // Fallback: redirect to main app
+        return Response.redirect('/', 303);
+      })()
+    );
+    return;
+  }
 });
