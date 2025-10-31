@@ -124,12 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize header icon functionality
     initializeHeaderIcon();
     
-    // Initialize PWA functionality with error handling
-    const installBtn = document.getElementById('SC1-install-btn');
-	if (installBtn) {
-		installBtn.style.display = 'none';
-	}
-    
     // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();

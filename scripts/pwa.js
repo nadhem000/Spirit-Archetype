@@ -56,7 +56,7 @@ async function requestNotificationPermission() {
     return false;
 }
 
-// Install Button Logic
+// Install Button Logic - FIXED VERSION
 function initializeInstallButton() {
     const installBtn = document.getElementById('SC1-install-btn');
     if (!installBtn) {
@@ -64,12 +64,16 @@ function initializeInstallButton() {
         return;
     }
 
+    // Start with button hidden
     installBtn.style.display = 'none';
     let deferredPrompt;
 
     window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('beforeinstallprompt event fired');
         e.preventDefault();
         deferredPrompt = e;
+        
+        // Show the install button
         installBtn.style.display = 'flex';
         
         // Request notification permission when install prompt shows
@@ -79,9 +83,14 @@ function initializeInstallButton() {
     });
 
     installBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+            console.log('No deferred prompt available');
+            return;
+        }
         
+        console.log('Showing install prompt');
         deferredPrompt.prompt();
+        
         const { outcome } = await deferredPrompt.userChoice;
         
         console.log(`User ${outcome} the install prompt`);
@@ -128,3 +137,8 @@ function initializePWA() {
 window.initializePWA = initializePWA;
 window.registerBackgroundSync = registerBackgroundSync;
 window.requestNotificationPermission = requestNotificationPermission;
+
+// Auto-initialize PWA when script loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializePWA();
+});

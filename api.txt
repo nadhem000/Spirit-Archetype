@@ -271,10 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeSettingsModal();
     // Initialize header icon functionality
     initializeHeaderIcon();
-    const installBtn = document.getElementById('SC1-install-btn');
-	if (installBtn) {
-		installBtn.style.display = 'none';
-	}
     // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
@@ -1587,7 +1583,7 @@ async function requestNotificationPermission() {
     return false;
 }
 
-// Install Button Logic
+// Install Button Logic - FIXED VERSION
 function initializeInstallButton() {
     const installBtn = document.getElementById('SC1-install-btn');
     if (!installBtn) {
@@ -1595,12 +1591,16 @@ function initializeInstallButton() {
         return;
     }
 
+    // Start with button hidden
     installBtn.style.display = 'none';
     let deferredPrompt;
 
     window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('beforeinstallprompt event fired');
         e.preventDefault();
         deferredPrompt = e;
+        
+        // Show the install button
         installBtn.style.display = 'flex';
         
         // Request notification permission when install prompt shows
@@ -1610,9 +1610,14 @@ function initializeInstallButton() {
     });
 
     installBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+            console.log('No deferred prompt available');
+            return;
+        }
         
+        console.log('Showing install prompt');
         deferredPrompt.prompt();
+        
         const { outcome } = await deferredPrompt.userChoice;
         
         console.log(`User ${outcome} the install prompt`);
@@ -1659,6 +1664,11 @@ function initializePWA() {
 window.initializePWA = initializePWA;
 window.registerBackgroundSync = registerBackgroundSync;
 window.requestNotificationPermission = requestNotificationPermission;
+
+// Auto-initialize PWA when script loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializePWA();
+});
 =====================
 FILE: music.js
 ===================
@@ -1896,11 +1906,11 @@ window.MusicPlayer = MusicPlayer;
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.2.8'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.0'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
-  '/offline.html', // Make sure  create this file!
+  '/offline.html',
   '/styles/main.css',
   '/scripts/data.js',
   '/scripts/i18n_en.js',
