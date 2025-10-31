@@ -176,6 +176,21 @@ const translations_en = {
 				track1: "velvetkeys-zen meditation buddhist",
 				track2: "velvetkeys1-zen meditation buddhist",
 				track3: "spiritualite nature"
+			},
+			playlistModal: {
+				title: "Playlist Management",
+				currentTracks: "Current Tracks",
+				tooltip: "Manage Playlist",
+				trackPlaying: "Playing",
+				trackPaused: "Paused",
+				trackStopped: "Stopped",
+				removeTrack: "Remove from playlist",
+				playTrack: "Play this track",
+				resetToDefault: "Reset to Default",
+				savePlaylist: "Save Playlist",
+				resetConfirm: "Reset playlist to default tracks?",
+				saveSuccess: "Playlist saved successfully!",
+				resetSuccess: "Playlist reset to default!"
 			}
 		}
 	}

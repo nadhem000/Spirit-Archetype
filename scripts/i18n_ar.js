@@ -176,6 +176,21 @@ const translations_ar = {
 				track1: "velvetkeys-zen meditation buddhist",
 				track2: "velvetkeys1-zen meditation buddhist",
 				track3: "spiritualite nature"
+			},
+			playlistModal: {
+				title: "إدارة قائمة التشغيل",
+				currentTracks: "المقاطع الحالية",
+				tooltip: "إدارة قائمة التشغيل",
+				trackPlaying: "قيد التشغيل",
+				trackPaused: "متوقف مؤقتاً",
+				trackStopped: "متوقف",
+				removeTrack: "إزالة من قائمة التشغيل",
+				playTrack: "تشغيل هذا المقطع",
+				resetToDefault: "إعادة التعيين إلى الافتراضي",
+				savePlaylist: "حفظ قائمة التشغيل",
+				resetConfirm: "هل تريد إعادة تعيين قائمة التشغيل إلى المقاطع الافتراضية؟",
+				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
+				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
 			}
 		}
 	}

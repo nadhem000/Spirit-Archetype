@@ -4,21 +4,21 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Spiritual Guide</title>
-<!-- Immediate service worker registration for PWA detection -->
-<script>
-    // Register service worker immediately for PWA detection
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js')
-                .then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                })
-                .catch(function(error) {
-                    console.log('ServiceWorker registration failed: ', error);
-                });
-        });
-    }
-</script>
+		<!-- Immediate service worker registration for PWA detection -->
+		<script>
+			// Register service worker immediately for PWA detection
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', function() {
+					navigator.serviceWorker.register('/sw.js')
+					.then(function(registration) {
+						console.log('ServiceWorker registration successful with scope: ', registration.scope);
+					})
+					.catch(function(error) {
+						console.log('ServiceWorker registration failed: ', error);
+					});
+				});
+			}
+		</script>
 		<link rel="stylesheet" href="styles/main.css">
 		<link rel="manifest" href="manifest.json">
 		<meta name="theme-color" content="#667eea">
@@ -91,6 +91,29 @@
 				</div>
 			</div>
 			
+			
+			<!-- Playlist Management Modal -->
+			<div class="SC1-modal" id="SC1-playlist-modal">
+				<div class="SC1-modal-content">
+					<div class="SC1-modal-header">
+						<h2 data-i18n="SC1.music.playlistModal.title">Playlist Management</h2>
+						<button class="SC1-modal-close" id="SC1-playlist-modal-close">&times;</button>
+					</div>
+					<div class="SC1-modal-body">
+						<div class="SC1-playlist-section">
+							<h3 data-i18n="SC1.music.playlistModal.currentTracks">Current Tracks</h3>
+							<div class="SC1-playlist-tracks" id="SC1-playlist-tracks">
+								<!-- Track list will be populated here by JavaScript -->
+							</div>
+						</div>
+						
+						<div class="SC1-playlist-actions">
+							<button class="SC1-button SC1-btn-secondary" id="SC1-reset-playlist-btn" data-i18n="SC1.music.playlistModal.resetToDefault">Reset to Default</button>
+							<button class="SC1-button SC1-btn-primary" id="SC1-save-playlist-btn" data-i18n="SC1.music.playlistModal.savePlaylist">Save Playlist</button>
+						</div>
+					</div>
+				</div>
+			</div>
 			<div class="SC1-progress-bar">
 				<div class="SC1-progress" id="SC1-progress"></div>
 			</div>
@@ -153,8 +176,16 @@
 			<div class="SC1-music-player SC1-collapsed" id="SC1-music-player">
 				<div class="SC1-music-header" id="SC1-music-header">
 					<span class="SC1-music-label" data-i18n="SC1.music.title">Music Player</span>
-					<span class="SC1-expand-icon">▼</span>
-					<span class="SC1-tooltip" data-i18n="SC1.music.tooltipTitle">Play/Stop background music</span>
+					<div class="SC1-music-header-buttons">
+						<button class="SC1-playlist-btn" id="SC1-playlist-btn">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M4 10h12v2H4zm0-4h12v2H4zm0-4h12v2H4zm0 12h12v2H4zm0 4h12v2H4zm16 0h-4v2h4zm0-16h-4v2h4zm0 8h-4v2h4z"/>
+							</svg>
+							<span class="SC1-tooltip" data-i18n="SC1.music.playlistModal.tooltip">Manage Playlist</span>
+						</button>
+						<span class="SC1-expand-icon">▼</span>
+					</div>
+					<span class="SC1-tooltip" data-i18n="SC1.music.tooltipExpand">Click to expand/collapse music player</span>
 				</div>
 				<div class="SC1-music-body">
 					<div class="SC1-music-main-controls">
@@ -204,23 +235,23 @@
 			</div>
 		</footer>
 		
-<!-- Load PWA functionality FIRST -->
-<script src="scripts/pwa.js"></script>
-
-<!-- Then load other scripts -->
-<script src="scripts/data.js"></script>
-<script src="scripts/i18n_en.js"></script>
-<script src="scripts/i18n_ar.js"></script>
-<script src="scripts/translations.js"></script>
-<script src="scripts/notifications.js"></script>
-<script src="scripts/storage.js"></script>
-<!-- Load UI and navigation -->
-<script src="scripts/ui.js"></script>
-<script src="scripts/navigation.js"></script>
-<script src="scripts/results.js"></script>
-<!-- Load music player -->
-<script src="scripts/music.js"></script>
-<!-- Finally load main.js -->
-<script src="scripts/main.js"></script>
+		<!-- Load PWA functionality FIRST -->
+		<script src="scripts/pwa.js"></script>
+		
+		<!-- Then load other scripts -->
+		<script src="scripts/data.js"></script>
+		<script src="scripts/i18n_en.js"></script>
+		<script src="scripts/i18n_ar.js"></script>
+		<script src="scripts/translations.js"></script>
+		<script src="scripts/notifications.js"></script>
+		<script src="scripts/storage.js"></script>
+		<!-- Load UI and navigation -->
+		<script src="scripts/ui.js"></script>
+		<script src="scripts/navigation.js"></script>
+		<script src="scripts/results.js"></script>
+		<!-- Load music player -->
+		<script src="scripts/music.js"></script>
+		<!-- Finally load main.js -->
+		<script src="scripts/main.js"></script>
 	</body>
 </html>
