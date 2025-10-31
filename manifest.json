@@ -95,6 +95,41 @@
 			"type": "image/png",
 			"form_factor": "narrow",
 			"label": "Interactive Spiritual Test"
+		},
+		{
+			"src": "assets/screenshots/widget-screenshot-384x384.png",
+			"sizes": "384x384",
+			"type": "image/png",
+			"platform": "windows",
+			"label": "Interactive Spiritual Test"
 		}
-	]
+	],
+    "shortcuts": [
+        {
+            "name": "Start New Test",
+            "short_name": "New Test",
+            "description": "Begin a new spiritual guide test",
+            "url": "/",
+            "icons": [
+                {
+                    "src": "/assets/icons/icon-72x72.png",
+                    "sizes": "72x72",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "View Results", 
+            "short_name": "Results",
+            "description": "Check your spiritual guide results",
+            "url": "/#results",
+            "icons": [
+                {
+                    "src": "/assets/icons/icon-96x96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ]
 }
