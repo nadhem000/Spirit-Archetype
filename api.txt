@@ -283,35 +283,43 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
+    
     if (!loginForm) return;
+
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
+        
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
         }
+
         // Show loading state
         const originalText = loginButton.textContent;
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
+
         try {
-            // Get user from Supabase
+            // Get user from Supabase - FIXED QUERY
             const { data: user, error } = await supabaseClient
                 .from('general_users')
                 .select('*')
                 .eq('username', username)
                 .single();
+
             if (error) {
+                console.error('Supabase error:', error);
                 if (error.code === 'PGRST116') {
                     showError(translate('SC1.login.error.invalidCredentials'));
                 } else {
-                    showError(translate('SC1.login.error.generic'));
+                    showError(translate('SC1.login.error.generic') + ': ' + error.message);
                 }
                 return;
             }
-            // Decrypt and compare password
+
+            // If user exists, check password
             if (user && user.hashed_password) {
                 try {
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
@@ -335,6 +343,7 @@ function initializeLogin() {
                 showError(translate('SC1.login.error.invalidCredentials'));
             }
         } catch (error) {
+            console.error('Login error:', error);
             showError(translate('SC1.login.error.generic'));
         } finally {
             loginButton.disabled = false;
@@ -393,6 +402,25 @@ function initializeLogin() {
 }
 // Make login functions available globally
 window.initializeLogin = initializeLogin;
+
+// Test function to check database connection
+async function testDatabaseConnection() {
+    try {
+        console.log('Testing database connection...');
+        const { data, error } = await supabaseClient
+            .from('general_users')
+            .select('count')
+            .limit(1);
+            
+        if (error) {
+            console.error('Database connection failed:', error);
+        } else {
+            console.log('Database connection successful!');
+        }
+    } catch (error) {
+        console.error('Test failed:', error);
+    }
+}
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -411,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.playlistModal = new PlaylistModal(window.musicPlayer);
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
+  testDatabaseConnection();
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
@@ -584,7 +613,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.1.6",
+            version: "spiritual-guide-v2.3.8",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -906,7 +935,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.1.6",
+            version: "spiritual-guide-v2.3.8",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1519,7 +1548,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.1.6</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.3.8</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2450,7 +2479,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.3.7'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.8'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2781,17 +2810,23 @@ FILE: offline.html
 // scripts/supabase-config.js
 const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
-// Create Supabase client
+
+// Create Supabase client with proper headers
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
+    detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
   }
 });
-// Security validation
-console.log('Supabase connection secure:', window.location.protocol === 'https:');
+
+console.log('Supabase configured successfully');
 [file content end]
 [file name]: encryption-utils.js
 [file content begin]

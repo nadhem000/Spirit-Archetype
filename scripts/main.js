@@ -139,14 +139,14 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
-
+    
     if (!loginForm) return;
 
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-
+        
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
@@ -158,7 +158,7 @@ function initializeLogin() {
         loginButton.textContent = translate('SC1.login.loggingIn');
 
         try {
-            // Get user from Supabase
+            // Get user from Supabase - FIXED QUERY
             const { data: user, error } = await supabaseClient
                 .from('general_users')
                 .select('*')
@@ -166,15 +166,16 @@ function initializeLogin() {
                 .single();
 
             if (error) {
+                console.error('Supabase error:', error);
                 if (error.code === 'PGRST116') {
                     showError(translate('SC1.login.error.invalidCredentials'));
                 } else {
-                    showError(translate('SC1.login.error.generic'));
+                    showError(translate('SC1.login.error.generic') + ': ' + error.message);
                 }
                 return;
             }
 
-            // Decrypt and compare password
+            // If user exists, check password
             if (user && user.hashed_password) {
                 try {
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
@@ -198,6 +199,7 @@ function initializeLogin() {
                 showError(translate('SC1.login.error.invalidCredentials'));
             }
         } catch (error) {
+            console.error('Login error:', error);
             showError(translate('SC1.login.error.generic'));
         } finally {
             loginButton.disabled = false;
@@ -267,6 +269,25 @@ function initializeLogin() {
 
 // Make login functions available globally
 window.initializeLogin = initializeLogin;
+
+// Test function to check database connection
+async function testDatabaseConnection() {
+    try {
+        console.log('Testing database connection...');
+        const { data, error } = await supabaseClient
+            .from('general_users')
+            .select('count')
+            .limit(1);
+            
+        if (error) {
+            console.error('Database connection failed:', error);
+        } else {
+            console.log('Database connection successful!');
+        }
+    } catch (error) {
+        console.error('Test failed:', error);
+    }
+}
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -291,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
+  testDatabaseConnection();
     
     // Handle shared music
     setTimeout(() => {
