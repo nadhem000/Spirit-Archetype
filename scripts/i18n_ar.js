@@ -17,11 +17,6 @@ const translations_ar = {
                 en: "English"
 			}
 		},
-        login: {
-            usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
-            passwordPlaceholder: "كلمة المرور",
-            button: "تسجيل الدخول"
-		},
         welcome: {
             title: "مرحباً بك في اختبار المرشد الروحي",
             description1: "هذا الاختبار سيساعدك على اكتشاف نمطك الروحي من خلال تحليل إجاباتك على مجموعة من الأسئلة.",
@@ -163,7 +158,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.3.8",
+            version: "spiritual-guide-v2.3.9",
             project: "منصة أطلانتس"
 		},
 		music: {
@@ -199,6 +194,9 @@ const translations_ar = {
 			button: "تسجيل الدخول",
 			loggingIn: "جاري تسجيل الدخول...",
 			success: "تم تسجيل الدخول بنجاح!",
+			welcome: "مرحباً",
+			logout: "تسجيل الخروج",
+			loggedOut: "تم تسجيل الخروج بنجاح",
 			error: {
 				fillFields: "يرجى ملء جميع الحقول",
 				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",

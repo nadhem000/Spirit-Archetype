@@ -1,26 +1,132 @@
 [build]
   publish = "."
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  command = "echo 'No build command needed for static site'"
 
-# CRITICAL: Service Worker Headers
+[build.environment]
+  NODE_VERSION = "18"
+
+# ===== SECURITY HEADERS =====
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=()"
+    
+    # Privacy headers
+    Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    
+    # Content Security Policy - Enhanced for Supabase and PWA
+    Content-Security-Policy = """
+      default-src 'self' https://tgorqanvhjaecbysulih.supabase.co;
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://tgorqanvhjaecbysulih.supabase.co;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https:;
+      font-src 'self' data:;
+      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co;
+      media-src 'self' data:;
+      manifest-src 'self';
+      worker-src 'self' blob:;
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self'
+    """
+
+# ===== SERVICE WORKER SPECIFIC HEADERS =====
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
+    Content-Type = "application/javascript; charset=utf-8"
 
-# Manifest headers
+# ===== STATIC ASSETS CACHING =====
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/styles/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/scripts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# ===== CRITICAL FILES =====
 [[headers]]
   for = "/manifest.json"
   [headers.values]
-    Content-Type = "application/manifest+json"
+    Content-Type = "application/manifest+json; charset=utf-8"
     Cache-Control = "public, max-age=3600"
 
-# 🔑 Headers for offline page
 [[headers]]
   for = "/offline.html"
   [headers.values]
     Cache-Control = "public, max-age=3600"
+
+# ===== ICONS AND IMAGES =====
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ===== REDIRECTS =====
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ===== SPA ROUTING FALLBACK =====
+[[redirects]]
+  from = "/app/*"
+  to = "/index.html"
+  status = 200
+
+# ===== SECURITY - BLOCK SENSITIVE FILES =====
+[[headers]]
+  for = "/.env"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# ===== PERFORMANCE - COMPRESSION =====
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Encoding = "gzip"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Encoding = "gzip"
+
+# ===== PWA OFFLINE SUPPORT =====
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

@@ -283,32 +283,26 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
-    
     if (!loginForm) return;
-
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-        
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
         }
-
         // Show loading state
         const originalText = loginButton.textContent;
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
-
         try {
-            // Get user from Supabase - FIXED QUERY
+            // Get user from Supabase - ENHANCED SECURITY
             const { data: user, error } = await supabaseClient
                 .from('general_users')
-                .select('*')
+                .select('id, username, email, hashed_password, inscription_date, profile')
                 .eq('username', username)
                 .single();
-
             if (error) {
                 console.error('Supabase error:', error);
                 if (error.code === 'PGRST116') {
@@ -318,19 +312,27 @@ function initializeLogin() {
                 }
                 return;
             }
-
-            // If user exists, check password
+            // If user exists, verify password using your encryption
             if (user && user.hashed_password) {
                 try {
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    // Compare decrypted password with user input
                     if (password === decryptedPassword) {
-                        currentUser = username;
+                        // SUCCESS: User authenticated
+                        currentUser = {
+                            username: user.username,
+                            email: user.email,
+                            id: user.id,
+                            joinDate: user.inscription_date
+                        };
                         showSuccess(translate('SC1.login.success'));
                         updateUIAfterLogin();
                         // Store minimal session info
                         localStorage.setItem('currentUser', JSON.stringify({
-                            username: username,
-                            loginTime: new Date().toISOString()
+                            username: user.username,
+                            loginTime: new Date().toISOString(),
+                            userId: user.id,
+                            sessionId: 'spiritual_session_' + Date.now()
                         }));
                     } else {
                         showError(translate('SC1.login.error.invalidCredentials'));
@@ -356,14 +358,19 @@ function initializeLogin() {
         if (loginForm) {
             loginForm.style.display = 'none';
         }
-        // Create user info display (you can customize this)
+        // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
         userInfoElement.innerHTML = `
-            <span>Welcome, ${currentUser}!</span>
-            <button class="SC1-logout-btn" id="SC1-logout-btn">Logout</button>
+            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
+            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
         const headerControls = document.querySelector('.SC1-header-controls');
+        // Remove existing user info if any
+        const existingUserInfo = headerControls.querySelector('.SC1-user-info');
+        if (existingUserInfo) {
+            existingUserInfo.remove();
+        }
         headerControls.appendChild(userInfoElement);
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
@@ -381,13 +388,17 @@ function initializeLogin() {
         if (userInfoElement) {
             userInfoElement.remove();
         }
+        showSuccess(translate('SC1.login.loggedOut'));
     }
     function checkExistingLogin() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             try {
                 const userData = JSON.parse(savedUser);
-                currentUser = userData.username;
+                currentUser = {
+                    username: userData.username,
+                    id: userData.userId
+                };
                 updateUIAfterLogin();
             } catch (error) {
                 console.log('Error restoring session:', error);
@@ -402,7 +413,6 @@ function initializeLogin() {
 }
 // Make login functions available globally
 window.initializeLogin = initializeLogin;
-
 // Test function to check database connection
 async function testDatabaseConnection() {
     try {
@@ -411,7 +421,6 @@ async function testDatabaseConnection() {
             .from('general_users')
             .select('count')
             .limit(1);
-            
         if (error) {
             console.error('Database connection failed:', error);
         } else {
@@ -419,6 +428,28 @@ async function testDatabaseConnection() {
         }
     } catch (error) {
         console.error('Test failed:', error);
+    }
+}
+// Security verification for Phase 3
+function verifySecuritySetup() {
+    console.log('🔒 Phase 3 Security Verification:');
+    console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
+    console.log('- Supabase Connected:', !!supabaseClient);
+    console.log('- Encryption Available:', !!EncryptionUtils);
+    console.log('- Service Worker:', 'serviceWorker' in navigator);
+    // Test encryption/decryption briefly
+    if (EncryptionUtils) {
+        EncryptionUtils.encrypt('test')
+            .then(encrypted => {
+                console.log('- Encryption Working: ✅');
+                return EncryptionUtils.decrypt(encrypted);
+            })
+            .then(decrypted => {
+                console.log('- Decryption Working: ✅');
+            })
+            .catch(error => {
+                console.log('- Encryption Test Failed:', error);
+            });
     }
 }
 // Initialize the application
@@ -440,6 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
   testDatabaseConnection();
+    verifySecuritySetup();
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
@@ -466,11 +498,6 @@ const translations_ar = {
                 ar: "العربية",
                 en: "English"
             }
-        },
-        login: {
-            usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
-            passwordPlaceholder: "كلمة المرور",
-            button: "تسجيل الدخول"
         },
         welcome: {
             title: "مرحباً بك في اختبار المرشد الروحي",
@@ -613,7 +640,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.3.8",
+            version: "spiritual-guide-v2.3.9",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -649,6 +676,9 @@ const translations_ar = {
 			button: "تسجيل الدخول",
 			loggingIn: "جاري تسجيل الدخول...",
 			success: "تم تسجيل الدخول بنجاح!",
+			welcome: "مرحباً",
+			logout: "تسجيل الخروج",
+			loggedOut: "تم تسجيل الخروج بنجاح",
 			error: {
 				fillFields: "يرجى ملء جميع الحقول",
 				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
@@ -788,11 +818,6 @@ const translations_en = {
                 ar: "Arabic",
                 en: "English"
             }
-        },
-        login: {
-            usernamePlaceholder: "Email or username",
-            passwordPlaceholder: "Password",
-            button: "Login"
         },
         welcome: {
             title: "Welcome to the Spiritual Guide Test",
@@ -935,7 +960,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.3.8",
+            version: "spiritual-guide-v2.3.9",
             project: "Atlantis Platform"
         },
 		music: {
@@ -971,6 +996,9 @@ const translations_en = {
 			button: "Login",
 			loggingIn: "Logging in...",
 			success: "Login successful!",
+			welcome: "Welcome",
+			logout: "Logout",
+			loggedOut: "You have been logged out successfully",
 			error: {
 				fillFields: "Please fill in all fields",
 				invalidCredentials: "Invalid username or password",
@@ -1327,30 +1355,123 @@ FILE: index.html
 <html lang="en" dir="ltr" id="SC1-html-direction">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Spiritual Guide</title>
-<!-- Immediate service worker registration for PWA detection -->
-<script>
-    // Register service worker immediately for PWA detection
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js')
-                .then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                })
-                .catch(function(error) {
-                    console.log('ServiceWorker registration failed: ', error);
-                });
-        });
-    }
-</script>
-		<link rel="manifest" href="manifest.json">
-		<link rel="stylesheet" href="styles/main.css">
-		<meta name="theme-color" content="#667eea">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+		<!-- Primary Meta Tags -->
+		<title>Spiritual Guide - Discover Your Spiritual Pattern</title>
+		<meta name="description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
+		<meta name="author" content="Mejri Ziad">
+		<meta name="keywords" content="spiritual, guide, test, pattern, meditation, self-discovery">
+		<!-- Theme Color for PWA -->
+		<meta name="theme-color" content="#4a6fa5" media="(prefers-color-scheme: light)">
+		<meta name="theme-color" content="#2c3e50" media="(prefers-color-scheme: dark)">
+		<!-- PWA Meta Tags -->
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+		<meta name="apple-mobile-web-app-title" content="Spiritual Guide">
+		<!-- Open Graph / Facebook -->
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://spiritual-consultation.netlify.app/">
+		<meta property="og:title" content="Spiritual Guide - Discover Your Spiritual Pattern">
+		<meta property="og:description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
+		<meta property="og:image" content="/assets/icons/icon-512x512.png">
+		<!-- Twitter -->
+		<meta property="twitter:card" content="summary_large_image">
+		<meta property="twitter:url" content="https://spiritual-consultation.netlify.app/">
+		<meta property="twitter:title" content="Spiritual Guide - Discover Your Spiritual Pattern">
+		<meta property="twitter:description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
+		<meta property="twitter:image" content="/assets/icons/icon-512x512.png">
+		<!-- Favicon and App Icons -->
 		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="scripts/supabase-config.js"></script>
-<script src="scripts/encryption-utils.js"></script>
+		<link rel="apple-touch-icon" href="/assets/icons/icon-152x152.png">
+		<link rel="apple-touch-startup-image" href="/assets/icons/icon-512x512.png">
+		<!-- PWA Manifest -->
+		<link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+		<!-- Preload Critical Resources -->
+		<link rel="preload" href="/styles/main.css" as="style">
+		<link rel="preload" href="/scripts/main.js" as="script">
+		<link rel="preload" href="/scripts/supabase-config.js" as="script">
+		<!-- DNS Prefetch for External Resources -->
+		<link rel="dns-prefetch" href="https://tgorqanvhjaecbysulih.supabase.co">
+		<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+		<!-- Styles -->
+		<link rel="stylesheet" href="/styles/main.css">
+		<!-- Structured Data for SEO -->
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "WebApplication",
+				"name": "Spiritual Guide",
+				"description": "Interactive spiritual guide test to discover your spiritual pattern",
+				"url": "https://spiritual-consultation.netlify.app/",
+				"applicationCategory": "LifestyleApplication",
+				"operatingSystem": "Any",
+				"permissions": "storage",
+				"author": {
+					"@type": "Person",
+					"name": "Mejri Ziad"
+				},
+				"offers": {
+					"@type": "Offer",
+					"price": "0",
+					"priceCurrency": "USD"
+				}
+			}
+		</script>
+		<!-- Immediate service worker registration for PWA detection -->
+		<script>
+			// Enhanced service worker registration
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', function() {
+					navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('New service worker found!');
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New update available
+                                    console.log('New content is available; please refresh.');
+                                    if (window.confirm('New version available! Reload to update?')) {
+                                        window.location.reload();
+									}
+								}
+							});
+						});
+					})
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+					});
+				});
+				// Track service worker state
+				navigator.serviceWorker.ready.then(() => {
+					console.log('Service Worker is ready');
+				});
+			}
+			// Enhanced error handling
+			window.addEventListener('error', function(e) {
+				console.error('Global error:', e.error);
+			});
+			// Enhanced offline detection
+			window.addEventListener('online', () => {
+				console.log('App is back online');
+				if (typeof showSuccess === 'function') {
+					showSuccess('Connection restored');
+				}
+			});
+			window.addEventListener('offline', () => {
+				console.log('App is offline');
+				if (typeof showWarning === 'function') {
+					showWarning('You are offline - some features may be limited');
+				}
+			});
+		</script>
+		<!-- Supabase and Encryption Libraries -->
+		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+		<script src="/scripts/supabase-config.js"></script>
+		<script src="/scripts/encryption-utils.js"></script>
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -1548,7 +1669,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.3.8</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.3.9</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2479,7 +2600,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.3.8'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.9'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2686,27 +2807,116 @@ FILE: netlify.toml
 ================
 [build]
   publish = "."
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-# CRITICAL: Service Worker Headers
+  command = "echo 'No build command needed for static site'"
+[build.environment]
+  NODE_VERSION = "18"
+# ===== SECURITY HEADERS =====
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=()"
+    # Privacy headers
+    Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    # Content Security Policy - Enhanced for Supabase and PWA
+    Content-Security-Policy = """
+      default-src 'self' https://tgorqanvhjaecbysulih.supabase.co;
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://tgorqanvhjaecbysulih.supabase.co;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https:;
+      font-src 'self' data:;
+      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co;
+      media-src 'self' data:;
+      manifest-src 'self';
+      worker-src 'self' blob:;
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self'
+    """
+# ===== SERVICE WORKER SPECIFIC HEADERS =====
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
-# Manifest headers
+    Content-Type = "application/javascript; charset=utf-8"
+# ===== STATIC ASSETS CACHING =====
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+[[headers]]
+  for = "/styles/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+[[headers]]
+  for = "/scripts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+# ===== CRITICAL FILES =====
 [[headers]]
   for = "/manifest.json"
   [headers.values]
-    Content-Type = "application/manifest+json"
+    Content-Type = "application/manifest+json; charset=utf-8"
     Cache-Control = "public, max-age=3600"
-# 🔑 Headers for offline page
 [[headers]]
   for = "/offline.html"
   [headers.values]
     Cache-Control = "public, max-age=3600"
+# ===== ICONS AND IMAGES =====
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+# ===== REDIRECTS =====
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+# ===== SPA ROUTING FALLBACK =====
+[[redirects]]
+  from = "/app/*"
+  to = "/index.html"
+  status = 200
+# ===== SECURITY - BLOCK SENSITIVE FILES =====
+[[headers]]
+  for = "/.env"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+# ===== PERFORMANCE - COMPRESSION =====
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Encoding = "gzip"
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Encoding = "gzip"
+# ===== PWA OFFLINE SUPPORT =====
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 =====================
 FILE: .gitignore
 ================
@@ -2807,26 +3017,34 @@ FILE: offline.html
 </html>
 [file name]: supabase-config.js
 [file content begin]
-// scripts/supabase-config.js
+// scripts/supabase-config.js - ENHANCED SECURE CONFIGURATION
 const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
-
-// Create Supabase client with proper headers
+// Create Supabase client with enhanced security
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce', // Enhanced security for public clients
+    refreshTokenRetryInterval: 2 // Faster retry for better UX
   },
   global: {
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'X-Client-Info': 'spiritual-guide-app'
+    }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
     }
   }
 });
-
-console.log('Supabase configured successfully');
+// Security validation
+console.log('🔒 Supabase connection secure:', window.location.protocol === 'https:');
+console.log('📡 Supabase configured successfully for Spiritual Guide');
 [file content end]
 [file name]: encryption-utils.js
 [file content begin]

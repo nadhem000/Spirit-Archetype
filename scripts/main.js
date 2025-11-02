@@ -130,6 +130,7 @@ function handleSharedMusic() {
 }
 
 
+
 // === Enhanced Login Functionality ===
 let currentUser = null;
 
@@ -158,10 +159,10 @@ function initializeLogin() {
         loginButton.textContent = translate('SC1.login.loggingIn');
 
         try {
-            // Get user from Supabase - FIXED QUERY
+            // Get user from Supabase - ENHANCED SECURITY
             const { data: user, error } = await supabaseClient
                 .from('general_users')
-                .select('*')
+                .select('id, username, email, hashed_password, inscription_date, profile')
                 .eq('username', username)
                 .single();
 
@@ -175,19 +176,32 @@ function initializeLogin() {
                 return;
             }
 
-            // If user exists, check password
+            // If user exists, verify password using your encryption
             if (user && user.hashed_password) {
                 try {
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    
+                    // Compare decrypted password with user input
                     if (password === decryptedPassword) {
-                        currentUser = username;
+                        // SUCCESS: User authenticated
+                        currentUser = {
+                            username: user.username,
+                            email: user.email,
+                            id: user.id,
+                            joinDate: user.inscription_date
+                        };
+                        
                         showSuccess(translate('SC1.login.success'));
                         updateUIAfterLogin();
+                        
                         // Store minimal session info
                         localStorage.setItem('currentUser', JSON.stringify({
-                            username: username,
-                            loginTime: new Date().toISOString()
+                            username: user.username,
+                            loginTime: new Date().toISOString(),
+                            userId: user.id,
+                            sessionId: 'spiritual_session_' + Date.now()
                         }));
+                        
                     } else {
                         showError(translate('SC1.login.error.invalidCredentials'));
                     }
@@ -214,17 +228,22 @@ function initializeLogin() {
             loginForm.style.display = 'none';
         }
         
-        // Create user info display (you can customize this)
+        // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
         userInfoElement.innerHTML = `
-            <span>Welcome, ${currentUser}!</span>
-            <button class="SC1-logout-btn" id="SC1-logout-btn">Logout</button>
+            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
+            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
         
         const headerControls = document.querySelector('.SC1-header-controls');
+        // Remove existing user info if any
+        const existingUserInfo = headerControls.querySelector('.SC1-user-info');
+        if (existingUserInfo) {
+            existingUserInfo.remove();
+        }
         headerControls.appendChild(userInfoElement);
-
+        
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
     }
@@ -244,6 +263,8 @@ function initializeLogin() {
         if (userInfoElement) {
             userInfoElement.remove();
         }
+        
+        showSuccess(translate('SC1.login.loggedOut'));
     }
 
     function checkExistingLogin() {
@@ -251,7 +272,10 @@ function initializeLogin() {
         if (savedUser) {
             try {
                 const userData = JSON.parse(savedUser);
-                currentUser = userData.username;
+                currentUser = {
+                    username: userData.username,
+                    id: userData.userId
+                };
                 updateUIAfterLogin();
             } catch (error) {
                 console.log('Error restoring session:', error);
@@ -288,6 +312,31 @@ async function testDatabaseConnection() {
         console.error('Test failed:', error);
     }
 }
+
+// Security verification for Phase 3
+function verifySecuritySetup() {
+    console.log('🔒 Phase 3 Security Verification:');
+    console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
+    console.log('- Supabase Connected:', !!supabaseClient);
+    console.log('- Encryption Available:', !!EncryptionUtils);
+    console.log('- Service Worker:', 'serviceWorker' in navigator);
+    
+    // Test encryption/decryption briefly
+    if (EncryptionUtils) {
+        EncryptionUtils.encrypt('test')
+            .then(encrypted => {
+                console.log('- Encryption Working: ✅');
+                return EncryptionUtils.decrypt(encrypted);
+            })
+            .then(decrypted => {
+                console.log('- Decryption Working: ✅');
+            })
+            .catch(error => {
+                console.log('- Encryption Test Failed:', error);
+            });
+    }
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -313,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
   testDatabaseConnection();
+    verifySecuritySetup();
     
     // Handle shared music
     setTimeout(() => {

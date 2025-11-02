@@ -17,11 +17,6 @@ const translations_en = {
                 en: "English"
 			}
 		},
-        login: {
-            usernamePlaceholder: "Email or username",
-            passwordPlaceholder: "Password",
-            button: "Login"
-		},
         welcome: {
             title: "Welcome to the Spiritual Guide Test",
             description1: "This test will help you discover your spiritual pattern by analyzing your answers to a set of questions.",
@@ -163,7 +158,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.3.8",
+            version: "spiritual-guide-v2.3.9",
             project: "Atlantis Platform"
 		},
 		music: {
@@ -199,6 +194,9 @@ const translations_en = {
 			button: "Login",
 			loggingIn: "Logging in...",
 			success: "Login successful!",
+			welcome: "Welcome",
+			logout: "Logout",
+			loggedOut: "You have been logged out successfully",
 			error: {
 				fillFields: "Please fill in all fields",
 				invalidCredentials: "Invalid username or password",
