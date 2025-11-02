@@ -129,10 +129,151 @@ function handleSharedMusic() {
     }
 }
 
+
+// === Enhanced Login Functionality ===
+let currentUser = null;
+
+// Login functionality
+function initializeLogin() {
+    const loginForm = document.querySelector('.SC1-login-form');
+    const usernameInput = document.getElementById('SC1-username');
+    const passwordInput = document.getElementById('SC1-password');
+    const loginButton = document.getElementById('SC1-login-btn');
+
+    if (!loginForm) return;
+
+    async function handleLogin(event) {
+        event.preventDefault();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        if (!username || !password) {
+            showError(translate('SC1.login.error.fillFields'));
+            return;
+        }
+
+        // Show loading state
+        const originalText = loginButton.textContent;
+        loginButton.disabled = true;
+        loginButton.textContent = translate('SC1.login.loggingIn');
+
+        try {
+            // Get user from Supabase
+            const { data: user, error } = await supabaseClient
+                .from('general_users')
+                .select('*')
+                .eq('username', username)
+                .single();
+
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    showError(translate('SC1.login.error.invalidCredentials'));
+                } else {
+                    showError(translate('SC1.login.error.generic'));
+                }
+                return;
+            }
+
+            // Decrypt and compare password
+            if (user && user.hashed_password) {
+                try {
+                    const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    if (password === decryptedPassword) {
+                        currentUser = username;
+                        showSuccess(translate('SC1.login.success'));
+                        updateUIAfterLogin();
+                        // Store minimal session info
+                        localStorage.setItem('currentUser', JSON.stringify({
+                            username: username,
+                            loginTime: new Date().toISOString()
+                        }));
+                    } else {
+                        showError(translate('SC1.login.error.invalidCredentials'));
+                    }
+                } catch (decryptError) {
+                    console.error('Password decryption failed:', decryptError);
+                    showError(translate('SC1.login.error.generic'));
+                }
+            } else {
+                showError(translate('SC1.login.error.invalidCredentials'));
+            }
+        } catch (error) {
+            showError(translate('SC1.login.error.generic'));
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = originalText;
+        }
+    }
+
+    function updateUIAfterLogin() {
+        // Hide login form and show user info
+        const loginForm = document.querySelector('.SC1-login-form');
+        if (loginForm) {
+            loginForm.style.display = 'none';
+        }
+        
+        // Create user info display (you can customize this)
+        const userInfoElement = document.createElement('div');
+        userInfoElement.className = 'SC1-user-info';
+        userInfoElement.innerHTML = `
+            <span>Welcome, ${currentUser}!</span>
+            <button class="SC1-logout-btn" id="SC1-logout-btn">Logout</button>
+        `;
+        
+        const headerControls = document.querySelector('.SC1-header-controls');
+        headerControls.appendChild(userInfoElement);
+
+        // Add logout event listener
+        document.getElementById('SC1-logout-btn').addEventListener('click', logout);
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        
+        // Show login form again
+        const loginForm = document.querySelector('.SC1-login-form');
+        if (loginForm) {
+            loginForm.style.display = 'block';
+        }
+        
+        // Remove user info
+        const userInfoElement = document.querySelector('.SC1-user-info');
+        if (userInfoElement) {
+            userInfoElement.remove();
+        }
+    }
+
+    function checkExistingLogin() {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            try {
+                const userData = JSON.parse(savedUser);
+                currentUser = userData.username;
+                updateUIAfterLogin();
+            } catch (error) {
+                console.log('Error restoring session:', error);
+                localStorage.removeItem('currentUser');
+            }
+        }
+    }
+
+    // Event listeners
+    loginForm.addEventListener('submit', handleLogin);
+    
+    // Check for existing login on page load
+    checkExistingLogin();
+}
+
+// Make login functions available globally
+window.initializeLogin = initializeLogin;
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
     initializeSettingsModal();
+    
+    // Initialize login functionality
+    initializeLogin();
     
     // Initialize header icon functionality
     initializeHeaderIcon();

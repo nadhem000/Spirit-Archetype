@@ -192,6 +192,18 @@ const translations_en = {
 				saveSuccess: "Playlist saved successfully!",
 				resetSuccess: "Playlist reset to default!"
 			}
+		},
+		login: {
+			usernamePlaceholder: "Email or username",
+			passwordPlaceholder: "Password", 
+			button: "Login",
+			loggingIn: "Logging in...",
+			success: "Login successful!",
+			error: {
+				fillFields: "Please fill in all fields",
+				invalidCredentials: "Invalid username or password",
+				generic: "Login failed. Please try again."
+			}
 		}
 	}
 };

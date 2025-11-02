@@ -1467,3 +1467,29 @@ body::after {
     margin-top: 4px;
     display: inline-block;
 }
+/* Login form styles */
+.SC1-login-form {
+    display: block;
+}
+
+.SC1-user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+}
+
+.SC1-logout-btn {
+    padding: 5px 10px;
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.SC1-logout-btn:hover {
+    background: #c53030;
+}
+

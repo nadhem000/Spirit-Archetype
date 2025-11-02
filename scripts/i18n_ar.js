@@ -192,6 +192,18 @@ const translations_ar = {
 				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
 				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
 			}
+		},
+		login: {
+			usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
+			passwordPlaceholder: "كلمة المرور",
+			button: "تسجيل الدخول",
+			loggingIn: "جاري تسجيل الدخول...",
+			success: "تم تسجيل الدخول بنجاح!",
+			error: {
+				fillFields: "يرجى ملء جميع الحقول",
+				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
+				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى."
+			}
 		}
 	}
 };

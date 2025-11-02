@@ -275,10 +275,130 @@ function handleSharedMusic() {
         window.history.replaceState({}, document.title, newUrl);
     }
 }
+// === Enhanced Login Functionality ===
+let currentUser = null;
+// Login functionality
+function initializeLogin() {
+    const loginForm = document.querySelector('.SC1-login-form');
+    const usernameInput = document.getElementById('SC1-username');
+    const passwordInput = document.getElementById('SC1-password');
+    const loginButton = document.getElementById('SC1-login-btn');
+    if (!loginForm) return;
+    async function handleLogin(event) {
+        event.preventDefault();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+        if (!username || !password) {
+            showError(translate('SC1.login.error.fillFields'));
+            return;
+        }
+        // Show loading state
+        const originalText = loginButton.textContent;
+        loginButton.disabled = true;
+        loginButton.textContent = translate('SC1.login.loggingIn');
+        try {
+            // Get user from Supabase
+            const { data: user, error } = await supabaseClient
+                .from('general_users')
+                .select('*')
+                .eq('username', username)
+                .single();
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    showError(translate('SC1.login.error.invalidCredentials'));
+                } else {
+                    showError(translate('SC1.login.error.generic'));
+                }
+                return;
+            }
+            // Decrypt and compare password
+            if (user && user.hashed_password) {
+                try {
+                    const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    if (password === decryptedPassword) {
+                        currentUser = username;
+                        showSuccess(translate('SC1.login.success'));
+                        updateUIAfterLogin();
+                        // Store minimal session info
+                        localStorage.setItem('currentUser', JSON.stringify({
+                            username: username,
+                            loginTime: new Date().toISOString()
+                        }));
+                    } else {
+                        showError(translate('SC1.login.error.invalidCredentials'));
+                    }
+                } catch (decryptError) {
+                    console.error('Password decryption failed:', decryptError);
+                    showError(translate('SC1.login.error.generic'));
+                }
+            } else {
+                showError(translate('SC1.login.error.invalidCredentials'));
+            }
+        } catch (error) {
+            showError(translate('SC1.login.error.generic'));
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = originalText;
+        }
+    }
+    function updateUIAfterLogin() {
+        // Hide login form and show user info
+        const loginForm = document.querySelector('.SC1-login-form');
+        if (loginForm) {
+            loginForm.style.display = 'none';
+        }
+        // Create user info display (you can customize this)
+        const userInfoElement = document.createElement('div');
+        userInfoElement.className = 'SC1-user-info';
+        userInfoElement.innerHTML = `
+            <span>Welcome, ${currentUser}!</span>
+            <button class="SC1-logout-btn" id="SC1-logout-btn">Logout</button>
+        `;
+        const headerControls = document.querySelector('.SC1-header-controls');
+        headerControls.appendChild(userInfoElement);
+        // Add logout event listener
+        document.getElementById('SC1-logout-btn').addEventListener('click', logout);
+    }
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        // Show login form again
+        const loginForm = document.querySelector('.SC1-login-form');
+        if (loginForm) {
+            loginForm.style.display = 'block';
+        }
+        // Remove user info
+        const userInfoElement = document.querySelector('.SC1-user-info');
+        if (userInfoElement) {
+            userInfoElement.remove();
+        }
+    }
+    function checkExistingLogin() {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            try {
+                const userData = JSON.parse(savedUser);
+                currentUser = userData.username;
+                updateUIAfterLogin();
+            } catch (error) {
+                console.log('Error restoring session:', error);
+                localStorage.removeItem('currentUser');
+            }
+        }
+    }
+    // Event listeners
+    loginForm.addEventListener('submit', handleLogin);
+    // Check for existing login on page load
+    checkExistingLogin();
+}
+// Make login functions available globally
+window.initializeLogin = initializeLogin;
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
     initializeSettingsModal();
+    // Initialize login functionality
+    initializeLogin();
     // Initialize header icon functionality
     initializeHeaderIcon();
     // Initialize navigation and language
@@ -492,6 +612,18 @@ const translations_ar = {
 				resetConfirm: "هل تريد إعادة تعيين قائمة التشغيل إلى المقاطع الافتراضية؟",
 				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
 				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
+			}
+		},
+		login: {
+			usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
+			passwordPlaceholder: "كلمة المرور",
+			button: "تسجيل الدخول",
+			loggingIn: "جاري تسجيل الدخول...",
+			success: "تم تسجيل الدخول بنجاح!",
+			error: {
+				fillFields: "يرجى ملء جميع الحقول",
+				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
+				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى."
 			}
 		}
     }
@@ -802,6 +934,18 @@ const translations_en = {
 				resetConfirm: "Reset playlist to default tracks?",
 				saveSuccess: "Playlist saved successfully!",
 				resetSuccess: "Playlist reset to default!"
+			}
+		},
+		login: {
+			usernamePlaceholder: "Email or username",
+			passwordPlaceholder: "Password", 
+			button: "Login",
+			loggingIn: "Logging in...",
+			success: "Login successful!",
+			error: {
+				fillFields: "Please fill in all fields",
+				invalidCredentials: "Invalid username or password",
+				generic: "Login failed. Please try again."
 			}
 		}
     }
@@ -1175,6 +1319,9 @@ FILE: index.html
 		<link rel="stylesheet" href="styles/main.css">
 		<meta name="theme-color" content="#667eea">
 		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="scripts/supabase-config.js"></script>
+<script src="scripts/encryption-utils.js"></script>
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -2129,17 +2276,14 @@ class PlaylistModal {
     createTrackElement(trackPath, index) {
         const trackDiv = document.createElement('div');
 		trackDiv.className = 'SC1-playlist-track';
-		
 		// Add active class if this is the current track
 		if (index === this.musicPlayer.currentTrack) {
 			trackDiv.classList.add('active');
 		}
-
 		// Check if this is a shared track (blob URL)
 		const isSharedTrack = trackPath.startsWith('blob:');
 		const trackName = this.musicPlayer.trackNames[index] || 
 						 (isSharedTrack ? 'Shared Track' : trackPath.split('/').pop());
-
 		trackDiv.innerHTML = `
 			<div class="SC1-track-info">
 				<div class="SC1-track-name">${trackName}</div>
@@ -2306,7 +2450,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.3.6'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.3.7'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2324,6 +2468,8 @@ const FILES_TO_CACHE = [
   '/scripts/results.js',
   '/scripts/music.js',
   '/scripts/main.js',
+  '/scripts/supabase-config.js',
+  '/scripts/encryption-utils.js',
   '/manifest.json',
   '/assets/icons/icon-32x32.png',
   '/assets/icons/icon-72x72.png',
@@ -2630,4 +2776,121 @@ FILE: offline.html
     </div>
 </body>
 </html>
+[file name]: supabase-config.js
+[file content begin]
+// scripts/supabase-config.js
+const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
+// Create Supabase client
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+});
+// Security validation
+console.log('Supabase connection secure:', window.location.protocol === 'https:');
+[file content end]
+[file name]: encryption-utils.js
+[file content begin]
+// scripts/encryption-utils.js
+class EncryptionUtils {
+    static encryptionKey = 'my-secure-encryption-key-12345';
+    static stringToArrayBuffer(str) {
+        const encoder = new TextEncoder();
+        return encoder.encode(str);
+    }
+    static arrayBufferToString(buffer) {
+        const decoder = new TextDecoder();
+        return decoder.decode(buffer);
+    }
+    static base64ToArrayBuffer(base64) {
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+    static arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
+    static async deriveKey(password, salt) {
+        const encoder = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            'raw',
+            encoder.encode(password),
+            'PBKDF2',
+            false,
+            ['deriveKey']
+        );
+        return window.crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: encoder.encode(salt),
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt', 'decrypt']
+        );
+    }
+    static async encrypt(plaintext) {
+        try {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(plaintext);
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const key = await this.deriveKey(this.encryptionKey, 'fixed-salt-for-now');
+            const encrypted = await window.crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                data
+            );
+            const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+            combined.set(salt, 0);
+            combined.set(iv, salt.length);
+            combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+            return this.arrayBufferToBase64(combined.buffer);
+        } catch (error) {
+            console.error('Encryption failed:', error);
+            throw error;
+        }
+    }
+    static async decrypt(encryptedData) {
+        try {
+            const combined = this.base64ToArrayBuffer(encryptedData);
+            const combinedArray = new Uint8Array(combined);
+            const salt = combinedArray.slice(0, 16);
+            const iv = combinedArray.slice(16, 28);
+            const encrypted = combinedArray.slice(28);
+            const key = await this.deriveKey(this.encryptionKey, 'fixed-salt-for-now');
+            const decrypted = await window.crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                encrypted
+            );
+            return this.arrayBufferToString(decrypted);
+        } catch (error) {
+            console.error('Decryption failed:', error);
+            throw error;
+        }
+    }
+}
+[file content end]
 [file content end]
