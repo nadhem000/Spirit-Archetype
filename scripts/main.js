@@ -126,7 +126,7 @@ function handleSharedMusic() {
         // Clean up URL
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
-    }
+	}
 }
 
 
@@ -140,42 +140,42 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
-
+	
     if (!loginForm) return;
-
+	
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-
+		
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
-        }
-
+		}
+		
         // Show loading state
         const originalText = loginButton.textContent;
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
-
+		
         try {
             // Get user from Supabase - ENHANCED SECURITY
             const { data: user, error } = await supabaseClient
-                .from('general_users')
-                .select('id, username, email, hashed_password, inscription_date, profile')
-                .eq('username', username)
-                .single();
-
+			.from('general_users')
+			.select('id, username, email, hashed_password, inscription_date, profile')
+			.eq('username', username)
+			.single();
+			
             if (error) {
                 console.error('Supabase error:', error);
                 if (error.code === 'PGRST116') {
                     showError(translate('SC1.login.error.invalidCredentials'));
-                } else {
+					} else {
                     showError(translate('SC1.login.error.generic') + ': ' + error.message);
-                }
+				}
                 return;
-            }
-
+			}
+			
             // If user exists, verify password using your encryption
             if (user && user.hashed_password) {
                 try {
@@ -189,7 +189,7 @@ function initializeLogin() {
                             email: user.email,
                             id: user.id,
                             joinDate: user.inscription_date
-                        };
+						};
                         
                         showSuccess(translate('SC1.login.success'));
                         updateUIAfterLogin();
@@ -200,72 +200,82 @@ function initializeLogin() {
                             loginTime: new Date().toISOString(),
                             userId: user.id,
                             sessionId: 'spiritual_session_' + Date.now()
-                        }));
-                    } else {
+						}));
+						} else {
                         showError(translate('SC1.login.error.invalidCredentials'));
-                    }
-                } catch (decryptError) {
+					}
+					} catch (decryptError) {
                     console.error('Password decryption failed:', decryptError);
                     showError(translate('SC1.login.error.generic'));
-                }
-            } else {
+				}
+				} else {
                 showError(translate('SC1.login.error.invalidCredentials'));
-            }
-        } catch (error) {
+			}
+			} catch (error) {
             console.error('Login error:', error);
             showError(translate('SC1.login.error.generic'));
-        } finally {
+			} finally {
             loginButton.disabled = false;
             loginButton.textContent = originalText;
-        }
-    }
-
+		}
+	}
+	
     function updateUIAfterLogin() {
         // Hide login form and show user info
         const loginForm = document.querySelector('.SC1-login-form');
         if (loginForm) {
             loginForm.style.display = 'none';
-        }
-
+		}
+		
         // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
         userInfoElement.innerHTML = `
-            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
-            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
+		<span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
+		<button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
-
+		
         const headerControls = document.querySelector('.SC1-header-controls');
         // Remove existing user info if any
         const existingUserInfo = headerControls.querySelector('.SC1-user-info');
         if (existingUserInfo) {
             existingUserInfo.remove();
-        }
+		}
         headerControls.appendChild(userInfoElement);
-
+		
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
-    }
-
+	}
+	
     function logout() {
-        currentUser = null;
-        localStorage.removeItem('currentUser');
-        
-        // Show login form again
-        const loginForm = document.querySelector('.SC1-login-form');
-        if (loginForm) {
-            loginForm.style.display = 'block';
-        }
-        
-        // Remove user info
-        const userInfoElement = document.querySelector('.SC1-user-info');
-        if (userInfoElement) {
-            userInfoElement.remove();
-        }
-        
-        showSuccess(translate('SC1.login.loggedOut'));
-    }
-
+		currentUser = null;
+		
+		// Clear ALL session data from localStorage
+		localStorage.removeItem('currentUser');
+		localStorage.removeItem('supabase.auth.token');
+		
+		// Show login form again
+		const loginForm = document.querySelector('.SC1-login-form');
+		if (loginForm) {
+			loginForm.style.display = 'block';
+		}
+		
+		// Remove user info
+		const userInfoElement = document.querySelector('.SC1-user-info');
+		if (userInfoElement) {
+			userInfoElement.remove();
+		}
+		
+		// Clear any Supabase session data
+		if (supabaseClient && supabaseClient.auth) {
+			supabaseClient.auth.signOut().catch(err => {
+				console.log('Supabase signout completed');
+			});
+		}
+		
+		showSuccess(translate('SC1.login.loggedOut'));
+	}
+	
     function checkExistingLogin() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -274,15 +284,15 @@ function initializeLogin() {
                 currentUser = {
                     username: userData.username,
                     id: userData.userId
-                };
+				};
                 updateUIAfterLogin();
-            } catch (error) {
+				} catch (error) {
                 console.log('Error restoring session:', error);
                 localStorage.removeItem('currentUser');
-            }
-        }
-    }
-
+			}
+		}
+	}
+	
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     
@@ -290,6 +300,67 @@ function initializeLogin() {
     checkExistingLogin();
 }
 
+
+
+// Session timeout
+function setupSessionTimeout() {
+    const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+    
+    setInterval(() => {
+        if (currentUser) {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    const userData = JSON.parse(savedUser);
+                    const loginTime = new Date(userData.loginTime);
+                    const currentTime = new Date();
+                    const timeDiff = currentTime - loginTime;
+                    
+                    if (timeDiff > SESSION_DURATION) {
+                        console.log('Session timeout reached, logging out...');
+                        showError(translate('SC1.login.error.sessionTimeout'));
+                        setTimeout(logout, 2000);
+					}
+					} catch (error) {
+                    console.log('Error checking session timeout:', error);
+                    // If we can't read session data, log out for security
+                    setTimeout(logout, 2000);
+				}
+			}
+		}
+	}, 60 * 60 * 1000); // Check every hour
+}
+// Automatic session verification
+function setupSessionVerification() {
+    // Check session every 30 minutes
+    setInterval(async () => {
+        if (currentUser) {
+            console.log('Verifying user session...');
+            try {
+                // Verify user still exists in database
+                const { data: user, error } = await supabaseClient
+				.from('general_users')
+				.select('username, inscription_date')
+				.eq('username', currentUser.username)
+				.single();
+                
+                if (error || !user) {
+                    console.log('Session invalid, logging out...');
+                    showError(translate('SC1.login.error.sessionExpired'));
+                    setTimeout(logout, 2000);
+                    return;
+				}
+                console.log('Session verified successfully');
+				} catch (error) {
+                console.log('Session verification failed:', error);
+                // Don't log out if we're offline - wait until online
+                if (navigator.onLine) {
+                    showError(translate('SC1.login.error.sessionCheckFailed'));
+				}
+			}
+		}
+	}, 30 * 60 * 1000); // Check every 30 minutes
+}
 // Make login functions available globally
 window.initializeLogin = initializeLogin;
 
@@ -298,18 +369,18 @@ async function testDatabaseConnection() {
     try {
         console.log('Testing database connection...');
         const { data, error } = await supabaseClient
-            .from('general_users')
-            .select('count')
-            .limit(1);
-            
+		.from('general_users')
+		.select('count')
+		.limit(1);
+		
         if (error) {
             console.error('Database connection failed:', error);
-        } else {
+			} else {
             console.log('Database connection successful!');
-        }
-    } catch (error) {
+		}
+		} catch (error) {
         console.error('Test failed:', error);
-    }
+	}
 }
 
 // Security verification for Phase 3
@@ -323,17 +394,17 @@ function verifySecuritySetup() {
     // Test encryption/decryption briefly
     if (EncryptionUtils) {
         EncryptionUtils.encrypt('test')
-            .then(encrypted => {
-                console.log('- Encryption Working: ✅');
-                return EncryptionUtils.decrypt(encrypted);
-            })
-            .then(decrypted => {
-                console.log('- Decryption Working: ✅');
-            })
-            .catch(error => {
-                console.log('- Encryption Test Failed:', error);
-            });
-    }
+		.then(encrypted => {
+			console.log('- Encryption Working: ✅');
+			return EncryptionUtils.decrypt(encrypted);
+		})
+		.then(decrypted => {
+			console.log('- Decryption Working: ✅');
+		})
+		.catch(error => {
+			console.log('- Encryption Test Failed:', error);
+		});
+	}
 }
 
 // Initialize the application
@@ -343,6 +414,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize login functionality
     initializeLogin();
+    
+    // session management
+    setupSessionVerification();
+    setupSessionTimeout();
     
     // Initialize header icon functionality
     initializeHeaderIcon();
@@ -360,11 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
-  testDatabaseConnection();
+	testDatabaseConnection();
     verifySecuritySetup();
     
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
-    }, 1000);
+	}, 1000);
 });

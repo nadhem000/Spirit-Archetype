@@ -283,24 +283,19 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
-
     if (!loginForm) return;
-
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
         }
-
         // Show loading state
         const originalText = loginButton.textContent;
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
-
         try {
             // Get user from Supabase - ENHANCED SECURITY
             const { data: user, error } = await supabaseClient
@@ -308,7 +303,6 @@ function initializeLogin() {
                 .select('id, username, email, hashed_password, inscription_date, profile')
                 .eq('username', username)
                 .single();
-
             if (error) {
                 console.error('Supabase error:', error);
                 if (error.code === 'PGRST116') {
@@ -318,12 +312,10 @@ function initializeLogin() {
                 }
                 return;
             }
-
             // If user exists, verify password using your encryption
             if (user && user.hashed_password) {
                 try {
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
-                    
                     // Compare decrypted password with user input
                     if (password === decryptedPassword) {
                         // SUCCESS: User authenticated
@@ -333,10 +325,8 @@ function initializeLogin() {
                             id: user.id,
                             joinDate: user.inscription_date
                         };
-                        
                         showSuccess(translate('SC1.login.success'));
                         updateUIAfterLogin();
-                        
                         // Store minimal session info
                         localStorage.setItem('currentUser', JSON.stringify({
                             username: user.username,
@@ -362,14 +352,12 @@ function initializeLogin() {
             loginButton.textContent = originalText;
         }
     }
-
     function updateUIAfterLogin() {
         // Hide login form and show user info
         const loginForm = document.querySelector('.SC1-login-form');
         if (loginForm) {
             loginForm.style.display = 'none';
         }
-
         // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
@@ -377,7 +365,6 @@ function initializeLogin() {
             <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
             <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
-
         const headerControls = document.querySelector('.SC1-header-controls');
         // Remove existing user info if any
         const existingUserInfo = headerControls.querySelector('.SC1-user-info');
@@ -385,30 +372,32 @@ function initializeLogin() {
             existingUserInfo.remove();
         }
         headerControls.appendChild(userInfoElement);
-
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
     }
-
     function logout() {
-        currentUser = null;
-        localStorage.removeItem('currentUser');
-        
-        // Show login form again
-        const loginForm = document.querySelector('.SC1-login-form');
-        if (loginForm) {
-            loginForm.style.display = 'block';
-        }
-        
-        // Remove user info
-        const userInfoElement = document.querySelector('.SC1-user-info');
-        if (userInfoElement) {
-            userInfoElement.remove();
-        }
-        
-        showSuccess(translate('SC1.login.loggedOut'));
+    currentUser = null;
+    // Clear ALL session data from localStorage
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('supabase.auth.token');
+    // Show login form again
+    const loginForm = document.querySelector('.SC1-login-form');
+    if (loginForm) {
+        loginForm.style.display = 'block';
     }
-
+    // Remove user info
+    const userInfoElement = document.querySelector('.SC1-user-info');
+    if (userInfoElement) {
+        userInfoElement.remove();
+    }
+    // Clear any Supabase session data
+    if (supabaseClient && supabaseClient.auth) {
+        supabaseClient.auth.signOut().catch(err => {
+            console.log('Supabase signout completed');
+        });
+    }
+    showSuccess(translate('SC1.login.loggedOut'));
+}
     function checkExistingLogin() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -425,15 +414,69 @@ function initializeLogin() {
             }
         }
     }
-
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
-    
     // Check for existing login on page load
     checkExistingLogin();
 }
 // Make login functions available globally
 window.initializeLogin = initializeLogin;
+// Session timeout
+function setupSessionTimeout() {
+    const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+    setInterval(() => {
+        if (currentUser) {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    const userData = JSON.parse(savedUser);
+                    const loginTime = new Date(userData.loginTime);
+                    const currentTime = new Date();
+                    const timeDiff = currentTime - loginTime;
+                    if (timeDiff > SESSION_DURATION) {
+                        console.log('Session timeout reached, logging out...');
+                        showError(translate('SC1.login.error.sessionTimeout'));
+                        setTimeout(logout, 2000);
+                    }
+                } catch (error) {
+                    console.log('Error checking session timeout:', error);
+                    // If we can't read session data, log out for security
+                    setTimeout(logout, 2000);
+                }
+            }
+        }
+    }, 60 * 60 * 1000); // Check every hour
+}
+// Automatic session verification
+function setupSessionVerification() {
+    // Check session every 30 minutes
+    setInterval(async () => {
+        if (currentUser) {
+            console.log('Verifying user session...');
+            try {
+                // Verify user still exists in database
+                const { data: user, error } = await supabaseClient
+                    .from('general_users')
+                    .select('username, inscription_date')
+                    .eq('username', currentUser.username)
+                    .single();
+                if (error || !user) {
+                    console.log('Session invalid, logging out...');
+                    showError(translate('SC1.login.error.sessionExpired'));
+                    setTimeout(logout, 2000);
+                    return;
+                }
+                console.log('Session verified successfully');
+            } catch (error) {
+                console.log('Session verification failed:', error);
+                // Don't log out if we're offline - wait until online
+                if (navigator.onLine) {
+                    showError(translate('SC1.login.error.sessionCheckFailed'));
+                }
+            }
+        }
+    }, 30 * 60 * 1000); // Check every 30 minutes
+}
 // Test function to check database connection
 async function testDatabaseConnection() {
     try {
@@ -479,6 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeSettingsModal();
     // Initialize login functionality
     initializeLogin();
+    // session management
+    setupSessionVerification();
+    setupSessionTimeout();
     // Initialize header icon functionality
     initializeHeaderIcon();
     // Initialize navigation and language
@@ -661,7 +707,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.0",
+            version: "spiritual-guide-v2.4.1",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -703,7 +749,10 @@ const translations_ar = {
 			error: {
 				fillFields: "يرجى ملء جميع الحقول",
 				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
-				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى."
+				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
+				sessionExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+				sessionTimeout: "انتهت مدة الجلسة لأسباب أمنية. يرجى تسجيل الدخول مرة أخرى.",
+				sessionCheckFailed: "فشل التحقق من الجلسة"
 			}
 		}
     }
@@ -981,7 +1030,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.0",
+            version: "spiritual-guide-v2.4.1",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1023,7 +1072,10 @@ const translations_en = {
 			error: {
 				fillFields: "Please fill in all fields",
 				invalidCredentials: "Invalid username or password",
-				generic: "Login failed. Please try again."
+				generic: "Login failed. Please try again.",
+				sessionExpired: "Session expired. Please log in again.",
+				sessionTimeout: "Session timed out for security. Please log in again.",
+				sessionCheckFailed: "Session verification failed"
 			}
 		}
     }
@@ -1690,7 +1742,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.0</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.1</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2621,7 +2673,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.0'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.1'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',

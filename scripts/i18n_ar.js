@@ -158,7 +158,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.0",
+            version: "spiritual-guide-v2.4.1",
             project: "منصة أطلانتس"
 		},
 		music: {
@@ -200,7 +200,10 @@ const translations_ar = {
 			error: {
 				fillFields: "يرجى ملء جميع الحقول",
 				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
-				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى."
+				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
+				sessionExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+				sessionTimeout: "انتهت مدة الجلسة لأسباب أمنية. يرجى تسجيل الدخول مرة أخرى.",
+				sessionCheckFailed: "فشل التحقق من الجلسة"
 			}
 		}
 	}

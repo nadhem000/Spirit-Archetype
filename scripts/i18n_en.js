@@ -158,7 +158,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.0",
+            version: "spiritual-guide-v2.4.1",
             project: "Atlantis Platform"
 		},
 		music: {
@@ -200,7 +200,10 @@ const translations_en = {
 			error: {
 				fillFields: "Please fill in all fields",
 				invalidCredentials: "Invalid username or password",
-				generic: "Login failed. Please try again."
+				generic: "Login failed. Please try again.",
+				sessionExpired: "Session expired. Please log in again.",
+				sessionTimeout: "Session timed out for security. Please log in again.",
+				sessionCheckFailed: "Session verification failed"
 			}
 		}
 	}
