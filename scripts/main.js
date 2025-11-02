@@ -140,14 +140,14 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
-    
+
     if (!loginForm) return;
 
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-        
+
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
@@ -201,7 +201,6 @@ function initializeLogin() {
                             userId: user.id,
                             sessionId: 'spiritual_session_' + Date.now()
                         }));
-                        
                     } else {
                         showError(translate('SC1.login.error.invalidCredentials'));
                     }
@@ -227,7 +226,7 @@ function initializeLogin() {
         if (loginForm) {
             loginForm.style.display = 'none';
         }
-        
+
         // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
@@ -235,7 +234,7 @@ function initializeLogin() {
             <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
             <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
-        
+
         const headerControls = document.querySelector('.SC1-header-controls');
         // Remove existing user info if any
         const existingUserInfo = headerControls.querySelector('.SC1-user-info');
@@ -243,7 +242,7 @@ function initializeLogin() {
             existingUserInfo.remove();
         }
         headerControls.appendChild(userInfoElement);
-        
+
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
     }
