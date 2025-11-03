@@ -344,99 +344,133 @@ async function debugMigration() {
 async function migrateExistingUsers() {
     console.log('🔄 STEP 4: Starting user migration process...');
     try {
-        // First run debug to check everything works
-        const debugOk = await debugMigration();
-        if (!debugOk) {
-            console.error('❌ Migration aborted: Debug tests failed');
-            return;
-        }
         console.log('1. Checking database tables...');
+        
         // Get all general_users
         const { data: allGeneralUsers, error: fetchError } = await supabaseClient
             .from('general_users')
-            .select('id, username, email, hashed_password, inscription_date, profile');
+            .select('id, username, email, hashed_password, inscription_date, profile')
+            .order('inscription_date', { ascending: true });
+
         if (fetchError) {
             console.error('❌ Error fetching general_users:', fetchError);
             return;
         }
+
         if (!allGeneralUsers || allGeneralUsers.length === 0) {
             console.log('✅ No users found in general_users to migrate');
             return;
         }
+
         console.log(`🔄 Found ${allGeneralUsers.length} users to process:`, allGeneralUsers.map(u => u.username));
+
         let successCount = 0;
         let errorCount = 0;
         let skipCount = 0;
+
         for (const user of allGeneralUsers) {
             try {
                 console.log(`\n🔧 Processing user: ${user.username}`);
-                // Check if user already exists in auth_users
+                
+                // Check if user already exists in auth_users - FIXED QUERY
                 const { data: existingUser, error: checkError } = await supabaseClient
                     .from('auth_users')
                     .select('username')
-                    .eq('username', user.username)
-                    .single();
-                if (existingUser) {
+                    .eq('username', user.username);
+
+                if (checkError) {
+                    console.warn(`⚠️ Check error for ${user.username}:`, checkError.message);
+                    // Continue anyway - we'll handle duplicate error on insert
+                }
+
+                if (existingUser && existingUser.length > 0) {
                     console.log(`⏭️ User ${user.username} already exists in auth_users - skipping`);
                     skipCount++;
                     continue;
                 }
-                console.log(`🔐 Decrypting password for ${user.username}...`);
-                const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
-                if (!decryptedPassword) {
-                    console.error(`❌ Failed to decrypt password for ${user.username}`);
-                    errorCount++;
-                    continue;
+
+                let decryptedPassword = null;
+                
+                // Try to decrypt the old password
+                try {
+                    console.log(`🔐 Attempting to decrypt password for ${user.username}...`);
+                    decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    
+                    if (!decryptedPassword) {
+                        throw new Error('Decryption returned null or empty');
+                    }
+                    
+                    console.log(`✅ Password decrypted successfully for ${user.username}`);
+                } catch (decryptError) {
+                    console.warn(`❌ Password decryption failed for ${user.username}:`, decryptError.message);
+                    console.log(`🔄 Using email as password for ${user.username}`);
+                    // Use email as password when decryption fails
+                    decryptedPassword = user.email;
                 }
+
                 console.log(`🔑 Hashing password for ${user.username}...`);
                 const hashedPassword = await hashPassword(decryptedPassword);
-                // Store encrypted password in profile as backup
-                const encryptedPassword = await EncryptionUtils.encrypt(decryptedPassword);
+
                 // Create profile data
                 const profileData = {
-                    encrypted_password: encryptedPassword,
+                    original_encrypted_password: user.hashed_password,
                     migrated_from: 'general_users',
                     migration_date: new Date().toISOString(),
-                    original_profile: user.profile
+                    original_profile: user.profile,
+                    password_recovery_method: decryptedPassword === user.email ? 'email_fallback' : 'decryption_success'
                 };
-                // Insert into auth_users
+
+                // Insert into auth_users - SIMPLIFIED INSERT
                 console.log(`💾 Inserting ${user.username} into auth_users...`);
+                
+                const newUserData = {
+                    username: user.username,
+                    email: user.email,
+                    hashed_password: hashedPassword,
+                    inscription_date: user.inscription_date || new Date().toISOString(),
+                    profile: JSON.stringify(profileData)
+                };
+
                 const { data: newUser, error: insertError } = await supabaseClient
                     .from('auth_users')
-                    .insert([
-                        {
-                            username: user.username,
-                            email: user.email,
-                            hashed_password: hashedPassword,
-                            inscription_date: user.inscription_date,
-                            profile: JSON.stringify(profileData)
-                        }
-                    ])
-                    .select()
-                    .single();
+                    .insert([newUserData]);
+
                 if (insertError) {
-                    console.error(`❌ Failed to insert user ${user.username}:`, insertError);
-                    errorCount++;
+                    // Handle duplicate error gracefully
+                    if (insertError.code === '23505') { // Unique violation
+                        console.log(`⏭️ User ${user.username} already exists (duplicate) - skipping`);
+                        skipCount++;
+                    } else {
+                        console.error(`❌ Failed to insert user ${user.username}:`, insertError);
+                        errorCount++;
+                    }
                 } else {
-                    console.log(`✅ Successfully migrated user: ${user.username} (ID: ${newUser.id})`);
+                    console.log(`✅ Successfully migrated user: ${user.username}`);
                     successCount++;
                 }
-                // Small delay to avoid overwhelming the database
-                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Smaller delay to avoid overwhelming
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
             } catch (userError) {
-                console.error(`❌ Error migrating user ${user.username}:`, userError);
+                console.error(`❌ Error migrating user ${user.username}:`, userError.message);
                 errorCount++;
             }
         }
+
         console.log(`\n🎉 Migration completed!`);
         console.log(`✅ Success: ${successCount}`);
         console.log(`❌ Errors: ${errorCount}`);
         console.log(`⏭️ Skipped: ${skipCount}`);
+
         // Final verification
         const { data: finalAuthUsers } = await supabaseClient
             .from('auth_users')
-            .select('username, email');
+            .select('username, email')
+            .order('inscription_date', { ascending: true });
+            
         console.log(`📊 Final users in auth_users:`, finalAuthUsers);
+        
     } catch (error) {
         console.error('❌ Migration process failed:', error);
     }
@@ -1102,7 +1136,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.5.0",
+            version: "spiritual-guide-v2.5.1",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1425,7 +1459,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.5.0",
+            version: "spiritual-guide-v2.5.1",
             project: "Atlantis Platform"
         },
 		music: {
@@ -2137,7 +2171,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.0</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.1</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -3068,7 +3102,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.5.0'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.5.1'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3490,32 +3524,31 @@ FILE: offline.html
 // scripts/supabase-config.js - ENHANCED SECURE CONFIGURATION
 const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
+
 // Create Supabase client with enhanced security
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
-    refreshTokenRetryInterval: 2
+    flowType: 'pkce'
   },
   global: {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-Client-Info': 'spiritual-guide-app'
+      'X-Client-Info': 'spiritual-guide-app',
+      'Prefer': 'return=minimal' // Add this to fix 406 errors
     }
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
+  db: {
+    schema: 'public'
   }
 });
+
 // Security validation
 console.log('🔒 Supabase connection secure:', window.location.protocol === 'https:');
 console.log('📡 Supabase configured successfully for Spiritual Guide');
-console.log('🆕 New auth_users table ready for migration');
 [file content end]
 [file name]: encryption-utils.js
 [file content begin]

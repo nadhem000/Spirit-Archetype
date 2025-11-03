@@ -8,24 +8,21 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
-    refreshTokenRetryInterval: 2
+    flowType: 'pkce'
   },
   global: {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-Client-Info': 'spiritual-guide-app'
+      'X-Client-Info': 'spiritual-guide-app',
+      'Prefer': 'return=minimal' // Add this to fix 406 errors
     }
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
+  db: {
+    schema: 'public'
   }
 });
 
 // Security validation
 console.log('🔒 Supabase connection secure:', window.location.protocol === 'https:');
 console.log('📡 Supabase configured successfully for Spiritual Guide');
-console.log('🆕 New auth_users table ready for migration');

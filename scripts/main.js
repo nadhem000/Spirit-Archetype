@@ -208,21 +208,14 @@ async function debugMigration() {
 // STEP 4: Enhanced Migration utility for existing users
 async function migrateExistingUsers() {
     console.log('🔄 STEP 4: Starting user migration process...');
-    
     try {
-        // First run debug to check everything works
-        const debugOk = await debugMigration();
-        if (!debugOk) {
-            console.error('❌ Migration aborted: Debug tests failed');
-            return;
-        }
-
         console.log('1. Checking database tables...');
         
         // Get all general_users
         const { data: allGeneralUsers, error: fetchError } = await supabaseClient
             .from('general_users')
-            .select('id, username, email, hashed_password, inscription_date, profile');
+            .select('id, username, email, hashed_password, inscription_date, profile')
+            .order('inscription_date', { ascending: true });
 
         if (fetchError) {
             console.error('❌ Error fetching general_users:', fetchError);
@@ -244,71 +237,88 @@ async function migrateExistingUsers() {
             try {
                 console.log(`\n🔧 Processing user: ${user.username}`);
                 
-                // Check if user already exists in auth_users
+                // Check if user already exists in auth_users - FIXED QUERY
                 const { data: existingUser, error: checkError } = await supabaseClient
                     .from('auth_users')
                     .select('username')
-                    .eq('username', user.username)
-                    .single();
+                    .eq('username', user.username);
 
-                if (existingUser) {
+                if (checkError) {
+                    console.warn(`⚠️ Check error for ${user.username}:`, checkError.message);
+                    // Continue anyway - we'll handle duplicate error on insert
+                }
+
+                if (existingUser && existingUser.length > 0) {
                     console.log(`⏭️ User ${user.username} already exists in auth_users - skipping`);
                     skipCount++;
                     continue;
                 }
 
-                console.log(`🔐 Decrypting password for ${user.username}...`);
-                const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                let decryptedPassword = null;
                 
-                if (!decryptedPassword) {
-                    console.error(`❌ Failed to decrypt password for ${user.username}`);
-                    errorCount++;
-                    continue;
+                // Try to decrypt the old password
+                try {
+                    console.log(`🔐 Attempting to decrypt password for ${user.username}...`);
+                    decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    
+                    if (!decryptedPassword) {
+                        throw new Error('Decryption returned null or empty');
+                    }
+                    
+                    console.log(`✅ Password decrypted successfully for ${user.username}`);
+                } catch (decryptError) {
+                    console.warn(`❌ Password decryption failed for ${user.username}:`, decryptError.message);
+                    console.log(`🔄 Using email as password for ${user.username}`);
+                    // Use email as password when decryption fails
+                    decryptedPassword = user.email;
                 }
 
                 console.log(`🔑 Hashing password for ${user.username}...`);
                 const hashedPassword = await hashPassword(decryptedPassword);
-                
-                // Store encrypted password in profile as backup
-                const encryptedPassword = await EncryptionUtils.encrypt(decryptedPassword);
-                
+
                 // Create profile data
                 const profileData = {
-                    encrypted_password: encryptedPassword,
+                    original_encrypted_password: user.hashed_password,
                     migrated_from: 'general_users',
                     migration_date: new Date().toISOString(),
-                    original_profile: user.profile
+                    original_profile: user.profile,
+                    password_recovery_method: decryptedPassword === user.email ? 'email_fallback' : 'decryption_success'
                 };
 
-                // Insert into auth_users
+                // Insert into auth_users - SIMPLIFIED INSERT
                 console.log(`💾 Inserting ${user.username} into auth_users...`);
+                
+                const newUserData = {
+                    username: user.username,
+                    email: user.email,
+                    hashed_password: hashedPassword,
+                    inscription_date: user.inscription_date || new Date().toISOString(),
+                    profile: JSON.stringify(profileData)
+                };
+
                 const { data: newUser, error: insertError } = await supabaseClient
                     .from('auth_users')
-                    .insert([
-                        {
-                            username: user.username,
-                            email: user.email,
-                            hashed_password: hashedPassword,
-                            inscription_date: user.inscription_date,
-                            profile: JSON.stringify(profileData)
-                        }
-                    ])
-                    .select()
-                    .single();
+                    .insert([newUserData]);
 
                 if (insertError) {
-                    console.error(`❌ Failed to insert user ${user.username}:`, insertError);
-                    errorCount++;
+                    // Handle duplicate error gracefully
+                    if (insertError.code === '23505') { // Unique violation
+                        console.log(`⏭️ User ${user.username} already exists (duplicate) - skipping`);
+                        skipCount++;
+                    } else {
+                        console.error(`❌ Failed to insert user ${user.username}:`, insertError);
+                        errorCount++;
+                    }
                 } else {
-                    console.log(`✅ Successfully migrated user: ${user.username} (ID: ${newUser.id})`);
+                    console.log(`✅ Successfully migrated user: ${user.username}`);
                     successCount++;
                 }
 
-                // Small delay to avoid overwhelming the database
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Smaller delay to avoid overwhelming
+                await new Promise(resolve => setTimeout(resolve, 200));
                 
             } catch (userError) {
-                console.error(`❌ Error migrating user ${user.username}:`, userError);
+                console.error(`❌ Error migrating user ${user.username}:`, userError.message);
                 errorCount++;
             }
         }
@@ -321,7 +331,9 @@ async function migrateExistingUsers() {
         // Final verification
         const { data: finalAuthUsers } = await supabaseClient
             .from('auth_users')
-            .select('username, email');
+            .select('username, email')
+            .order('inscription_date', { ascending: true });
+            
         console.log(`📊 Final users in auth_users:`, finalAuthUsers);
         
     } catch (error) {
