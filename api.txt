@@ -277,7 +277,74 @@ function handleSharedMusic() {
 }
 // === Enhanced Login Functionality ===
 let currentUser = null;
-// Login functionality
+// STEP 2: Migration utility for existing users
+async function migrateExistingUsers() {
+    console.log('Checking for users to migrate...');
+    try {
+        // Get all users from general_users that aren't in auth_users
+        const { data: generalUsers, error } = await supabaseClient
+            .from('general_users')
+            .select('id, username, email, hashed_password, inscription_date, profile')
+            .not('username', 'in', 
+                `(select username from auth_users)`
+            );
+        if (error) {
+            console.error('Error fetching users for migration:', error);
+            return;
+        }
+        if (generalUsers && generalUsers.length > 0) {
+            console.log(`Found ${generalUsers.length} users to migrate`);
+            for (const user of generalUsers) {
+                try {
+                    // Decrypt the old password
+                    const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
+                    // Hash the password using new method
+                    const hashedPassword = await hashPassword(decryptedPassword);
+                    // Store encrypted password in profile as backup
+                    const encryptedPassword = await EncryptionUtils.encrypt(decryptedPassword);
+                    // Insert into auth_users
+                    const { error: insertError } = await supabaseClient
+                        .from('auth_users')
+                        .insert([
+                            {
+                                username: user.username,
+                                email: user.email,
+                                hashed_password: hashedPassword,
+                                inscription_date: user.inscription_date,
+                                profile: JSON.stringify({
+                                    encrypted_password: encryptedPassword,
+                                    migrated_from: 'general_users',
+                                    migration_date: new Date().toISOString(),
+                                    original_profile: user.profile
+                                })
+                            }
+                        ]);
+                    if (insertError) {
+                        console.error(`Failed to migrate user ${user.username}:`, insertError);
+                    } else {
+                        console.log(`Successfully migrated user: ${user.username}`);
+                    }
+                } catch (userError) {
+                    console.error(`Error migrating user ${user.username}:`, userError);
+                }
+            }
+        } else {
+            console.log('No users found that need migration');
+        }
+    } catch (error) {
+        console.error('Migration process failed:', error);
+    }
+}
+// Add the hashPassword function at the global level
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+// Login functionality - UPDATED FOR STEP 2: Password Hashing
 function initializeLogin() {
     const loginForm = document.querySelector('.SC1-login-form');
     const usernameInput = document.getElementById('SC1-username');
@@ -297,50 +364,85 @@ function initializeLogin() {
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
         try {
-            // Get user from Supabase - ENHANCED SECURITY
-            const { data: user, error } = await supabaseClient
-                .from('general_users')
+            // STEP 2: Try auth_users table first (new hashing system)
+            let user = null;
+            let migrationNeeded = false;
+            // First, check auth_users table
+            const { data: authUser, error: authError } = await supabaseClient
+                .from('auth_users')
                 .select('id, username, email, hashed_password, inscription_date, profile')
                 .eq('username', username)
                 .single();
-            if (error) {
-                console.error('Supabase error:', error);
-                if (error.code === 'PGRST116') {
+            if (authUser) {
+                // User found in auth_users - verify using password hashing
+                user = authUser;
+                console.log('Found user in auth_users table');
+            } else if (authError && authError.code === 'PGRST116') {
+                // User not found in auth_users, check general_users (migration scenario)
+                console.log('User not in auth_users, checking general_users...');
+                const { data: generalUser, error: generalError } = await supabaseClient
+                    .from('general_users')
+                    .select('id, username, email, hashed_password, inscription_date, profile')
+                    .eq('username', username)
+                    .single();
+                if (generalUser) {
+                    user = generalUser;
+                    migrationNeeded = true;
+                    console.log('Found user in general_users - migration needed');
+                } else if (generalError && generalError.code === 'PGRST116') {
                     showError(translate('SC1.login.error.invalidCredentials'));
-                } else {
-                    showError(translate('SC1.login.error.generic') + ': ' + error.message);
+                    return;
+                } else if (generalError) {
+                    console.error('Supabase error (general_users):', generalError);
+                    showError(translate('SC1.login.error.generic') + ': ' + generalError.message);
+                    return;
                 }
+            } else if (authError) {
+                console.error('Supabase error (auth_users):', authError);
+                showError(translate('SC1.login.error.generic') + ': ' + authError.message);
                 return;
             }
-            // If user exists, verify password using your encryption
-            if (user && user.hashed_password) {
+            if (!user) {
+                showError(translate('SC1.login.error.invalidCredentials'));
+                return;
+            }
+            // STEP 2: Password verification logic
+            let passwordValid = false;
+            if (migrationNeeded) {
+                // User from general_users - use old encryption method
                 try {
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
-                    // Compare decrypted password with user input
-                    if (password === decryptedPassword) {
-                        // SUCCESS: User authenticated
-                        currentUser = {
-                            username: user.username,
-                            email: user.email,
-                            id: user.id,
-                            joinDate: user.inscription_date
-                        };
-                        showSuccess(translate('SC1.login.success'));
-                        updateUIAfterLogin();
-                        // Store minimal session info
-                        localStorage.setItem('currentUser', JSON.stringify({
-                            username: user.username,
-                            loginTime: new Date().toISOString(),
-                            userId: user.id,
-                            sessionId: 'spiritual_session_' + Date.now()
-                        }));
-                    } else {
-                        showError(translate('SC1.login.error.invalidCredentials'));
+                    passwordValid = (password === decryptedPassword);
+                    if (passwordValid) {
+                        // Migrate user to auth_users with hashed password
+                        await migrateUserToHashing(user, password);
                     }
                 } catch (decryptError) {
                     console.error('Password decryption failed:', decryptError);
                     showError(translate('SC1.login.error.generic'));
+                    return;
                 }
+            } else {
+                // User from auth_users - use new hashing method
+                passwordValid = await verifyPasswordWithHash(password, user.hashed_password);
+            }
+            if (passwordValid) {
+                // SUCCESS: User authenticated
+                currentUser = {
+                    username: user.username,
+                    email: user.email,
+                    id: user.id,
+                    joinDate: user.inscription_date
+                };
+                showSuccess(translate('SC1.login.success'));
+                updateUIAfterLogin();
+                // Store minimal session info
+                localStorage.setItem('currentUser', JSON.stringify({
+                    username: user.username,
+                    loginTime: new Date().toISOString(),
+                    userId: user.id,
+                    sessionId: 'spiritual_session_' + Date.now()
+                }));
             } else {
                 showError(translate('SC1.login.error.invalidCredentials'));
             }
@@ -352,52 +454,102 @@ function initializeLogin() {
             loginButton.textContent = originalText;
         }
     }
+    // STEP 2: Add migration and hashing functions
+    async function migrateUserToHashing(oldUser, plainPassword) {
+        try {
+            // Hash the password using our new method
+            const hashedPassword = await hashPassword(plainPassword);
+            // Encrypt the password for backup storage in profile
+            const encryptedPassword = await EncryptionUtils.encrypt(plainPassword);
+            // Create user in auth_users table
+            const { data: newUser, error } = await supabaseClient
+                .from('auth_users')
+                .insert([
+                    {
+                        username: oldUser.username,
+                        email: oldUser.email,
+                        hashed_password: hashedPassword,
+                        inscription_date: oldUser.inscription_date,
+                        profile: JSON.stringify({
+                            encrypted_password: encryptedPassword,
+                            migrated_from: 'general_users',
+                            migration_date: new Date().toISOString()
+                        })
+                    }
+                ])
+                .select()
+                .single();
+            if (error) {
+                console.error('Error migrating user to auth_users:', error);
+                throw error;
+            }
+            console.log('User migrated successfully to auth_users:', newUser.username);
+            return newUser;
+        } catch (error) {
+            console.error('Migration failed:', error);
+            throw error;
+        }
+    }
+    async function hashPassword(password) {
+        // Simple SHA-256 hashing for now - we'll enhance this in Step 3
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+    async function verifyPasswordWithHash(password, storedHash) {
+        const hashedInput = await hashPassword(password);
+        return hashedInput === storedHash;
+    }
+    // Rest of the function remains the same...
     function updateUIAfterLogin() {
         // Hide login form and show user info
         const loginForm = document.querySelector('.SC1-login-form');
         if (loginForm) {
             loginForm.style.display = 'none';
-        }
+		}
         // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
         userInfoElement.innerHTML = `
-            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
-            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
+		<span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
+		<button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
         const headerControls = document.querySelector('.SC1-header-controls');
         // Remove existing user info if any
         const existingUserInfo = headerControls.querySelector('.SC1-user-info');
         if (existingUserInfo) {
             existingUserInfo.remove();
-        }
+		}
         headerControls.appendChild(userInfoElement);
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
-    }
+	}
     function logout() {
-    currentUser = null;
-    // Clear ALL session data from localStorage
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('supabase.auth.token');
-    // Show login form again
-    const loginForm = document.querySelector('.SC1-login-form');
-    if (loginForm) {
-        loginForm.style.display = 'block';
-    }
-    // Remove user info
-    const userInfoElement = document.querySelector('.SC1-user-info');
-    if (userInfoElement) {
-        userInfoElement.remove();
-    }
-    // Clear any Supabase session data
-    if (supabaseClient && supabaseClient.auth) {
-        supabaseClient.auth.signOut().catch(err => {
-            console.log('Supabase signout completed');
-        });
-    }
-    showSuccess(translate('SC1.login.loggedOut'));
-}
+		currentUser = null;
+		// Clear ALL session data from localStorage
+		localStorage.removeItem('currentUser');
+		localStorage.removeItem('supabase.auth.token');
+		// Show login form again
+		const loginForm = document.querySelector('.SC1-login-form');
+		if (loginForm) {
+			loginForm.style.display = 'block';
+		}
+		// Remove user info
+		const userInfoElement = document.querySelector('.SC1-user-info');
+		if (userInfoElement) {
+			userInfoElement.remove();
+		}
+		// Clear any Supabase session data
+		if (supabaseClient && supabaseClient.auth) {
+			supabaseClient.auth.signOut().catch(err => {
+				console.log('Supabase signout completed');
+			});
+		}
+		showSuccess(translate('SC1.login.loggedOut'));
+	}
     function checkExistingLogin() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -406,14 +558,14 @@ function initializeLogin() {
                 currentUser = {
                     username: userData.username,
                     id: userData.userId
-                };
+				};
                 updateUIAfterLogin();
-            } catch (error) {
+				} catch (error) {
                 console.log('Error restoring session:', error);
                 localStorage.removeItem('currentUser');
-            }
-        }
-    }
+			}
+		}
+	}
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     // Check for existing login on page load
@@ -496,23 +648,21 @@ async function testDatabaseConnection() {
 }
 // Security verification for Phase 3
 function verifySecuritySetup() {
-    console.log('🔒 Phase 3 Security Verification:');
+    console.log('🔒 Security Verification (Step 2):');
     console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
     console.log('- Supabase Connected:', !!supabaseClient);
     console.log('- Encryption Available:', !!EncryptionUtils);
+    console.log('- Hashing Available:', typeof hashPassword === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
-    // Test encryption/decryption briefly
-    if (EncryptionUtils) {
-        EncryptionUtils.encrypt('test')
-            .then(encrypted => {
-                console.log('- Encryption Working: ✅');
-                return EncryptionUtils.decrypt(encrypted);
-            })
-            .then(decrypted => {
-                console.log('- Decryption Working: ✅');
+    // Test new hashing system
+    if (typeof hashPassword === 'function') {
+        hashPassword('test')
+            .then(hashed => {
+                console.log('- Hashing System Working: ✅');
+                console.log('- Hash Sample:', hashed.substring(0, 16) + '...');
             })
             .catch(error => {
-                console.log('- Encryption Test Failed:', error);
+                console.log('- Hashing Test Failed:', error);
             });
     }
 }
@@ -537,7 +687,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.playlistModal = new PlaylistModal(window.musicPlayer);
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
-  testDatabaseConnection();
+    // STEP 2: Add migration check (run once per session)
+    setTimeout(() => {
+        const migrationRun = sessionStorage.getItem('migration_run');
+        if (!migrationRun) {
+            migrateExistingUsers();
+            sessionStorage.setItem('migration_run', 'true');
+        }
+    }, 3000);
+    testDatabaseConnection();
     verifySecuritySetup();
     // Handle shared music
     setTimeout(() => {
@@ -707,7 +865,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.1",
+            version: "spiritual-guide-v2.4.3",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1030,7 +1188,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.1",
+            version: "spiritual-guide-v2.4.3",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1742,7 +1900,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.1</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.3</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2673,7 +2831,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.1'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.3'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3093,7 +3251,6 @@ FILE: offline.html
 // scripts/supabase-config.js - ENHANCED SECURE CONFIGURATION
 const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
-
 // Create Supabase client with enhanced security
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -3116,7 +3273,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
   }
 });
-
 // Security validation
 console.log('🔒 Supabase connection secure:', window.location.protocol === 'https:');
 console.log('📡 Supabase configured successfully for Spiritual Guide');
