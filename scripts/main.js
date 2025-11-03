@@ -14,18 +14,18 @@ if (typeof supabaseClient === 'undefined') {
             select: () => ({
                 eq: () => ({
                     single: () => Promise.resolve({ data: null, error: { code: 'PGRST116' } })
-                })
-            }),
+				})
+			}),
             insert: () => ({
                 select: () => ({
                     single: () => Promise.resolve({ data: null, error: new Error('Offline mode') })
-                })
-            })
-        }),
+				})
+			})
+		}),
         auth: {
             signOut: () => Promise.resolve()
-        }
-    };
+		}
+	};
 }
 // Make functions global so they can be accessed across files
 window.initializeNavigation = initializeNavigation;
@@ -165,45 +165,45 @@ async function debugMigration() {
         console.log('1. Testing table access...');
         
         const { data: generalUsers, error: generalError } = await supabaseClient
-            .from('general_users')
-            .select('username, email')
-            .limit(5);
-
+		.from('general_users')
+		.select('username, email')
+		.limit(5);
+		
         if (generalError) {
             console.error('❌ Cannot access general_users:', generalError);
-        } else {
+			} else {
             console.log(`✅ general_users accessible. Found ${generalUsers?.length || 0} users:`, generalUsers);
-        }
-
+		}
+		
         const { data: authUsers, error: authError } = await supabaseClient
-            .from('auth_users')
-            .select('username')
-            .limit(5);
-
+		.from('auth_users')
+		.select('username')
+		.limit(5);
+		
         if (authError) {
             console.error('❌ Cannot access auth_users:', authError);
-        } else {
+			} else {
             console.log(`✅ auth_users accessible. Found ${authUsers?.length || 0} users:`, authUsers);
-        }
-
+		}
+		
         // Test 2: Check if verifyPasswordWithHash works
         console.log('2. Testing password verification...');
         const testPassword = 'test123';
         const testHash = await hashPassword(testPassword);
         const verifyResult = await verifyPasswordWithHash(testPassword, testHash);
         console.log(`✅ Password verification: ${verifyResult ? 'WORKS' : 'FAILED'}`);
-
+		
         // Test 3: Test encryption/decryption
         console.log('3. Testing encryption...');
         const testEncrypt = await EncryptionUtils.encrypt(testPassword);
         const testDecrypt = await EncryptionUtils.decrypt(testEncrypt);
         console.log(`✅ Encryption: ${testDecrypt === testPassword ? 'WORKS' : 'FAILED'}`);
-
+		
         return true;
-    } catch (error) {
+		} catch (error) {
         console.error('❌ Debug failed:', error);
         return false;
-    }
+	}
 }
 // STEP 4: Enhanced Migration utility for existing users
 async function migrateExistingUsers() {
@@ -213,47 +213,52 @@ async function migrateExistingUsers() {
         
         // Get all general_users
         const { data: allGeneralUsers, error: fetchError } = await supabaseClient
-            .from('general_users')
-            .select('id, username, email, hashed_password, inscription_date, profile')
-            .order('inscription_date', { ascending: true });
-
+		.from('general_users')
+		.select('id, username, email, hashed_password, inscription_date, profile')
+		.order('inscription_date', { ascending: true });
+		
         if (fetchError) {
             console.error('❌ Error fetching general_users:', fetchError);
             return;
-        }
-
+		}
+		
         if (!allGeneralUsers || allGeneralUsers.length === 0) {
             console.log('✅ No users found in general_users to migrate');
             return;
-        }
-
+		}
+		
         console.log(`🔄 Found ${allGeneralUsers.length} users to process:`, allGeneralUsers.map(u => u.username));
-
+		
         let successCount = 0;
         let errorCount = 0;
         let skipCount = 0;
-
+		
         for (const user of allGeneralUsers) {
             try {
                 console.log(`\n🔧 Processing user: ${user.username}`);
                 
-                // Check if user already exists in auth_users - FIXED QUERY
+                // Check if user already exists in auth_users - IMPROVED CHECK
                 const { data: existingUser, error: checkError } = await supabaseClient
-                    .from('auth_users')
-                    .select('username')
-                    .eq('username', user.username);
-
-                if (checkError) {
+				.from('auth_users')
+				.select('username, email, hashed_password')
+				.eq('username', user.username)
+				.maybeSingle(); // Use maybeSingle instead of single
+				
+                if (checkError && checkError.code !== 'PGRST116') { // Ignore "not found" errors
                     console.warn(`⚠️ Check error for ${user.username}:`, checkError.message);
-                    // Continue anyway - we'll handle duplicate error on insert
-                }
-
-                if (existingUser && existingUser.length > 0) {
-                    console.log(`⏭️ User ${user.username} already exists in auth_users - skipping`);
+				}
+				
+                // Check if user exists AND has the old encrypted password format
+                const needsMigration = !existingUser || 
+				(existingUser.hashed_password && 
+				!existingUser.hashed_password.includes('.')); // New hashes contain dots (salt.hash)
+				
+                if (!needsMigration) {
+                    console.log(`⏭️ User ${user.username} already migrated to new system - skipping`);
                     skipCount++;
                     continue;
-                }
-
+				}
+				
                 let decryptedPassword = null;
                 
                 // Try to decrypt the old password
@@ -263,19 +268,19 @@ async function migrateExistingUsers() {
                     
                     if (!decryptedPassword) {
                         throw new Error('Decryption returned null or empty');
-                    }
+					}
                     
                     console.log(`✅ Password decrypted successfully for ${user.username}`);
-                } catch (decryptError) {
+					} catch (decryptError) {
                     console.warn(`❌ Password decryption failed for ${user.username}:`, decryptError.message);
                     console.log(`🔄 Using email as password for ${user.username}`);
                     // Use email as password when decryption fails
                     decryptedPassword = user.email;
-                }
-
+				}
+				
                 console.log(`🔑 Hashing password for ${user.username}...`);
                 const hashedPassword = await hashPassword(decryptedPassword);
-
+				
                 // Create profile data
                 const profileData = {
                     original_encrypted_password: user.hashed_password,
@@ -283,62 +288,61 @@ async function migrateExistingUsers() {
                     migration_date: new Date().toISOString(),
                     original_profile: user.profile,
                     password_recovery_method: decryptedPassword === user.email ? 'email_fallback' : 'decryption_success'
-                };
-
-                // Insert into auth_users - SIMPLIFIED INSERT
-                console.log(`💾 Inserting ${user.username} into auth_users...`);
+				};
+				
+                // Use UPSERT instead of INSERT to handle existing users
+                console.log(`💾 Upserting ${user.username} into auth_users...`);
                 
                 const newUserData = {
                     username: user.username,
                     email: user.email,
                     hashed_password: hashedPassword,
                     inscription_date: user.inscription_date || new Date().toISOString(),
-                    profile: JSON.stringify(profileData)
-                };
-
-                const { data: newUser, error: insertError } = await supabaseClient
-                    .from('auth_users')
-                    .insert([newUserData]);
-
-                if (insertError) {
-                    // Handle duplicate error gracefully
-                    if (insertError.code === '23505') { // Unique violation
-                        console.log(`⏭️ User ${user.username} already exists (duplicate) - skipping`);
-                        skipCount++;
-                    } else {
-                        console.error(`❌ Failed to insert user ${user.username}:`, insertError);
-                        errorCount++;
-                    }
-                } else {
+                    profile: JSON.stringify(profileData),
+                    updated_at: new Date().toISOString()
+				};
+				
+                const { data: newUser, error: upsertError } = await supabaseClient
+				.from('auth_users')
+				.upsert(newUserData, { 
+					onConflict: 'username',
+					ignoreDuplicates: false
+				})
+				.select();
+				
+                if (upsertError) {
+                    console.error(`❌ Failed to upsert user ${user.username}:`, upsertError);
+                    errorCount++;
+					} else {
                     console.log(`✅ Successfully migrated user: ${user.username}`);
                     successCount++;
-                }
-
+				}
+				
                 // Smaller delay to avoid overwhelming
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
-            } catch (userError) {
-                console.error(`❌ Error migrating user ${user.username}:`, userError.message);
+				} catch (userError) {
+                console.error(`❌ Error migrating user ${user.username}:`, userError);
                 errorCount++;
-            }
-        }
-
+			}
+		}
+		
         console.log(`\n🎉 Migration completed!`);
         console.log(`✅ Success: ${successCount}`);
         console.log(`❌ Errors: ${errorCount}`);
         console.log(`⏭️ Skipped: ${skipCount}`);
-
+		
         // Final verification
         const { data: finalAuthUsers } = await supabaseClient
-            .from('auth_users')
-            .select('username, email')
-            .order('inscription_date', { ascending: true });
-            
+		.from('auth_users')
+		.select('username, email, hashed_password')
+		.order('inscription_date', { ascending: true });
+		
         console.log(`📊 Final users in auth_users:`, finalAuthUsers);
         
-    } catch (error) {
+		} catch (error) {
         console.error('❌ Migration process failed:', error);
-    }
+	}
 }
 // STEP 4: Test migration and login functionality
 async function testMigrationAndLogin() {
@@ -730,11 +734,11 @@ async function verifyPasswordWithHash(password, storedHash) {
         if (!storedSaltHex || !storedHashHex) {
             console.error('Invalid stored hash format');
             return false;
-        }
+		}
         // Convert stored salt from hex to bytes
         const storedSalt = new Uint8Array(
             storedSaltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
-        );
+		);
         // Convert password to bytes
         const encoder = new TextEncoder();
         const passwordBuffer = encoder.encode(password);
@@ -747,14 +751,14 @@ async function verifyPasswordWithHash(password, storedHash) {
         hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
         // Convert to hex for comparison
         const hashedInputHex = Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
+		.map(b => b.toString(16).padStart(2, '0'))
+		.join('');
         // Compare with stored hash
         return hashedInputHex === storedHashHex;
-    } catch (error) {
+		} catch (error) {
         console.error('Password verification error:', error);
         return false;
-    }
+	}
 }
 
 // Make it globally available
@@ -766,19 +770,19 @@ async function testDatabaseConnection() {
         if (typeof supabaseClient === 'undefined') {
             console.log('Supabase client not available - offline mode');
             return;
-        }
+		}
         const { data, error } = await supabaseClient
-            .from('general_users')
-            .select('count')
-            .limit(1);
+		.from('general_users')
+		.select('count')
+		.limit(1);
         if (error) {
             console.error('Database connection failed:', error);
-        } else {
+			} else {
             console.log('Database connection successful!');
-        }
-    } catch (error) {
+		}
+		} catch (error) {
         console.error('Test failed:', error);
-    }
+	}
 }
 
 async function testMigrationQuick() {
@@ -791,9 +795,9 @@ async function testMigrationQuick() {
     
     // Test 2: Check database access
     const { data: generalUsers } = await supabaseClient
-        .from('general_users')
-        .select('username')
-        .limit(1);
+	.from('general_users')
+	.select('username')
+	.limit(1);
     
     console.log('✅ Database access test:', generalUsers ? 'PASSED' : 'FAILED');
     console.log('📊 Users in general_users:', generalUsers?.length || 0);
@@ -811,21 +815,21 @@ function verifySecuritySetup() {
     // Test hashing if available
     if (typeof hashPassword === 'function' && typeof verifyPasswordWithHash === 'function') {
         hashPassword('test_password_123')
-            .then(hashed => {
-                console.log('- Enhanced Hashing System Working: ✅');
-                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
-                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
-                
-                // Test verification too
-                return verifyPasswordWithHash('test_password_123', hashed);
-            })
-            .then(verified => {
-                console.log('- Password Verification Working:', verified ? '✅' : '❌');
-            })
-            .catch(error => {
-                console.log('- Hashing/Verification Test Failed:', error);
-            });
-    }
+		.then(hashed => {
+			console.log('- Enhanced Hashing System Working: ✅');
+			console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
+			console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
+			
+			// Test verification too
+			return verifyPasswordWithHash('test_password_123', hashed);
+		})
+		.then(verified => {
+			console.log('- Password Verification Working:', verified ? '✅' : '❌');
+		})
+		.catch(error => {
+			console.log('- Hashing/Verification Test Failed:', error);
+		});
+	}
 }
 // Temporary test function
 function testSecuritySetup() {
@@ -851,6 +855,27 @@ function testSecuritySetup() {
 
 // Make verifyPasswordWithHash available immediately
 window.verifyPasswordWithHash = verifyPasswordWithHash;
+async function checkUserState() {
+	console.log('👥 Checking user states...');
+	
+	const { data: generalUsers } = await supabaseClient
+	.from('general_users')
+	.select('username, email, hashed_password');
+	
+	const { data: authUsers } = await supabaseClient
+	.from('auth_users')
+	.select('username, email, hashed_password');
+	
+	console.log('General Users:', generalUsers);
+	console.log('Auth Users:', authUsers);
+	
+	// Check if passwords are migrated
+	authUsers.forEach(user => {
+		const isNewFormat = user.hashed_password.includes('.');
+		console.log(`${user.username}: ${isNewFormat ? 'NEW FORMAT' : 'OLD FORMAT'}`);
+	});
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -874,29 +899,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.playlistModal.loadPlaylist();
     
     // STEP 4: Enhanced migration and testing (run once per session)
-setTimeout(async () => {
-    const migrationRun = sessionStorage.getItem('migration_run');
-    if (!migrationRun) {
-        console.log('🚀 Starting Step 4: Data Migration & Testing...');
-        
-        // First run debug to see what's happening
-        await debugMigration();
-        
-        // Then run the actual migration
-        await migrateExistingUsers();
-        
-        sessionStorage.setItem('migration_run', 'true');
-        console.log('✅ Step 4: Data Migration & Testing completed!');
-    } else {
-        console.log('⏭️ Migration already run in this session');
-        // Still run debug to see current state
-        await debugMigration();
-    }
-}, 3000);
+	setTimeout(async () => {
+		console.log('🚀 FORCING Migration...');
+		sessionStorage.removeItem('migration_run'); // Clear the flag
+		await debugMigration();
+		await migrateExistingUsers(); // Use the new function
+	}, 3000);
     
+	// Run this to see current state
+	checkUserState();
     testDatabaseConnection();
     verifySecuritySetup();
-testMigrationQuick();
+	testMigrationQuick();
     
 	// Call this temporarily
 	setTimeout(() => {

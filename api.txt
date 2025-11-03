@@ -372,19 +372,24 @@ async function migrateExistingUsers() {
             try {
                 console.log(`\n🔧 Processing user: ${user.username}`);
                 
-                // Check if user already exists in auth_users - FIXED QUERY
+                // Check if user already exists in auth_users - IMPROVED CHECK
                 const { data: existingUser, error: checkError } = await supabaseClient
                     .from('auth_users')
-                    .select('username')
-                    .eq('username', user.username);
+                    .select('username, email, hashed_password')
+                    .eq('username', user.username)
+                    .maybeSingle(); // Use maybeSingle instead of single
 
-                if (checkError) {
+                if (checkError && checkError.code !== 'PGRST116') { // Ignore "not found" errors
                     console.warn(`⚠️ Check error for ${user.username}:`, checkError.message);
-                    // Continue anyway - we'll handle duplicate error on insert
                 }
 
-                if (existingUser && existingUser.length > 0) {
-                    console.log(`⏭️ User ${user.username} already exists in auth_users - skipping`);
+                // Check if user exists AND has the old encrypted password format
+                const needsMigration = !existingUser || 
+                    (existingUser.hashed_password && 
+                     !existingUser.hashed_password.includes('.')); // New hashes contain dots (salt.hash)
+
+                if (!needsMigration) {
+                    console.log(`⏭️ User ${user.username} already migrated to new system - skipping`);
                     skipCount++;
                     continue;
                 }
@@ -420,40 +425,39 @@ async function migrateExistingUsers() {
                     password_recovery_method: decryptedPassword === user.email ? 'email_fallback' : 'decryption_success'
                 };
 
-                // Insert into auth_users - SIMPLIFIED INSERT
-                console.log(`💾 Inserting ${user.username} into auth_users...`);
+                // Use UPSERT instead of INSERT to handle existing users
+                console.log(`💾 Upserting ${user.username} into auth_users...`);
                 
                 const newUserData = {
                     username: user.username,
                     email: user.email,
                     hashed_password: hashedPassword,
                     inscription_date: user.inscription_date || new Date().toISOString(),
-                    profile: JSON.stringify(profileData)
+                    profile: JSON.stringify(profileData),
+                    updated_at: new Date().toISOString()
                 };
 
-                const { data: newUser, error: insertError } = await supabaseClient
+                const { data: newUser, error: upsertError } = await supabaseClient
                     .from('auth_users')
-                    .insert([newUserData]);
+                    .upsert(newUserData, { 
+                        onConflict: 'username',
+                        ignoreDuplicates: false
+                    })
+                    .select();
 
-                if (insertError) {
-                    // Handle duplicate error gracefully
-                    if (insertError.code === '23505') { // Unique violation
-                        console.log(`⏭️ User ${user.username} already exists (duplicate) - skipping`);
-                        skipCount++;
-                    } else {
-                        console.error(`❌ Failed to insert user ${user.username}:`, insertError);
-                        errorCount++;
-                    }
+                if (upsertError) {
+                    console.error(`❌ Failed to upsert user ${user.username}:`, upsertError);
+                    errorCount++;
                 } else {
                     console.log(`✅ Successfully migrated user: ${user.username}`);
                     successCount++;
                 }
 
                 // Smaller delay to avoid overwhelming
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
             } catch (userError) {
-                console.error(`❌ Error migrating user ${user.username}:`, userError.message);
+                console.error(`❌ Error migrating user ${user.username}:`, userError);
                 errorCount++;
             }
         }
@@ -466,7 +470,7 @@ async function migrateExistingUsers() {
         // Final verification
         const { data: finalAuthUsers } = await supabaseClient
             .from('auth_users')
-            .select('username, email')
+            .select('username, email, hashed_password')
             .order('inscription_date', { ascending: true });
             
         console.log(`📊 Final users in auth_users:`, finalAuthUsers);
@@ -919,6 +923,26 @@ function testSecuritySetup() {
             });
     }
 }
+async function checkUserState() {
+	console.log('👥 Checking user states...');
+	
+	const { data: generalUsers } = await supabaseClient
+	.from('general_users')
+	.select('username, email, hashed_password');
+	
+	const { data: authUsers } = await supabaseClient
+	.from('auth_users')
+	.select('username, email, hashed_password');
+	
+	console.log('General Users:', generalUsers);
+	console.log('Auth Users:', authUsers);
+	
+	// Check if passwords are migrated
+	authUsers.forEach(user => {
+		const isNewFormat = user.hashed_password.includes('.');
+		console.log(`${user.username}: ${isNewFormat ? 'NEW FORMAT' : 'OLD FORMAT'}`);
+	});
+}
 // Make verifyPasswordWithHash available immediately
 window.verifyPasswordWithHash = verifyPasswordWithHash;
 // Initialize the application
@@ -945,21 +969,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // STEP 2: Add migration check (run once per session)
     // STEP 4: Enhanced migration and testing (run once per session)
 setTimeout(async () => {
-    const migrationRun = sessionStorage.getItem('migration_run');
-    if (!migrationRun) {
-        console.log('🚀 Starting Step 4: Data Migration & Testing...');
-        // First run debug to see what's happening
-        await debugMigration();
-        // Then run the actual migration
-        await migrateExistingUsers();
-        sessionStorage.setItem('migration_run', 'true');
-        console.log('✅ Step 4: Data Migration & Testing completed!');
-    } else {
-        console.log('⏭️ Migration already run in this session');
-        // Still run debug to see current state
-        await debugMigration();
-    }
-}, 3000);
+       console.log('🚀 FORCING Migration...');
+       sessionStorage.removeItem('migration_run'); // Clear the flag
+       await debugMigration();
+       await migrateExistingUsers(); // Use the new function
+   }, 3000);
+	// Run this to see current state
+	checkUserState();
     testDatabaseConnection();
     verifySecuritySetup();
 testMigrationQuick();
@@ -1136,7 +1152,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.5.1",
+            version: "spiritual-guide-v2.5.2",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1459,7 +1475,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.5.1",
+            version: "spiritual-guide-v2.5.2",
             project: "Atlantis Platform"
         },
 		music: {
@@ -2171,7 +2187,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.1</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.2</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -3102,7 +3118,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.5.1'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.5.2'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
