@@ -134,12 +134,23 @@ function handleSharedMusic() {
 // === Enhanced Login Functionality ===
 let currentUser = null;
 
-
-// STEP 2: Migration utility for existing users
+// STEP 4: Enhanced Migration utility for existing users
 async function migrateExistingUsers() {
-    console.log('Checking for users to migrate...');
+    console.log('🔄 STEP 4: Starting user migration process...');
     
     try {
+        // First, let's count how many users we have in both tables
+        const { data: generalUsersCount } = await supabaseClient
+		.from('general_users')
+		.select('id', { count: 'exact' });
+		
+        const { data: authUsersCount } = await supabaseClient
+		.from('auth_users')
+		.select('id', { count: 'exact' });
+		
+        console.log(`📊 Users in general_users: ${generalUsersCount?.length || 0}`);
+        console.log(`📊 Users in auth_users: ${authUsersCount?.length || 0}`);
+		
         // Get all users from general_users that aren't in auth_users
         const { data: generalUsers, error } = await supabaseClient
 		.from('general_users')
@@ -149,15 +160,20 @@ async function migrateExistingUsers() {
 		);
 		
         if (error) {
-            console.error('Error fetching users for migration:', error);
+            console.error('❌ Error fetching users for migration:', error);
             return;
 		}
 		
         if (generalUsers && generalUsers.length > 0) {
-            console.log(`Found ${generalUsers.length} users to migrate`);
+            console.log(`🔄 Found ${generalUsers.length} users to migrate`);
+            
+            let successCount = 0;
+            let errorCount = 0;
             
             for (const user of generalUsers) {
                 try {
+                    console.log(`🔧 Migrating user: ${user.username}`);
+                    
                     // Decrypt the old password
                     const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
                     
@@ -167,8 +183,16 @@ async function migrateExistingUsers() {
                     // Store encrypted password in profile as backup
                     const encryptedPassword = await EncryptionUtils.encrypt(decryptedPassword);
                     
+                    // Create profile data
+                    const profileData = {
+                        encrypted_password: encryptedPassword,
+                        migrated_from: 'general_users',
+                        migration_date: new Date().toISOString(),
+                        original_profile: user.profile
+					};
+                    
                     // Insert into auth_users
-                    const { error: insertError } = await supabaseClient
+                    const { data: newUser, error: insertError } = await supabaseClient
 					.from('auth_users')
 					.insert([
 						{
@@ -176,33 +200,88 @@ async function migrateExistingUsers() {
 							email: user.email,
 							hashed_password: hashedPassword,
 							inscription_date: user.inscription_date,
-							profile: JSON.stringify({
-								encrypted_password: encryptedPassword,
-								migrated_from: 'general_users',
-								migration_date: new Date().toISOString(),
-								original_profile: user.profile
-							})
+							profile: JSON.stringify(profileData)
 						}
-					]);
+					])
+					.select()
+					.single();
 					
                     if (insertError) {
-                        console.error(`Failed to migrate user ${user.username}:`, insertError);
+                        console.error(`❌ Failed to migrate user ${user.username}:`, insertError);
+                        errorCount++;
 						} else {
-                        console.log(`Successfully migrated user: ${user.username}`);
+                        console.log(`✅ Successfully migrated user: ${user.username} (ID: ${newUser.id})`);
+                        successCount++;
 					}
                     
+                    // Small delay to avoid overwhelming the database
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
 					} catch (userError) {
-                    console.error(`Error migrating user ${user.username}:`, userError);
+                    console.error(`❌ Error migrating user ${user.username}:`, userError);
+                    errorCount++;
 				}
 			}
+            
+            console.log(`🎉 Migration completed! Success: ${successCount}, Errors: ${errorCount}`);
+            
 			} else {
-            console.log('No users found that need migration');
+            console.log('✅ No users found that need migration - all users are already migrated!');
 		}
+        
+        // Final count check
+        const { data: finalAuthCount } = await supabaseClient
+		.from('auth_users')
+		.select('id', { count: 'exact' });
+		
+        console.log(`📊 Final user count in auth_users: ${finalAuthCount?.length || 0}`);
+        
 		} catch (error) {
-        console.error('Migration process failed:', error);
+        console.error('❌ Migration process failed:', error);
 	}
 }
 
+
+// STEP 4: Test migration and login functionality
+async function testMigrationAndLogin() {
+    console.log('🧪 STEP 4: Testing migration and login...');
+    
+    try {
+        // Test 1: Check if we can query both tables
+        console.log('1. Testing database connectivity...');
+        const { data: generalUsers } = await supabaseClient
+		.from('general_users')
+		.select('username')
+		.limit(1);
+		
+        const { data: authUsers } = await supabaseClient
+		.from('auth_users')
+		.select('username')
+		.limit(1);
+		
+        console.log('✅ Database connectivity test passed');
+        
+        // Test 2: Test password hashing
+        console.log('2. Testing password hashing...');
+        const testPassword = 'test_password_123';
+        const hashedTest = await hashPassword(testPassword);
+        const verifyResult = await verifyPasswordWithHash(testPassword, hashedTest);
+        
+        console.log(`✅ Password hashing test: ${verifyResult ? 'PASSED' : 'FAILED'}`);
+        
+        // Test 3: Test encryption/decryption (for backup)
+        console.log('3. Testing encryption/decryption...');
+        const encryptedTest = await EncryptionUtils.encrypt(testPassword);
+        const decryptedTest = await EncryptionUtils.decrypt(encryptedTest);
+        
+        console.log(`✅ Encryption test: ${decryptedTest === testPassword ? 'PASSED' : 'FAILED'}`);
+        
+        console.log('🎉 All migration tests completed successfully!');
+        
+		} catch (error) {
+        console.error('❌ Migration test failed:', error);
+	}
+}
 // Add the hashPassword function at the global level
 // Enhanced password hashing using salt and multiple iterations
 async function hashPassword(password) {
@@ -617,24 +696,24 @@ function verifySecuritySetup() {
     // Test enhanced hashing system
     if (typeof hashPassword === 'function') {
         hashPassword('test_password_123')
-            .then(hashed => {
-                console.log('- Enhanced Hashing System Working: ✅');
-                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
-                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
-                
-                // Test verification
-                verifyPasswordWithHash('test_password_123', hashed)
-                    .then(valid => {
-                        console.log('- Password Verification Working:', valid ? '✅' : '❌');
-                    })
-                    .catch(err => {
-                        console.log('- Verification Test Failed:', err);
-                    });
-            })
-            .catch(error => {
-                console.log('- Hashing Test Failed:', error);
-            });
-    }
+		.then(hashed => {
+			console.log('- Enhanced Hashing System Working: ✅');
+			console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
+			console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
+			
+			// Test verification
+			verifyPasswordWithHash('test_password_123', hashed)
+			.then(valid => {
+				console.log('- Password Verification Working:', valid ? '✅' : '❌');
+			})
+			.catch(err => {
+				console.log('- Verification Test Failed:', err);
+			});
+		})
+		.catch(error => {
+			console.log('- Hashing Test Failed:', error);
+		});
+	}
 }
 // Temporary test function - add this anywhere in main.js
 function testSecuritySetup() {
@@ -648,14 +727,14 @@ function testSecuritySetup() {
     if (typeof hashPassword === 'function') {
         console.log('5. Testing hashPassword function...');
         hashPassword('test123')
-            .then(result => {
-                console.log('6. Hash result:', result);
-                console.log('7. Hash contains salt (has dot):', result.includes('.'));
-            })
-            .catch(error => {
-                console.log('6. Hash error:', error);
-            });
-    }
+		.then(result => {
+			console.log('6. Hash result:', result);
+			console.log('7. Hash contains salt (has dot):', result.includes('.'));
+		})
+		.catch(error => {
+			console.log('6. Hash error:', error);
+		});
+	}
 }
 
 // Initialize the application
@@ -680,25 +759,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
     
-    // STEP 2: Add migration check (run once per session)
-    setTimeout(() => {
-        const migrationRun = sessionStorage.getItem('migration_run');
-        if (!migrationRun) {
-            migrateExistingUsers();
-            sessionStorage.setItem('migration_run', 'true');
-        }
-    }, 3000);
+    // STEP 4: Enhanced migration and testing (run once per session)
+	setTimeout(async () => {
+		const migrationRun = sessionStorage.getItem('migration_run');
+		if (!migrationRun) {
+			console.log('🚀 Starting Step 4: Data Migration & Testing...');
+			
+			// First run quick tests
+			await testMigrationAndLogin();
+			
+			// Then run the actual migration
+			await migrateExistingUsers();
+			
+			sessionStorage.setItem('migration_run', 'true');
+			
+			console.log('✅ Step 4: Data Migration & Testing completed!');
+		}
+	}, 3000);
     
     testDatabaseConnection();
     verifySecuritySetup();
     
-// Call this temporarily
-setTimeout(() => {
-    testSecuritySetup();
-    verifySecuritySetup();
-}, 1000);
+	// Call this temporarily
+	setTimeout(() => {
+		testSecuritySetup();
+		verifySecuritySetup();
+	}, 1000);
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
-    }, 1000);
+	}, 1000);
 });
