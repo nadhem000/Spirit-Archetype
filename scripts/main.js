@@ -40,7 +40,8 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI; // NEW: Added this line
+window.initializeAppUI = initializeAppUI;
+window.verifyPasswordWithHash = verifyPasswordWithHash;
 
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
@@ -154,22 +155,24 @@ function handleSharedMusic() {
 // === Enhanced Login Functionality ===
 let currentUser = null;
 
-// STEP 4: Enhanced Migration utility for existing users
-async function migrateExistingUsers() {
-    console.log('🔄 STEP 4: Starting user migration process...');
+
+// Enhanced debug function for migration
+async function debugMigration() {
+    console.log('🔍 DEBUG: Starting migration debug...');
     
     try {
-        // Check if we can access both tables
-        console.log('1. Checking database tables...');
+        // Test 1: Check if we can access both tables
+        console.log('1. Testing table access...');
         
         const { data: generalUsers, error: generalError } = await supabaseClient
             .from('general_users')
-            .select('*')
+            .select('username, email')
             .limit(5);
 
         if (generalError) {
             console.error('❌ Cannot access general_users:', generalError);
-            return;
+        } else {
+            console.log(`✅ general_users accessible. Found ${generalUsers?.length || 0} users:`, generalUsers);
         }
 
         const { data: authUsers, error: authError } = await supabaseClient
@@ -179,12 +182,43 @@ async function migrateExistingUsers() {
 
         if (authError) {
             console.error('❌ Cannot access auth_users:', authError);
+        } else {
+            console.log(`✅ auth_users accessible. Found ${authUsers?.length || 0} users:`, authUsers);
+        }
+
+        // Test 2: Check if verifyPasswordWithHash works
+        console.log('2. Testing password verification...');
+        const testPassword = 'test123';
+        const testHash = await hashPassword(testPassword);
+        const verifyResult = await verifyPasswordWithHash(testPassword, testHash);
+        console.log(`✅ Password verification: ${verifyResult ? 'WORKS' : 'FAILED'}`);
+
+        // Test 3: Test encryption/decryption
+        console.log('3. Testing encryption...');
+        const testEncrypt = await EncryptionUtils.encrypt(testPassword);
+        const testDecrypt = await EncryptionUtils.decrypt(testEncrypt);
+        console.log(`✅ Encryption: ${testDecrypt === testPassword ? 'WORKS' : 'FAILED'}`);
+
+        return true;
+    } catch (error) {
+        console.error('❌ Debug failed:', error);
+        return false;
+    }
+}
+// STEP 4: Enhanced Migration utility for existing users
+async function migrateExistingUsers() {
+    console.log('🔄 STEP 4: Starting user migration process...');
+    
+    try {
+        // First run debug to check everything works
+        const debugOk = await debugMigration();
+        if (!debugOk) {
+            console.error('❌ Migration aborted: Debug tests failed');
             return;
         }
 
-        console.log(`📊 Found ${generalUsers?.length || 0} users in general_users`);
-        console.log(`📊 Found ${authUsers?.length || 0} users in auth_users`);
-
+        console.log('1. Checking database tables...');
+        
         // Get all general_users
         const { data: allGeneralUsers, error: fetchError } = await supabaseClient
             .from('general_users')
@@ -200,7 +234,7 @@ async function migrateExistingUsers() {
             return;
         }
 
-        console.log(`🔄 Found ${allGeneralUsers.length} users to process`);
+        console.log(`🔄 Found ${allGeneralUsers.length} users to process:`, allGeneralUsers.map(u => u.username));
 
         let successCount = 0;
         let errorCount = 0;
@@ -223,7 +257,6 @@ async function migrateExistingUsers() {
                     continue;
                 }
 
-                // Decrypt the old password
                 console.log(`🔐 Decrypting password for ${user.username}...`);
                 const decryptedPassword = await EncryptionUtils.decrypt(user.hashed_password);
                 
@@ -233,7 +266,6 @@ async function migrateExistingUsers() {
                     continue;
                 }
 
-                // Hash the password using new method
                 console.log(`🔑 Hashing password for ${user.username}...`);
                 const hashedPassword = await hashPassword(decryptedPassword);
                 
@@ -273,7 +305,7 @@ async function migrateExistingUsers() {
                 }
 
                 // Small delay to avoid overwhelming the database
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
             } catch (userError) {
                 console.error(`❌ Error migrating user ${user.username}:`, userError);
@@ -286,11 +318,11 @@ async function migrateExistingUsers() {
         console.log(`❌ Errors: ${errorCount}`);
         console.log(`⏭️ Skipped: ${skipCount}`);
 
-        // Final count check
-        const { data: finalAuthCount } = await supabaseClient
+        // Final verification
+        const { data: finalAuthUsers } = await supabaseClient
             .from('auth_users')
-            .select('id', { count: 'exact' });
-        console.log(`📊 Final user count in auth_users: ${finalAuthCount?.length || 0}`);
+            .select('username, email');
+        console.log(`📊 Final users in auth_users:`, finalAuthUsers);
         
     } catch (error) {
         console.error('❌ Migration process failed:', error);
@@ -805,6 +837,8 @@ function testSecuritySetup() {
 	}
 }
 
+// Make verifyPasswordWithHash available immediately
+window.verifyPasswordWithHash = verifyPasswordWithHash;
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -828,22 +862,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.playlistModal.loadPlaylist();
     
     // STEP 4: Enhanced migration and testing (run once per session)
-	setTimeout(async () => {
-		const migrationRun = sessionStorage.getItem('migration_run');
-		if (!migrationRun) {
-			console.log('🚀 Starting Step 4: Data Migration & Testing...');
-			
-			// First run quick tests
-			await testMigrationAndLogin();
-			
-			// Then run the actual migration
-			await migrateExistingUsers();
-			
-			sessionStorage.setItem('migration_run', 'true');
-			
-			console.log('✅ Step 4: Data Migration & Testing completed!');
-		}
-	}, 3000);
+setTimeout(async () => {
+    const migrationRun = sessionStorage.getItem('migration_run');
+    if (!migrationRun) {
+        console.log('🚀 Starting Step 4: Data Migration & Testing...');
+        
+        // First run debug to see what's happening
+        await debugMigration();
+        
+        // Then run the actual migration
+        await migrateExistingUsers();
+        
+        sessionStorage.setItem('migration_run', 'true');
+        console.log('✅ Step 4: Data Migration & Testing completed!');
+    } else {
+        console.log('⏭️ Migration already run in this session');
+        // Still run debug to see current state
+        await debugMigration();
+    }
+}, 3000);
     
     testDatabaseConnection();
     verifySecuritySetup();
