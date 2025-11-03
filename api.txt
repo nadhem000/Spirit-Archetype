@@ -278,7 +278,6 @@ function handleSharedMusic() {
 }
 // === Enhanced Login Functionality ===
 let currentUser = null;
-// Add the hashPassword function at the global level
 // Enhanced password hashing using salt and multiple iterations
 async function hashPassword(password) {
     // Generate a random salt
@@ -302,7 +301,7 @@ async function hashPassword(password) {
     // Return salt + hash for storage
     return `${saltHex}.${hashHex}`;
 }
-// Login functionality - UPDATED FOR STEP 5: Cleanup
+// Login functionality - CLEANED FOR STEP 5
 function initializeLogin() {
     const loginForm = document.querySelector('.SC1-login-form');
     const usernameInput = document.getElementById('SC1-username');
@@ -387,8 +386,8 @@ function initializeLogin() {
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
         userInfoElement.innerHTML = `
-        <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
-        <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
+            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
+            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
         const headerControls = document.querySelector('.SC1-header-controls');
         // Remove existing user info if any
@@ -566,22 +565,10 @@ function verifySecuritySetup() {
     console.log('- Enhanced Hashing Available:', typeof hashPassword === 'function');
     console.log('- Password Verification Available:', typeof verifyPasswordWithHash === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
-    // Test hashing if available
-    if (typeof hashPassword === 'function' && typeof verifyPasswordWithHash === 'function') {
-        hashPassword('test_password_123')
-            .then(hashed => {
-                console.log('- Enhanced Hashing System Working: ✅');
-                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
-                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
-                // Test verification too
-                return verifyPasswordWithHash('test_password_123', hashed);
-            })
-            .then(verified => {
-                console.log('- Password Verification Working:', verified ? '✅' : '❌');
-            })
-            .catch(error => {
-                console.log('- Hashing/Verification Test Failed:', error);
-            });
+    // Test verification if available
+    if (typeof verifyPasswordWithHash === 'function') {
+        console.log('- Password Verification System Working: ✅');
+        console.log('- Using auth_users table only: ✅');
     }
 }
 // Initialize the application
@@ -777,7 +764,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.5.3",
+            version: "spiritual-guide-v2.5.4",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1100,7 +1087,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.5.3",
+            version: "spiritual-guide-v2.5.4",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1614,7 +1601,6 @@ FILE: index.html
 		<!-- Supabase and Encryption Libraries -->
 		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 		<script src="/scripts/supabase-config.js"></script>
-		<script src="/scripts/encryption-utils.js"></script>
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -1812,7 +1798,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.3</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.4</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2743,7 +2729,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.5.3'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.5.4'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',

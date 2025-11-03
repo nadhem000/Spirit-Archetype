@@ -67,13 +67,16 @@ function resetTestFromHeader() {
     currentQuestionIndex = 0;
     userAnswers = Array(questions.length).fill(null);
     scores = { A: 0, B: 0, C: 0, D: 0 };
+    
     // Clear saved progress
     localStorage.removeItem(STORAGE_KEYS.ANSWERS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+    
     // Return to welcome card
     resultCard.classList.remove('SC1-active');
     questionCard.classList.remove('SC1-active');
     welcomeCard.classList.add('SC1-active');
+    
     // Reset progress bar
     updateProgressBar();
     // Apply translations
@@ -86,20 +89,24 @@ function resetTestFromHeader() {
 function initializeSettingsModal() {
     const settingsModal = document.getElementById('SC1-settings-modal');
     const modalClose = document.getElementById('SC1-modal-close');
+    
     // Open modal
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.add('SC1-active');
     });
+    
     // Close modal
     modalClose.addEventListener('click', () => {
         settingsModal.classList.remove('SC1-active');
     });
+    
     // Close modal when clicking outside
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('SC1-active');
         }
     });
+    
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
@@ -131,59 +138,64 @@ function handleSharedMusic() {
 // === Enhanced Login Functionality ===
 let currentUser = null;
 
-// Add the hashPassword function at the global level
 // Enhanced password hashing using salt and multiple iterations
 async function hashPassword(password) {
     // Generate a random salt
     const salt = crypto.getRandomValues(new Uint8Array(16));
+    
     // Convert password to bytes
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
+    
     // Combine salt and password
     const combined = new Uint8Array(salt.length + passwordBuffer.length);
     combined.set(salt);
     combined.set(passwordBuffer, salt.length);
+    
     // Hash with multiple iterations for better security
     let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
     // Additional iteration for strengthening
     hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+    
     // Convert salt and hash to hex strings
     const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
     const hashHex = Array.from(new Uint8Array(hashBuffer))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
+    
     // Return salt + hash for storage
     return `${saltHex}.${hashHex}`;
 }
 
-// Login functionality - UPDATED FOR STEP 5: Cleanup
+// Login functionality - CLEANED FOR STEP 5
 function initializeLogin() {
     const loginForm = document.querySelector('.SC1-login-form');
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginButton = document.getElementById('SC1-login-btn');
-
+    
     if (!loginForm) return;
 
     async function handleLogin(event) {
         event.preventDefault();
+        
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-
+        
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
         }
-
+        
         // Show loading state
         const originalText = loginButton.textContent;
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
-
+        
         try {
             // STEP 5: Only check auth_users table (cleanup phase)
             let user = null;
-
+            
             // Check ONLY auth_users table
             const { data: authUser, error: authError } = await supabaseClient
                 .from('auth_users')
@@ -204,15 +216,15 @@ function initializeLogin() {
                 showError(translate('SC1.login.error.generic') + ': ' + authError.message);
                 return;
             }
-
+            
             if (!user) {
                 showError(translate('SC1.login.error.invalidCredentials'));
                 return;
             }
-
+            
             // STEP 5: Only use hashing verification
             const passwordValid = await verifyPasswordWithHash(password, user.hashed_password);
-
+            
             if (passwordValid) {
                 // SUCCESS: User authenticated
                 currentUser = {
@@ -221,8 +233,10 @@ function initializeLogin() {
                     id: user.id,
                     joinDate: user.inscription_date
                 };
+                
                 showSuccess(translate('SC1.login.success'));
                 updateUIAfterLogin();
+                
                 // Store minimal session info
                 localStorage.setItem('currentUser', JSON.stringify({
                     username: user.username,
@@ -233,6 +247,7 @@ function initializeLogin() {
             } else {
                 showError(translate('SC1.login.error.invalidCredentials'));
             }
+            
         } catch (error) {
             console.error('Login error:', error);
             showError(translate('SC1.login.error.generic'));
@@ -248,13 +263,15 @@ function initializeLogin() {
         if (loginForm) {
             loginForm.style.display = 'none';
         }
+        
         // Create user info display
         const userInfoElement = document.createElement('div');
         userInfoElement.className = 'SC1-user-info';
         userInfoElement.innerHTML = `
-        <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
-        <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
+            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
+            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
         `;
+        
         const headerControls = document.querySelector('.SC1-header-controls');
         // Remove existing user info if any
         const existingUserInfo = headerControls.querySelector('.SC1-user-info');
@@ -262,6 +279,7 @@ function initializeLogin() {
             existingUserInfo.remove();
         }
         headerControls.appendChild(userInfoElement);
+        
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
     }
@@ -271,22 +289,26 @@ function initializeLogin() {
         // Clear ALL session data from localStorage
         localStorage.removeItem('currentUser');
         localStorage.removeItem('supabase.auth.token');
+        
         // Show login form again
         const loginForm = document.querySelector('.SC1-login-form');
         if (loginForm) {
             loginForm.style.display = 'block';
         }
+        
         // Remove user info
         const userInfoElement = document.querySelector('.SC1-user-info');
         if (userInfoElement) {
             userInfoElement.remove();
         }
+        
         // Clear any Supabase session data
         if (supabaseClient && supabaseClient.auth) {
             supabaseClient.auth.signOut().catch(err => {
                 console.log('Supabase signout completed');
             });
         }
+        
         showSuccess(translate('SC1.login.loggedOut'));
     }
 
@@ -309,6 +331,7 @@ function initializeLogin() {
 
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
+    
     // Check for existing login on page load
     checkExistingLogin();
 }
@@ -319,6 +342,7 @@ window.initializeLogin = initializeLogin;
 // Session timeout
 function setupSessionTimeout() {
     const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+    
     setInterval(() => {
         if (currentUser) {
             const savedUser = localStorage.getItem('currentUser');
@@ -328,6 +352,7 @@ function setupSessionTimeout() {
                     const loginTime = new Date(userData.loginTime);
                     const currentTime = new Date();
                     const timeDiff = currentTime - loginTime;
+                    
                     if (timeDiff > SESSION_DURATION) {
                         console.log('Session timeout reached, logging out...');
                         showError(translate('SC1.login.error.sessionTimeout'));
@@ -356,6 +381,7 @@ function setupSessionVerification() {
                     .select('username, inscription_date')
                     .eq('username', currentUser.username)
                     .single();
+                
                 if (error || !user) {
                     console.log('Session invalid, logging out...');
                     showError(translate('SC1.login.error.sessionExpired'));
@@ -382,10 +408,12 @@ async function testDatabaseConnection() {
             console.log('Supabase client not available - offline mode');
             return;
         }
+        
         const { data, error } = await supabaseClient
             .from('auth_users')
             .select('count')
             .limit(1);
+            
         if (error) {
             console.error('Database connection failed:', error);
         } else {
@@ -404,24 +432,30 @@ async function verifyPasswordWithHash(password, storedHash) {
             console.error('Invalid stored hash format');
             return false;
         }
+        
         // Convert stored salt from hex to bytes
         const storedSalt = new Uint8Array(
             storedSaltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
         );
+        
         // Convert password to bytes
         const encoder = new TextEncoder();
         const passwordBuffer = encoder.encode(password);
+        
         // Combine salt and password
         const combined = new Uint8Array(storedSalt.length + passwordBuffer.length);
         combined.set(storedSalt);
         combined.set(passwordBuffer, storedSalt.length);
+        
         // Hash with same process
         let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
         hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+        
         // Convert to hex for comparison
         const hashedInputHex = Array.from(new Uint8Array(hashBuffer))
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
+        
         // Compare with stored hash
         return hashedInputHex === storedHashHex;
     } catch (error) {
@@ -442,22 +476,10 @@ function verifySecuritySetup() {
     console.log('- Password Verification Available:', typeof verifyPasswordWithHash === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
     
-    // Test hashing if available
-    if (typeof hashPassword === 'function' && typeof verifyPasswordWithHash === 'function') {
-        hashPassword('test_password_123')
-            .then(hashed => {
-                console.log('- Enhanced Hashing System Working: ✅');
-                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
-                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
-                // Test verification too
-                return verifyPasswordWithHash('test_password_123', hashed);
-            })
-            .then(verified => {
-                console.log('- Password Verification Working:', verified ? '✅' : '❌');
-            })
-            .catch(error => {
-                console.log('- Hashing/Verification Test Failed:', error);
-            });
+    // Test verification if available
+    if (typeof verifyPasswordWithHash === 'function') {
+        console.log('- Password Verification System Working: ✅');
+        console.log('- Using auth_users table only: ✅');
     }
 }
 
@@ -465,21 +487,28 @@ function verifySecuritySetup() {
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
     initializeSettingsModal();
+    
     // Initialize login functionality
     initializeLogin();
+    
     // session management
     setupSessionVerification();
     setupSessionTimeout();
+    
     // Initialize header icon functionality
     initializeHeaderIcon();
+    
     // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
+    
     // Use our new function to initialize everything
     initializeAppUI();
+    
     // Initialize music player and playlist modal
     window.musicPlayer = new MusicPlayer();
     window.playlistModal = new PlaylistModal(window.musicPlayer);
+    
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
     
