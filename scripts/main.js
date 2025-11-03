@@ -142,17 +142,17 @@ async function migrateExistingUsers() {
     try {
         // Get all users from general_users that aren't in auth_users
         const { data: generalUsers, error } = await supabaseClient
-            .from('general_users')
-            .select('id, username, email, hashed_password, inscription_date, profile')
-            .not('username', 'in', 
-                `(select username from auth_users)`
-            );
-
+		.from('general_users')
+		.select('id, username, email, hashed_password, inscription_date, profile')
+		.not('username', 'in', 
+			`(select username from auth_users)`
+		);
+		
         if (error) {
             console.error('Error fetching users for migration:', error);
             return;
-        }
-
+		}
+		
         if (generalUsers && generalUsers.length > 0) {
             console.log(`Found ${generalUsers.length} users to migrate`);
             
@@ -169,48 +169,69 @@ async function migrateExistingUsers() {
                     
                     // Insert into auth_users
                     const { error: insertError } = await supabaseClient
-                        .from('auth_users')
-                        .insert([
-                            {
-                                username: user.username,
-                                email: user.email,
-                                hashed_password: hashedPassword,
-                                inscription_date: user.inscription_date,
-                                profile: JSON.stringify({
-                                    encrypted_password: encryptedPassword,
-                                    migrated_from: 'general_users',
-                                    migration_date: new Date().toISOString(),
-                                    original_profile: user.profile
-                                })
-                            }
-                        ]);
-
+					.from('auth_users')
+					.insert([
+						{
+							username: user.username,
+							email: user.email,
+							hashed_password: hashedPassword,
+							inscription_date: user.inscription_date,
+							profile: JSON.stringify({
+								encrypted_password: encryptedPassword,
+								migrated_from: 'general_users',
+								migration_date: new Date().toISOString(),
+								original_profile: user.profile
+							})
+						}
+					]);
+					
                     if (insertError) {
                         console.error(`Failed to migrate user ${user.username}:`, insertError);
-                    } else {
+						} else {
                         console.log(`Successfully migrated user: ${user.username}`);
-                    }
+					}
                     
-                } catch (userError) {
+					} catch (userError) {
                     console.error(`Error migrating user ${user.username}:`, userError);
-                }
-            }
-        } else {
+				}
+			}
+			} else {
             console.log('No users found that need migration');
-        }
-    } catch (error) {
+		}
+		} catch (error) {
         console.error('Migration process failed:', error);
-    }
+	}
 }
 
 // Add the hashPassword function at the global level
+// Enhanced password hashing using salt and multiple iterations
 async function hashPassword(password) {
+    // Generate a random salt
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    
+    // Convert password to bytes
     const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+    const passwordBuffer = encoder.encode(password);
+    
+    // Combine salt and password
+    const combined = new Uint8Array(salt.length + passwordBuffer.length);
+    combined.set(salt);
+    combined.set(passwordBuffer, salt.length);
+    
+    // Hash with multiple iterations for better security
+    let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+    
+    // Additional iteration for strengthening
+    hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+    
+    // Convert salt and hash to hex strings
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = Array.from(new Uint8Array(hashBuffer))
+	.map(b => b.toString(16).padStart(2, '0'))
+	.join('');
+    
+    // Return salt + hash for storage
+    return `${saltHex}.${hashHex}`;
 }
 // Login functionality
 // Login functionality - UPDATED FOR STEP 2: Password Hashing
@@ -221,22 +242,22 @@ function initializeLogin() {
     const loginButton = document.getElementById('SC1-login-btn');
     
     if (!loginForm) return;
-
+	
     async function handleLogin(event) {
         event.preventDefault();
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-
+		
         if (!username || !password) {
             showError(translate('SC1.login.error.fillFields'));
             return;
-        }
-
+		}
+		
         // Show loading state
         const originalText = loginButton.textContent;
         loginButton.disabled = true;
         loginButton.textContent = translate('SC1.login.loggingIn');
-
+		
         try {
             // STEP 2: Try auth_users table first (new hashing system)
             let user = null;
@@ -244,47 +265,47 @@ function initializeLogin() {
             
             // First, check auth_users table
             const { data: authUser, error: authError } = await supabaseClient
-                .from('auth_users')
-                .select('id, username, email, hashed_password, inscription_date, profile')
-                .eq('username', username)
-                .single();
-
+			.from('auth_users')
+			.select('id, username, email, hashed_password, inscription_date, profile')
+			.eq('username', username)
+			.single();
+			
             if (authUser) {
                 // User found in auth_users - verify using password hashing
                 user = authUser;
                 console.log('Found user in auth_users table');
-            } else if (authError && authError.code === 'PGRST116') {
+				} else if (authError && authError.code === 'PGRST116') {
                 // User not found in auth_users, check general_users (migration scenario)
                 console.log('User not in auth_users, checking general_users...');
                 const { data: generalUser, error: generalError } = await supabaseClient
-                    .from('general_users')
-                    .select('id, username, email, hashed_password, inscription_date, profile')
-                    .eq('username', username)
-                    .single();
-
+				.from('general_users')
+				.select('id, username, email, hashed_password, inscription_date, profile')
+				.eq('username', username)
+				.single();
+				
                 if (generalUser) {
                     user = generalUser;
                     migrationNeeded = true;
                     console.log('Found user in general_users - migration needed');
-                } else if (generalError && generalError.code === 'PGRST116') {
+					} else if (generalError && generalError.code === 'PGRST116') {
                     showError(translate('SC1.login.error.invalidCredentials'));
                     return;
-                } else if (generalError) {
+					} else if (generalError) {
                     console.error('Supabase error (general_users):', generalError);
                     showError(translate('SC1.login.error.generic') + ': ' + generalError.message);
                     return;
-                }
-            } else if (authError) {
+				}
+				} else if (authError) {
                 console.error('Supabase error (auth_users):', authError);
                 showError(translate('SC1.login.error.generic') + ': ' + authError.message);
                 return;
-            }
-
+			}
+			
             if (!user) {
                 showError(translate('SC1.login.error.invalidCredentials'));
                 return;
-            }
-
+			}
+			
             // STEP 2: Password verification logic
             let passwordValid = false;
             
@@ -297,17 +318,17 @@ function initializeLogin() {
                     if (passwordValid) {
                         // Migrate user to auth_users with hashed password
                         await migrateUserToHashing(user, password);
-                    }
-                } catch (decryptError) {
+					}
+					} catch (decryptError) {
                     console.error('Password decryption failed:', decryptError);
                     showError(translate('SC1.login.error.generic'));
                     return;
-                }
-            } else {
+				}
+				} else {
                 // User from auth_users - use new hashing method
                 passwordValid = await verifyPasswordWithHash(password, user.hashed_password);
-            }
-
+			}
+			
             if (passwordValid) {
                 // SUCCESS: User authenticated
                 currentUser = {
@@ -315,7 +336,7 @@ function initializeLogin() {
                     email: user.email,
                     id: user.id,
                     joinDate: user.inscription_date
-                };
+				};
                 showSuccess(translate('SC1.login.success'));
                 updateUIAfterLogin();
                 // Store minimal session info
@@ -324,20 +345,20 @@ function initializeLogin() {
                     loginTime: new Date().toISOString(),
                     userId: user.id,
                     sessionId: 'spiritual_session_' + Date.now()
-                }));
-            } else {
+				}));
+				} else {
                 showError(translate('SC1.login.error.invalidCredentials'));
-            }
-
-        } catch (error) {
+			}
+			
+			} catch (error) {
             console.error('Login error:', error);
             showError(translate('SC1.login.error.generic'));
-        } finally {
+			} finally {
             loginButton.disabled = false;
             loginButton.textContent = originalText;
-        }
-    }
-
+		}
+	}
+	
     // STEP 2: Add migration and hashing functions
     async function migrateUserToHashing(oldUser, plainPassword) {
         try {
@@ -349,52 +370,89 @@ function initializeLogin() {
             
             // Create user in auth_users table
             const { data: newUser, error } = await supabaseClient
-                .from('auth_users')
-                .insert([
-                    {
-                        username: oldUser.username,
-                        email: oldUser.email,
-                        hashed_password: hashedPassword,
-                        inscription_date: oldUser.inscription_date,
-                        profile: JSON.stringify({
-                            encrypted_password: encryptedPassword,
-                            migrated_from: 'general_users',
-                            migration_date: new Date().toISOString()
-                        })
-                    }
-                ])
-                .select()
-                .single();
-
+			.from('auth_users')
+			.insert([
+				{
+					username: oldUser.username,
+					email: oldUser.email,
+					hashed_password: hashedPassword,
+					inscription_date: oldUser.inscription_date,
+					profile: JSON.stringify({
+						encrypted_password: encryptedPassword,
+						migrated_from: 'general_users',
+						migration_date: new Date().toISOString()
+					})
+				}
+			])
+			.select()
+			.single();
+			
             if (error) {
                 console.error('Error migrating user to auth_users:', error);
                 throw error;
-            }
-
+			}
+			
             console.log('User migrated successfully to auth_users:', newUser.username);
             return newUser;
             
-        } catch (error) {
+			} catch (error) {
             console.error('Migration failed:', error);
             throw error;
-        }
-    }
-
+		}
+	}
+	
     async function hashPassword(password) {
         // Simple SHA-256 hashing for now - we'll enhance this in Step 3
         const encoder = new TextEncoder();
         const data = encoder.encode(password);
         const hash = await crypto.subtle.digest('SHA-256', data);
         return Array.from(new Uint8Array(hash))
+		.map(b => b.toString(16).padStart(2, '0'))
+		.join('');
+	}
+	
+    async function verifyPasswordWithHash(password, storedHash) {
+		try {
+			// Split stored salt and hash
+			const [storedSaltHex, storedHashHex] = storedHash.split('.');
+			
+			if (!storedSaltHex || !storedHashHex) {
+				console.error('Invalid stored hash format');
+				return false;
+			}
+			
+			// Convert stored salt from hex to bytes
+			const storedSalt = new Uint8Array(
+				storedSaltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+			);
+			
+			// Convert password to bytes
+			const encoder = new TextEncoder();
+			const passwordBuffer = encoder.encode(password);
+			
+			// Combine salt and password
+			const combined = new Uint8Array(storedSalt.length + passwordBuffer.length);
+			combined.set(storedSalt);
+			combined.set(passwordBuffer, storedSalt.length);
+			
+			// Hash with same process
+			let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+			hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+			
+			// Convert to hex for comparison
+			const hashedInputHex = Array.from(new Uint8Array(hashBuffer))
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
-    }
-
-    async function verifyPasswordWithHash(password, storedHash) {
-        const hashedInput = await hashPassword(password);
-        return hashedInput === storedHash;
-    }
-
+			
+			// Compare with stored hash
+			return hashedInputHex === storedHashHex;
+			
+			} catch (error) {
+			console.error('Password verification error:', error);
+			return false;
+		}
+	}
+	
     // Rest of the function remains the same...
     function updateUIAfterLogin() {
         // Hide login form and show user info
@@ -422,7 +480,7 @@ function initializeLogin() {
         // Add logout event listener
         document.getElementById('SC1-logout-btn').addEventListener('click', logout);
 	}
-
+	
     function logout() {
 		currentUser = null;
 		
@@ -451,7 +509,7 @@ function initializeLogin() {
 		
 		showSuccess(translate('SC1.login.loggedOut'));
 	}
-
+	
     function checkExistingLogin() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -468,7 +526,7 @@ function initializeLogin() {
 			}
 		}
 	}
-
+	
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     // Check for existing login on page load
@@ -558,19 +616,29 @@ async function testDatabaseConnection() {
 
 // Security verification for Phase 3
 function verifySecuritySetup() {
-    console.log('🔒 Security Verification (Step 2):');
+    console.log('🔒 Security Verification (Step 3):');
     console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
     console.log('- Supabase Connected:', !!supabaseClient);
     console.log('- Encryption Available:', !!EncryptionUtils);
-    console.log('- Hashing Available:', typeof hashPassword === 'function');
+    console.log('- Enhanced Hashing Available:', typeof hashPassword === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
     
-    // Test new hashing system
+    // Test enhanced hashing system
     if (typeof hashPassword === 'function') {
-        hashPassword('test')
+        hashPassword('test_password_123')
             .then(hashed => {
-                console.log('- Hashing System Working: ✅');
-                console.log('- Hash Sample:', hashed.substring(0, 16) + '...');
+                console.log('- Enhanced Hashing System Working: ✅');
+                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
+                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
+                
+                // Test verification
+                verifyPasswordWithHash('test_password_123', hashed)
+                    .then(valid => {
+                        console.log('- Password Verification Working:', valid ? '✅' : '❌');
+                    })
+                    .catch(err => {
+                        console.log('- Verification Test Failed:', err);
+                    });
             })
             .catch(error => {
                 console.log('- Hashing Test Failed:', error);
@@ -606,13 +674,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!migrationRun) {
             migrateExistingUsers();
             sessionStorage.setItem('migration_run', 'true');
-        }
-    }, 3000);
+		}
+	}, 3000);
     
     testDatabaseConnection();
     verifySecuritySetup();
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
-    }, 1000);
+	}, 1000);
 });

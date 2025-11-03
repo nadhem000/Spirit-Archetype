@@ -1,5 +1,5 @@
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.3'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.4'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',

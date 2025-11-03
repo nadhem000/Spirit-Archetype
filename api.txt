@@ -336,13 +336,34 @@ async function migrateExistingUsers() {
     }
 }
 // Add the hashPassword function at the global level
+// Enhanced password hashing using salt and multiple iterations
 async function hashPassword(password) {
+    // Generate a random salt
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    
+    // Convert password to bytes
     const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
+    const passwordBuffer = encoder.encode(password);
+    
+    // Combine salt and password
+    const combined = new Uint8Array(salt.length + passwordBuffer.length);
+    combined.set(salt);
+    combined.set(passwordBuffer, salt.length);
+    
+    // Hash with multiple iterations for better security
+    let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+    
+    // Additional iteration for strengthening
+    hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+    
+    // Convert salt and hash to hex strings
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = Array.from(new Uint8Array(hashBuffer))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
+    
+    // Return salt + hash for storage
+    return `${saltHex}.${hashHex}`;
 }
 // Login functionality - UPDATED FOR STEP 2: Password Hashing
 function initializeLogin() {
@@ -500,9 +521,46 @@ function initializeLogin() {
             .join('');
     }
     async function verifyPasswordWithHash(password, storedHash) {
-        const hashedInput = await hashPassword(password);
-        return hashedInput === storedHash;
-    }
+		try {
+			// Split stored salt and hash
+			const [storedSaltHex, storedHashHex] = storedHash.split('.');
+			
+			if (!storedSaltHex || !storedHashHex) {
+				console.error('Invalid stored hash format');
+				return false;
+			}
+			
+			// Convert stored salt from hex to bytes
+			const storedSalt = new Uint8Array(
+				storedSaltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+			);
+			
+			// Convert password to bytes
+			const encoder = new TextEncoder();
+			const passwordBuffer = encoder.encode(password);
+			
+			// Combine salt and password
+			const combined = new Uint8Array(storedSalt.length + passwordBuffer.length);
+			combined.set(storedSalt);
+			combined.set(passwordBuffer, storedSalt.length);
+			
+			// Hash with same process
+			let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+			hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+			
+			// Convert to hex for comparison
+			const hashedInputHex = Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+			
+			// Compare with stored hash
+			return hashedInputHex === storedHashHex;
+			
+			} catch (error) {
+			console.error('Password verification error:', error);
+			return false;
+		}
+	}
     // Rest of the function remains the same...
     function updateUIAfterLogin() {
         // Hide login form and show user info
@@ -648,18 +706,29 @@ async function testDatabaseConnection() {
 }
 // Security verification for Phase 3
 function verifySecuritySetup() {
-    console.log('🔒 Security Verification (Step 2):');
+    console.log('🔒 Security Verification (Step 3):');
     console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
     console.log('- Supabase Connected:', !!supabaseClient);
     console.log('- Encryption Available:', !!EncryptionUtils);
-    console.log('- Hashing Available:', typeof hashPassword === 'function');
+    console.log('- Enhanced Hashing Available:', typeof hashPassword === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
-    // Test new hashing system
+    
+    // Test enhanced hashing system
     if (typeof hashPassword === 'function') {
-        hashPassword('test')
+        hashPassword('test_password_123')
             .then(hashed => {
-                console.log('- Hashing System Working: ✅');
-                console.log('- Hash Sample:', hashed.substring(0, 16) + '...');
+                console.log('- Enhanced Hashing System Working: ✅');
+                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
+                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
+                
+                // Test verification
+                verifyPasswordWithHash('test_password_123', hashed)
+                    .then(valid => {
+                        console.log('- Password Verification Working:', valid ? '✅' : '❌');
+                    })
+                    .catch(err => {
+                        console.log('- Verification Test Failed:', err);
+                    });
             })
             .catch(error => {
                 console.log('- Hashing Test Failed:', error);
@@ -865,7 +934,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.3",
+            version: "spiritual-guide-v2.4.4",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1188,7 +1257,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.3",
+            version: "spiritual-guide-v2.4.4",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1900,7 +1969,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.3</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.4</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2831,7 +2900,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.3'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.4'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
