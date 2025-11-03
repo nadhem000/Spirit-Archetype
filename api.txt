@@ -998,7 +998,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.6",
+            version: "spiritual-guide-v2.4.7",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1321,7 +1321,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.6",
+            version: "spiritual-guide-v2.4.7",
             project: "Atlantis Platform"
         },
 		music: {
@@ -2033,7 +2033,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.6</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.7</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2964,7 +2964,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.6'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.7'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3268,14 +3268,15 @@ FILE: netlify.toml
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 # ===== PERFORMANCE - COMPRESSION =====
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Content-Encoding = "gzip"
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Content-Encoding = "gzip"
+# [[headers]]
+#   for = "/*.js"
+#   [headers.values]
+#     Content-Encoding = "gzip"
+# 
+# [[headers]]
+#   for = "/*.css"
+#   [headers.values]
+#     Content-Encoding = "gzip"
 # ===== PWA OFFLINE SUPPORT =====
 [[headers]]
   for = "/"

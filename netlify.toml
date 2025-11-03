@@ -115,15 +115,15 @@
     X-Robots-Tag = "noindex, nofollow"
 
 # ===== PERFORMANCE - COMPRESSION =====
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Content-Encoding = "gzip"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Content-Encoding = "gzip"
+# [[headers]]
+#   for = "/*.js"
+#   [headers.values]
+#     Content-Encoding = "gzip"
+# 
+# [[headers]]
+#   for = "/*.css"
+#   [headers.values]
+#     Content-Encoding = "gzip"
 
 # ===== PWA OFFLINE SUPPORT =====
 [[headers]]
