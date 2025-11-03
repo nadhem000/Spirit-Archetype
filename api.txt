@@ -511,15 +511,6 @@ function initializeLogin() {
             throw error;
         }
     }
-    async function hashPassword(password) {
-        // Simple SHA-256 hashing for now - we'll enhance this in Step 3
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(hash))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-    }
     async function verifyPasswordWithHash(password, storedHash) {
 		try {
 			// Split stored salt and hash
@@ -735,6 +726,29 @@ function verifySecuritySetup() {
             });
     }
 }
+// Temporary test function - add this anywhere in main.js
+function testSecuritySetup() {
+    console.log('=== SECURITY SETUP TEST ===');
+    console.log('1. verifySecuritySetup function exists:', typeof verifySecuritySetup);
+    console.log('2. hashPassword function exists:', typeof hashPassword);
+    console.log('3. verifyPasswordWithHash function exists:', typeof verifyPasswordWithHash);
+    console.log('4. DOMContentLoaded fired:', true);
+    
+    // Test the enhanced hash function directly
+    if (typeof hashPassword === 'function') {
+        console.log('5. Testing hashPassword function...');
+        hashPassword('test123')
+            .then(result => {
+                console.log('6. Hash result:', result);
+                console.log('7. Hash contains salt (has dot):', result.includes('.'));
+            })
+            .catch(error => {
+                console.log('6. Hash error:', error);
+            });
+    }
+}
+
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
@@ -764,8 +778,16 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('migration_run', 'true');
         }
     }, 3000);
+    
     testDatabaseConnection();
     verifySecuritySetup();
+
+// Call this temporarily
+setTimeout(() => {
+    testSecuritySetup();
+    verifySecuritySetup();
+}, 1000);
+    
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
@@ -934,7 +956,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.4",
+            version: "spiritual-guide-v2.4.5",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1257,7 +1279,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.4",
+            version: "spiritual-guide-v2.4.5",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1969,7 +1991,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.4</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.5</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2900,7 +2922,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.4'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.5'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',

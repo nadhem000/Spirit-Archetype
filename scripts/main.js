@@ -401,15 +401,6 @@ function initializeLogin() {
 		}
 	}
 	
-    async function hashPassword(password) {
-        // Simple SHA-256 hashing for now - we'll enhance this in Step 3
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(hash))
-		.map(b => b.toString(16).padStart(2, '0'))
-		.join('');
-	}
 	
     async function verifyPasswordWithHash(password, storedHash) {
 		try {
@@ -645,6 +636,27 @@ function verifySecuritySetup() {
             });
     }
 }
+// Temporary test function - add this anywhere in main.js
+function testSecuritySetup() {
+    console.log('=== SECURITY SETUP TEST ===');
+    console.log('1. verifySecuritySetup function exists:', typeof verifySecuritySetup);
+    console.log('2. hashPassword function exists:', typeof hashPassword);
+    console.log('3. verifyPasswordWithHash function exists:', typeof verifyPasswordWithHash);
+    console.log('4. DOMContentLoaded fired:', true);
+    
+    // Test the enhanced hash function directly
+    if (typeof hashPassword === 'function') {
+        console.log('5. Testing hashPassword function...');
+        hashPassword('test123')
+            .then(result => {
+                console.log('6. Hash result:', result);
+                console.log('7. Hash contains salt (has dot):', result.includes('.'));
+            })
+            .catch(error => {
+                console.log('6. Hash error:', error);
+            });
+    }
+}
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
@@ -674,13 +686,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!migrationRun) {
             migrateExistingUsers();
             sessionStorage.setItem('migration_run', 'true');
-		}
-	}, 3000);
+        }
+    }, 3000);
     
     testDatabaseConnection();
     verifySecuritySetup();
+    
+// Call this temporarily
+setTimeout(() => {
+    testSecuritySetup();
+    verifySecuritySetup();
+}, 1000);
     // Handle shared music
     setTimeout(() => {
         handleSharedMusic();
-	}, 1000);
+    }, 1000);
 });
