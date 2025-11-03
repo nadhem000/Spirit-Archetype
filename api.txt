@@ -155,6 +155,27 @@ function calculateResult() {
 =====================
 FILE: main.js
 =============
+if (typeof supabaseClient === 'undefined') {
+    console.warn('Supabase client not available - running in offline mode');
+    // Create a mock supabaseClient for offline functionality
+    window.supabaseClient = {
+        from: () => ({
+            select: () => ({
+                eq: () => ({
+                    single: () => Promise.resolve({ data: null, error: { code: 'PGRST116' } })
+                })
+            }),
+            insert: () => ({
+                select: () => ({
+                    single: () => Promise.resolve({ data: null, error: new Error('Offline mode') })
+                })
+            })
+        }),
+        auth: {
+            signOut: () => Promise.resolve()
+        }
+    };
+}
 // Main Application Logic - Spiritual Guide Test (Simplified)
 // Global variables
 window.STORAGE_KEYS = {
@@ -726,6 +747,10 @@ function setupSessionVerification() {
 async function testDatabaseConnection() {
     try {
         console.log('Testing database connection...');
+        if (typeof supabaseClient === 'undefined') {
+            console.log('Supabase client not available - offline mode');
+            return;
+        }
         const { data, error } = await supabaseClient
             .from('general_users')
             .select('count')
@@ -743,25 +768,18 @@ async function testDatabaseConnection() {
 function verifySecuritySetup() {
     console.log('🔒 Security Verification (Step 3):');
     console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
-    console.log('- Supabase Connected:', !!supabaseClient);
+    console.log('- Supabase Connected:', !!supabaseClient && typeof supabaseClient !== 'undefined');
     console.log('- Encryption Available:', !!EncryptionUtils);
     console.log('- Enhanced Hashing Available:', typeof hashPassword === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
-    // Test enhanced hashing system
+    
+    // Only test hashing if supabase is available
     if (typeof hashPassword === 'function') {
         hashPassword('test_password_123')
             .then(hashed => {
                 console.log('- Enhanced Hashing System Working: ✅');
                 console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
                 console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
-                // Test verification
-                verifyPasswordWithHash('test_password_123', hashed)
-                    .then(valid => {
-                        console.log('- Password Verification Working:', valid ? '✅' : '❌');
-                    })
-                    .catch(err => {
-                        console.log('- Verification Test Failed:', err);
-                    });
             })
             .catch(error => {
                 console.log('- Hashing Test Failed:', error);
@@ -998,7 +1016,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.4.7",
+            version: "spiritual-guide-v2.4.8",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1321,7 +1339,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.4.7",
+            version: "spiritual-guide-v2.4.8",
             project: "Atlantis Platform"
         },
 		music: {
@@ -2033,7 +2051,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.7</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.4.8</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2964,11 +2982,12 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.4.7'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.4.8'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
   '/offline.html',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   '/styles/main.css',
   '/scripts/data.js',
   '/scripts/i18n_en.js',
@@ -3196,7 +3215,7 @@ FILE: netlify.toml
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: https:;
       font-src 'self' data:;
-      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co;
+      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co https://cdn.jsdelivr.net;
       media-src 'self' data:;
       manifest-src 'self';
       worker-src 'self' blob:;

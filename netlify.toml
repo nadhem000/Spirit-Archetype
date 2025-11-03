@@ -16,12 +16,10 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=()"
-    
     # Privacy headers
     Cross-Origin-Embedder-Policy = "require-corp"
     Cross-Origin-Opener-Policy = "same-origin"
     Cross-Origin-Resource-Policy = "same-origin"
-    
     # Content Security Policy - Enhanced for Supabase and PWA
     Content-Security-Policy = """
       default-src 'self' https://tgorqanvhjaecbysulih.supabase.co;
@@ -29,7 +27,7 @@
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: https:;
       font-src 'self' data:;
-      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co;
+      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co https://cdn.jsdelivr.net;
       media-src 'self' data:;
       manifest-src 'self';
       worker-src 'self' blob:;

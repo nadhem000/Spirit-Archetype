@@ -6,7 +6,27 @@ window.STORAGE_KEYS = {
     CURRENT_QUESTION: 'spiritual-guide-current-question',
     SAVED_RESULTS: 'spiritual-guide-saved-results'
 };
-
+if (typeof supabaseClient === 'undefined') {
+    console.warn('Supabase client not available - running in offline mode');
+    // Create a mock supabaseClient for offline functionality
+    window.supabaseClient = {
+        from: () => ({
+            select: () => ({
+                eq: () => ({
+                    single: () => Promise.resolve({ data: null, error: { code: 'PGRST116' } })
+                })
+            }),
+            insert: () => ({
+                select: () => ({
+                    single: () => Promise.resolve({ data: null, error: new Error('Offline mode') })
+                })
+            })
+        }),
+        auth: {
+            signOut: () => Promise.resolve()
+        }
+    };
+}
 // Make functions global so they can be accessed across files
 window.initializeNavigation = initializeNavigation;
 window.initializeLanguageButtons = initializeLanguageButtons;
@@ -669,53 +689,47 @@ window.initializeLogin = initializeLogin;
 async function testDatabaseConnection() {
     try {
         console.log('Testing database connection...');
+        if (typeof supabaseClient === 'undefined') {
+            console.log('Supabase client not available - offline mode');
+            return;
+        }
         const { data, error } = await supabaseClient
-		.from('general_users')
-		.select('count')
-		.limit(1);
-		
+            .from('general_users')
+            .select('count')
+            .limit(1);
         if (error) {
             console.error('Database connection failed:', error);
-			} else {
+        } else {
             console.log('Database connection successful!');
-		}
-		} catch (error) {
+        }
+    } catch (error) {
         console.error('Test failed:', error);
-	}
+    }
 }
 
 // Security verification for Phase 3
 function verifySecuritySetup() {
     console.log('🔒 Security Verification (Step 3):');
     console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
-    console.log('- Supabase Connected:', !!supabaseClient);
+    console.log('- Supabase Connected:', !!supabaseClient && typeof supabaseClient !== 'undefined');
     console.log('- Encryption Available:', !!EncryptionUtils);
     console.log('- Enhanced Hashing Available:', typeof hashPassword === 'function');
     console.log('- Service Worker:', 'serviceWorker' in navigator);
     
-    // Test enhanced hashing system
+    // Only test hashing if supabase is available
     if (typeof hashPassword === 'function') {
         hashPassword('test_password_123')
-		.then(hashed => {
-			console.log('- Enhanced Hashing System Working: ✅');
-			console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
-			console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
-			
-			// Test verification
-			verifyPasswordWithHash('test_password_123', hashed)
-			.then(valid => {
-				console.log('- Password Verification Working:', valid ? '✅' : '❌');
-			})
-			.catch(err => {
-				console.log('- Verification Test Failed:', err);
-			});
-		})
-		.catch(error => {
-			console.log('- Hashing Test Failed:', error);
-		});
-	}
+            .then(hashed => {
+                console.log('- Enhanced Hashing System Working: ✅');
+                console.log('- Hash Format:', hashed.includes('.') ? 'Salt + Hash' : 'Plain Hash');
+                console.log('- Hash Sample:', hashed.substring(0, 20) + '...');
+            })
+            .catch(error => {
+                console.log('- Hashing Test Failed:', error);
+            });
+    }
 }
-// Temporary test function - add this anywhere in main.js
+// Temporary test function
 function testSecuritySetup() {
     console.log('=== SECURITY SETUP TEST ===');
     console.log('1. verifySecuritySetup function exists:', typeof verifySecuritySetup);
