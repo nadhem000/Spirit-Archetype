@@ -8,8 +8,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce', // Enhanced security for public clients
-    refreshTokenRetryInterval: 2 // Faster retry for better UX
+    flowType: 'pkce',
+    refreshTokenRetryInterval: 2
   },
   global: {
     headers: {
@@ -28,3 +28,4 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // Security validation
 console.log('🔒 Supabase connection secure:', window.location.protocol === 'https:');
 console.log('📡 Supabase configured successfully for Spiritual Guide');
+console.log('🆕 New auth_users table ready for migration');
