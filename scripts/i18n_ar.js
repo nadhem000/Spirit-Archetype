@@ -158,7 +158,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.6.1",
+            version: "spiritual-guide-v2.6.2",
             project: "منصة أطلانتس"
 		},
 		music: {
