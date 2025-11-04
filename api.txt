@@ -35,6 +35,9 @@ site structure:
 	│		└── screenshot-mobile_375x667.png
 	└── musics/
 			└── default/
+				├── spiritualite-nature.mp3
+				├── velvetkeys-zen-meditation-buddhist.mp3
+				└── velvetkeys-zen-meditation-buddhist-1.mp3
 [file content begin]
 =====================
 FILE: navigation.js
@@ -176,8 +179,7 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI;
-window.verifyPasswordWithHash = verifyPasswordWithHash;
+window.initializeAppUI = initializeAppUI; // NEW: Added this line
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
 window.welcomeCard = document.getElementById('SC1-welcome-card');
@@ -265,321 +267,11 @@ function initializeHeaderIcon() {
     // Add hover effect to indicate it's clickable
     headerIcon.style.cursor = 'pointer';
 }
-// Handle shared music files
-function handleSharedMusic() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sharedMusic = urlParams.get('sharedMusic');
-    if (sharedMusic && window.musicPlayer) {
-        window.musicPlayer.handleSharedMusic(sharedMusic);
-        // Clean up URL
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-    }
-}
-// === Enhanced Login Functionality ===
-let currentUser = null;
-// Enhanced password hashing using salt and multiple iterations
-async function hashPassword(password) {
-    // Generate a random salt
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    // Convert password to bytes
-    const encoder = new TextEncoder();
-    const passwordBuffer = encoder.encode(password);
-    // Combine salt and password
-    const combined = new Uint8Array(salt.length + passwordBuffer.length);
-    combined.set(salt);
-    combined.set(passwordBuffer, salt.length);
-    // Hash with multiple iterations for better security
-    let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
-    // Additional iteration for strengthening
-    hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
-    // Convert salt and hash to hex strings
-    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-    const hashHex = Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-    // Return salt + hash for storage
-    return `${saltHex}.${hashHex}`;
-}
-// Login functionality - CLEANED FOR STEP 5
-function initializeLogin() {
-    const loginForm = document.querySelector('.SC1-login-form');
-    const usernameInput = document.getElementById('SC1-username');
-    const passwordInput = document.getElementById('SC1-password');
-    const loginButton = document.getElementById('SC1-login-btn');
-    if (!loginForm) return;
-    async function handleLogin(event) {
-        event.preventDefault();
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim();
-        if (!username || !password) {
-            showError(translate('SC1.login.error.fillFields'));
-            return;
-        }
-        // Show loading state
-        const originalText = loginButton.textContent;
-        loginButton.disabled = true;
-        loginButton.textContent = translate('SC1.login.loggingIn');
-        try {
-            // STEP 5: Only check auth_users table (cleanup phase)
-            let user = null;
-            // Check ONLY auth_users table
-            const { data: authUser, error: authError } = await supabaseClient
-                .from('auth_users')
-                .select('id, username, email, hashed_password, inscription_date, profile')
-                .eq('username', username)
-                .single();
-            if (authUser) {
-                // User found in auth_users - verify using password hashing
-                user = authUser;
-                console.log('Found user in auth_users table');
-            } else if (authError && authError.code === 'PGRST116') {
-                // User not found - show error immediately
-                showError(translate('SC1.login.error.invalidCredentials'));
-                return;
-            } else if (authError) {
-                console.error('Supabase error (auth_users):', authError);
-                showError(translate('SC1.login.error.generic') + ': ' + authError.message);
-                return;
-            }
-            if (!user) {
-                showError(translate('SC1.login.error.invalidCredentials'));
-                return;
-            }
-            // STEP 5: Only use hashing verification
-            const passwordValid = await verifyPasswordWithHash(password, user.hashed_password);
-            if (passwordValid) {
-                // SUCCESS: User authenticated
-                currentUser = {
-                    username: user.username,
-                    email: user.email,
-                    id: user.id,
-                    joinDate: user.inscription_date
-                };
-                showSuccess(translate('SC1.login.success'));
-                updateUIAfterLogin();
-                // Store minimal session info
-                localStorage.setItem('currentUser', JSON.stringify({
-                    username: user.username,
-                    loginTime: new Date().toISOString(),
-                    userId: user.id,
-                    sessionId: 'spiritual_session_' + Date.now()
-                }));
-            } else {
-                showError(translate('SC1.login.error.invalidCredentials'));
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            showError(translate('SC1.login.error.generic'));
-        } finally {
-            loginButton.disabled = false;
-            loginButton.textContent = originalText;
-        }
-    }
-    function updateUIAfterLogin() {
-        // Hide login form and show user info
-        const loginForm = document.querySelector('.SC1-login-form');
-        if (loginForm) {
-            loginForm.style.display = 'none';
-        }
-        // Create user info display
-        const userInfoElement = document.createElement('div');
-        userInfoElement.className = 'SC1-user-info';
-        userInfoElement.innerHTML = `
-            <span>${translate('SC1.login.welcome')}, ${currentUser.username}!</span>
-            <button class="SC1-logout-btn" id="SC1-logout-btn">${translate('SC1.login.logout')}</button>
-        `;
-        const headerControls = document.querySelector('.SC1-header-controls');
-        // Remove existing user info if any
-        const existingUserInfo = headerControls.querySelector('.SC1-user-info');
-        if (existingUserInfo) {
-            existingUserInfo.remove();
-        }
-        headerControls.appendChild(userInfoElement);
-        // Add logout event listener
-        document.getElementById('SC1-logout-btn').addEventListener('click', logout);
-    }
-    function logout() {
-        currentUser = null;
-        // Clear ALL session data from localStorage
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('supabase.auth.token');
-        // Show login form again
-        const loginForm = document.querySelector('.SC1-login-form');
-        if (loginForm) {
-            loginForm.style.display = 'block';
-        }
-        // Remove user info
-        const userInfoElement = document.querySelector('.SC1-user-info');
-        if (userInfoElement) {
-            userInfoElement.remove();
-        }
-        // Clear any Supabase session data
-        if (supabaseClient && supabaseClient.auth) {
-            supabaseClient.auth.signOut().catch(err => {
-                console.log('Supabase signout completed');
-            });
-        }
-        showSuccess(translate('SC1.login.loggedOut'));
-    }
-    function checkExistingLogin() {
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            try {
-                const userData = JSON.parse(savedUser);
-                currentUser = {
-                    username: userData.username,
-                    id: userData.userId
-                };
-                updateUIAfterLogin();
-            } catch (error) {
-                console.log('Error restoring session:', error);
-                localStorage.removeItem('currentUser');
-            }
-        }
-    }
-    // Event listeners
-    loginForm.addEventListener('submit', handleLogin);
-    // Check for existing login on page load
-    checkExistingLogin();
-}
-// Make login functions available globally
-window.initializeLogin = initializeLogin;
-// Session timeout
-function setupSessionTimeout() {
-    const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-    setInterval(() => {
-        if (currentUser) {
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser);
-                    const loginTime = new Date(userData.loginTime);
-                    const currentTime = new Date();
-                    const timeDiff = currentTime - loginTime;
-                    if (timeDiff > SESSION_DURATION) {
-                        console.log('Session timeout reached, logging out...');
-                        showError(translate('SC1.login.error.sessionTimeout'));
-                        setTimeout(logout, 2000);
-                    }
-                } catch (error) {
-                    console.log('Error checking session timeout:', error);
-                    // If we can't read session data, log out for security
-                    setTimeout(logout, 2000);
-                }
-            }
-        }
-    }, 60 * 60 * 1000); // Check every hour
-}
-// Automatic session verification
-function setupSessionVerification() {
-    // Check session every 30 minutes
-    setInterval(async () => {
-        if (currentUser) {
-            console.log('Verifying user session...');
-            try {
-                // Verify user still exists in database
-                const { data: user, error } = await supabaseClient
-                    .from('auth_users')
-                    .select('username, inscription_date')
-                    .eq('username', currentUser.username)
-                    .single();
-                if (error || !user) {
-                    console.log('Session invalid, logging out...');
-                    showError(translate('SC1.login.error.sessionExpired'));
-                    setTimeout(logout, 2000);
-                    return;
-                }
-                console.log('Session verified successfully');
-            } catch (error) {
-                console.log('Session verification failed:', error);
-                // Don't log out if we're offline - wait until online
-                if (navigator.onLine) {
-                    showError(translate('SC1.login.error.sessionCheckFailed'));
-                }
-            }
-        }
-    }, 30 * 60 * 1000); // Check every 30 minutes
-}
-// Test function to check database connection
-async function testDatabaseConnection() {
-    try {
-        console.log('Testing database connection...');
-        if (typeof supabaseClient === 'undefined') {
-            console.log('Supabase client not available - offline mode');
-            return;
-        }
-        const { data, error } = await supabaseClient
-            .from('auth_users')
-            .select('count')
-            .limit(1);
-        if (error) {
-            console.error('Database connection failed:', error);
-        } else {
-            console.log('Database connection successful!');
-        }
-    } catch (error) {
-        console.error('Test failed:', error);
-    }
-}
-async function verifyPasswordWithHash(password, storedHash) {
-    try {
-        // Split stored salt and hash
-        const [storedSaltHex, storedHashHex] = storedHash.split('.');
-        if (!storedSaltHex || !storedHashHex) {
-            console.error('Invalid stored hash format');
-            return false;
-        }
-        // Convert stored salt from hex to bytes
-        const storedSalt = new Uint8Array(
-            storedSaltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
-        );
-        // Convert password to bytes
-        const encoder = new TextEncoder();
-        const passwordBuffer = encoder.encode(password);
-        // Combine salt and password
-        const combined = new Uint8Array(storedSalt.length + passwordBuffer.length);
-        combined.set(storedSalt);
-        combined.set(passwordBuffer, storedSalt.length);
-        // Hash with same process
-        let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
-        hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
-        // Convert to hex for comparison
-        const hashedInputHex = Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-        // Compare with stored hash
-        return hashedInputHex === storedHashHex;
-    } catch (error) {
-        console.error('Password verification error:', error);
-        return false;
-    }
-}
-// Make it globally available
-window.verifyPasswordWithHash = verifyPasswordWithHash;
-// Security verification for Step 5 - Clean version
-function verifySecuritySetup() {
-    console.log('🔒 Security Setup (Step 5 - Clean):');
-    console.log('- HTTPS Protocol:', window.location.protocol === 'https:');
-    console.log('- Supabase Connected:', !!supabaseClient && typeof supabaseClient !== 'undefined');
-    console.log('- Enhanced Hashing Available:', typeof hashPassword === 'function');
-    console.log('- Password Verification Available:', typeof verifyPasswordWithHash === 'function');
-    console.log('- Service Worker:', 'serviceWorker' in navigator);
-    // Test verification if available
-    if (typeof verifyPasswordWithHash === 'function') {
-        console.log('- Password Verification System Working: ✅');
-        console.log('- Using auth_users table only: ✅');
-    }
-}
+// Initialize the application
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize settings modal first
     initializeSettingsModal();
-    // Initialize login functionality
-    initializeLogin();
-    // session management
-    setupSessionVerification();
-    setupSessionTimeout();
     // Initialize header icon functionality
     initializeHeaderIcon();
     // Initialize navigation and language
@@ -587,19 +279,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeLanguageButtons();
     // Use our new function to initialize everything
     initializeAppUI();
-    // Initialize music player and playlist modal
-    window.musicPlayer = new MusicPlayer();
-    window.playlistModal = new PlaylistModal(window.musicPlayer);
-    // Load saved playlist if available
-    window.playlistModal.loadPlaylist();
-    // STEP 5: Simple security check only
-    setTimeout(() => {
-        verifySecuritySetup();
-    }, 1000);
-    // Handle shared music
-    setTimeout(() => {
-        handleSharedMusic();
-    }, 1000);
 });
 =====================
 FILE: i18n_ar.js
@@ -622,6 +301,11 @@ const translations_ar = {
                 ar: "العربية",
                 en: "English"
             }
+        },
+        login: {
+            usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
+            passwordPlaceholder: "كلمة المرور",
+            button: "تسجيل الدخول"
         },
         welcome: {
             title: "مرحباً بك في اختبار المرشد الروحي",
@@ -764,7 +448,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.5.7",
+            version: "spiritual-guide-v2.1.6",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -792,24 +476,6 @@ const translations_ar = {
 				resetConfirm: "هل تريد إعادة تعيين قائمة التشغيل إلى المقاطع الافتراضية؟",
 				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
 				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
-			}
-		},
-		login: {
-			usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
-			passwordPlaceholder: "كلمة المرور",
-			button: "تسجيل الدخول",
-			loggingIn: "جاري تسجيل الدخول...",
-			success: "تم تسجيل الدخول بنجاح!",
-			welcome: "مرحباً",
-			logout: "تسجيل الخروج",
-			loggedOut: "تم تسجيل الخروج بنجاح",
-			error: {
-				fillFields: "يرجى ملء جميع الحقول",
-				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
-				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
-				sessionExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
-				sessionTimeout: "انتهت مدة الجلسة لأسباب أمنية. يرجى تسجيل الدخول مرة أخرى.",
-				sessionCheckFailed: "فشل التحقق من الجلسة"
 			}
 		}
     }
@@ -945,6 +611,11 @@ const translations_en = {
                 ar: "Arabic",
                 en: "English"
             }
+        },
+        login: {
+            usernamePlaceholder: "Email or username",
+            passwordPlaceholder: "Password",
+            button: "Login"
         },
         welcome: {
             title: "Welcome to the Spiritual Guide Test",
@@ -1087,7 +758,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.5.7",
+            version: "spiritual-guide-v2.1.6",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1115,24 +786,6 @@ const translations_en = {
 				resetConfirm: "Reset playlist to default tracks?",
 				saveSuccess: "Playlist saved successfully!",
 				resetSuccess: "Playlist reset to default!"
-			}
-		},
-		login: {
-			usernamePlaceholder: "Email or username",
-			passwordPlaceholder: "Password", 
-			button: "Login",
-			loggingIn: "Logging in...",
-			success: "Login successful!",
-			welcome: "Welcome",
-			logout: "Logout",
-			loggedOut: "You have been logged out successfully",
-			error: {
-				fillFields: "Please fill in all fields",
-				invalidCredentials: "Invalid username or password",
-				generic: "Login failed. Please try again.",
-				sessionExpired: "Session expired. Please log in again.",
-				sessionTimeout: "Session timed out for security. Please log in again.",
-				sessionCheckFailed: "Session verification failed"
 			}
 		}
     }
@@ -1485,122 +1138,27 @@ FILE: index.html
 <html lang="en" dir="ltr" id="SC1-html-direction">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-		<!-- Primary Meta Tags -->
-		<title>Spiritual Guide - Discover Your Spiritual Pattern</title>
-		<meta name="description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
-		<meta name="author" content="Mejri Ziad">
-		<meta name="keywords" content="spiritual, guide, test, pattern, meditation, self-discovery">
-		<!-- Theme Color for PWA -->
-		<meta name="theme-color" content="#4a6fa5" media="(prefers-color-scheme: light)">
-		<meta name="theme-color" content="#2c3e50" media="(prefers-color-scheme: dark)">
-		<!-- PWA Meta Tags -->
-		<meta name="mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-		<meta name="apple-mobile-web-app-title" content="Spiritual Guide">
-		<!-- Open Graph / Facebook -->
-		<meta property="og:type" content="website">
-		<meta property="og:url" content="https://spiritual-consultation.netlify.app/">
-		<meta property="og:title" content="Spiritual Guide - Discover Your Spiritual Pattern">
-		<meta property="og:description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
-		<meta property="og:image" content="/assets/icons/icon-512x512.png">
-		<!-- Twitter -->
-		<meta property="twitter:card" content="summary_large_image">
-		<meta property="twitter:url" content="https://spiritual-consultation.netlify.app/">
-		<meta property="twitter:title" content="Spiritual Guide - Discover Your Spiritual Pattern">
-		<meta property="twitter:description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
-		<meta property="twitter:image" content="/assets/icons/icon-512x512.png">
-		<!-- Favicon and App Icons -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Spiritual Guide</title>
+<!-- Immediate service worker registration for PWA detection -->
+<script>
+    // Register service worker immediately for PWA detection
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch(function(error) {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+        });
+    }
+</script>
+		<link rel="manifest" href="manifest.json">
+		<link rel="stylesheet" href="styles/main.css">
+		<meta name="theme-color" content="#667eea">
 		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
-		<link rel="apple-touch-icon" href="/assets/icons/icon-152x152.png">
-		<link rel="apple-touch-startup-image" href="/assets/icons/icon-512x512.png">
-		<!-- PWA Manifest -->
-		<link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
-		<!-- Preload Critical Resources -->
-		<link rel="preload" href="/styles/main.css" as="style">
-		<link rel="preload" href="/scripts/main.js" as="script">
-		<link rel="preload" href="/scripts/supabase-config.js" as="script">
-		<!-- DNS Prefetch for External Resources -->
-		<link rel="dns-prefetch" href="https://tgorqanvhjaecbysulih.supabase.co">
-		<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-		<!-- Styles -->
-		<link rel="stylesheet" href="/styles/main.css">
-		<!-- Structured Data for SEO -->
-		<script type="application/ld+json">
-			{
-				"@context": "https://schema.org",
-				"@type": "WebApplication",
-				"name": "Spiritual Guide",
-				"description": "Interactive spiritual guide test to discover your spiritual pattern",
-				"url": "https://spiritual-consultation.netlify.app/",
-				"applicationCategory": "LifestyleApplication",
-				"operatingSystem": "Any",
-				"permissions": "storage",
-				"author": {
-					"@type": "Person",
-					"name": "Mejri Ziad"
-				},
-				"offers": {
-					"@type": "Offer",
-					"price": "0",
-					"priceCurrency": "USD"
-				}
-			}
-		</script>
-		<!-- Immediate service worker registration for PWA detection -->
-		<script>
-			// Enhanced service worker registration
-			if ('serviceWorker' in navigator) {
-				window.addEventListener('load', function() {
-					navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                        // Check for updates
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            console.log('New service worker found!');
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New update available
-                                    console.log('New content is available; please refresh.');
-                                    if (window.confirm('New version available! Reload to update?')) {
-                                        window.location.reload();
-									}
-								}
-							});
-						});
-					})
-                    .catch(function(error) {
-                        console.log('ServiceWorker registration failed: ', error);
-					});
-				});
-				// Track service worker state
-				navigator.serviceWorker.ready.then(() => {
-					console.log('Service Worker is ready');
-				});
-			}
-			// Enhanced error handling
-			window.addEventListener('error', function(e) {
-				console.error('Global error:', e.error);
-			});
-			// Enhanced offline detection
-			window.addEventListener('online', () => {
-				console.log('App is back online');
-				if (typeof showSuccess === 'function') {
-					showSuccess('Connection restored');
-				}
-			});
-			window.addEventListener('offline', () => {
-				console.log('App is offline');
-				if (typeof showWarning === 'function') {
-					showWarning('You are offline - some features may be limited');
-				}
-			});
-		</script>
-		<!-- Supabase and Encryption Libraries -->
-		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-		<script src="/scripts/supabase-config.js"></script>
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -1666,6 +1224,7 @@ FILE: index.html
 					</div>
 				</div>
 			</div>
+
 			<!-- Playlist Management Modal -->
 			<div class="SC1-modal" id="SC1-playlist-modal">
 				<div class="SC1-modal-content">
@@ -1680,6 +1239,7 @@ FILE: index.html
 								<!-- Track list will be populated here by JavaScript -->
 							</div>
 						</div>
+						
 						<div class="SC1-playlist-actions">
 							<button class="SC1-button SC1-btn-secondary" id="SC1-reset-playlist-btn" data-i18n="SC1.music.playlistModal.resetToDefault">Reset to Default</button>
 							<button class="SC1-button SC1-btn-primary" id="SC1-save-playlist-btn" data-i18n="SC1.music.playlistModal.savePlaylist">Save Playlist</button>
@@ -1798,7 +1358,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.5.7</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.1.6</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -1954,22 +1514,7 @@ FILE: manifest.json
                 }
             ]
         }
-    ],
-	"share_target": {
-		"action": "/",
-		"method": "POST",
-		"enctype": "multipart/form-data",
-		"params": {
-			"title": "name",
-			"text": "description",
-			"files": [
-				{
-					"name": "music",
-					"accept": ["audio/*", ".mp3", ".wav", ".ogg", ".m4a"]
-				}
-			]
-		}
-	}
+    ]
 }
 =====================
 FILE: notifications.js
@@ -2076,6 +1621,7 @@ FILE: pwa.js
 ================
 // pwa.js - Enhanced PWA functionality with Background Sync
 console.log('PWA script loaded');
+
 // Enhanced service worker registration
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -2083,12 +1629,14 @@ function registerServiceWorker() {
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                
                 // Register background sync if supported
                 if ('sync' in registration) {
                     registration.sync.register('background-sync')
                         .then(() => console.log('Background Sync registered'))
                         .catch(err => console.log('Background Sync registration failed:', err));
                 }
+                
                 return registration;
             })
             .catch(function(error) {
@@ -2096,6 +1644,7 @@ function registerServiceWorker() {
             });
     }
 }
+
 // Background Sync functionality
 async function registerBackgroundSync() {
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -2111,6 +1660,7 @@ async function registerBackgroundSync() {
     }
     return false;
 }
+
 // Push Notification permission
 async function requestNotificationPermission() {
     if ('Notification' in window && 'serviceWorker' in navigator) {
@@ -2126,6 +1676,7 @@ async function requestNotificationPermission() {
     }
     return false;
 }
+
 // Install Button Logic - FIXED VERSION
 function initializeInstallButton() {
     const installBtn = document.getElementById('SC1-install-btn');
@@ -2133,28 +1684,36 @@ function initializeInstallButton() {
         console.warn('Install button not found');
         return;
     }
+
     // Start with button hidden
     installBtn.style.display = 'none';
     let deferredPrompt;
+
     window.addEventListener('beforeinstallprompt', (e) => {
         console.log('beforeinstallprompt event fired');
         e.preventDefault();
         deferredPrompt = e;
+        
         // Show the install button
         installBtn.style.display = 'flex';
+        
         // Request notification permission when install prompt shows
         setTimeout(() => {
             requestNotificationPermission();
         }, 1000);
     });
+
     installBtn.addEventListener('click', async () => {
         if (!deferredPrompt) {
             console.log('No deferred prompt available');
             return;
         }
+        
         console.log('Showing install prompt');
         deferredPrompt.prompt();
+        
         const { outcome } = await deferredPrompt.userChoice;
+        
         console.log(`User ${outcome} the install prompt`);
         if (outcome === 'accepted') {
             installBtn.style.display = 'none';
@@ -2163,34 +1722,43 @@ function initializeInstallButton() {
                 registerBackgroundSync();
             }, 2000);
         }
+        
         deferredPrompt = null;
     });
+
     window.addEventListener('appinstalled', () => {
         console.log('PWA was installed');
         installBtn.style.display = 'none';
         deferredPrompt = null;
     });
 }
+
 // Enhanced initialization
 function initializePWA() {
     console.log('Initializing PWA with enhanced features...');
+    
     // Register service worker immediately
     registerServiceWorker();
+    
     // Initialize install button
     initializeInstallButton();
+    
     // Request notification permission after a delay
     setTimeout(() => {
         requestNotificationPermission();
     }, 3000);
+    
     // Register background sync when coming online
     window.addEventListener('online', () => {
         registerBackgroundSync();
     });
 }
+
 // Make functions available globally
 window.initializePWA = initializePWA;
 window.registerBackgroundSync = registerBackgroundSync;
 window.requestNotificationPermission = requestNotificationPermission;
+
 // Auto-initialize PWA when script loads
 document.addEventListener('DOMContentLoaded', function() {
     initializePWA();
@@ -2421,6 +1989,7 @@ class MusicPlayer {
             console.error(errorMessage);
         }
     }
+
     // method to update Track Names
     updateTrackNames() {
         this.trackNames = [
@@ -2429,20 +1998,24 @@ class MusicPlayer {
             translate('SC1.music.tracks.track3')
         ];
     }
+
     // method to handle track changes properly
     changeTrack() {
         if (this.audio) {
             this.audio.pause();
             this.audio = null;
         }
+        
         if (this.isPlaying) {
             this.play();
         } else {
             this.updateTrackInfo();
         }
+        
         // Dispatch event for playlist modal to listen to
         this.dispatchTrackChange();
     }
+
     // Add event dispatching for track changes
     dispatchTrackChange() {
         const event = new CustomEvent('trackChanged', {
@@ -2453,50 +2026,8 @@ class MusicPlayer {
         });
         document.dispatchEvent(event);
     }
-	handleSharedMusic(fileName) {
-		if (!fileName) return;
-		caches.open('shared-music-cache').then(cache => {
-			cache.match(`/shared-music/${fileName}`).then(response => {
-				if (response) {
-					response.blob().then(blob => {
-						// Create object URL from the blob
-						const objectUrl = URL.createObjectURL(blob);
-						// Extract filename without the timestamp prefix
-						const originalName = fileName.replace(/^shared_\d+_/, '');
-						// Add to playlist
-						this.addSharedTrack(objectUrl, originalName);
-						// Clean up cache
-						cache.delete(`/shared-music/${fileName}`);
-						// Show success message
-						showSuccess(`Added "${originalName}" to playlist`);
-					});
-				}
-			});
-		});
-	}
-	// method to handle adding shared tracks
-	addSharedTrack(url, name) {
-		// Add to tracks array
-		this.tracks.push(url);
-		this.trackNames.push(name);
-		// Switch to the new track
-		this.currentTrack = this.tracks.length - 1;
-		// Play the new track
-		if (!this.isPlaying) {
-			this.play();
-			} else {
-			this.changeTrack();
-		}
-		// Update playlist modal if open
-		if (window.playlistModal && window.playlistModal.modal.classList.contains('SC1-active')) {
-			window.playlistModal.renderTrackList();
-		}
-	}
-	// method to get file extension
-	getFileExtension(filename) {
-		return filename.split('.').pop().toLowerCase();
-	}
 }
+
 // Playlist Modal Management
 class PlaylistModal {
     constructor(musicPlayer) {
@@ -2506,101 +2037,120 @@ class PlaylistModal {
         this.closeBtn = document.getElementById('SC1-playlist-modal-close');
         this.resetBtn = document.getElementById('SC1-reset-playlist-btn');
         this.saveBtn = document.getElementById('SC1-save-playlist-btn');
+        
         this.initializeEventListeners();
     }
+
     initializeEventListeners() {
         // Open modal when playlist button is clicked
         document.getElementById('SC1-playlist-btn').addEventListener('click', () => {
             this.open();
         });
+
         // Close modal
         this.closeBtn.addEventListener('click', () => {
             this.close();
         });
+
         // Close when clicking outside modal
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
                 this.close();
             }
         });
+
         // Close with Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal.classList.contains('SC1-active')) {
                 this.close();
             }
         });
+
         // Reset playlist button
         this.resetBtn.addEventListener('click', () => {
             this.resetToDefault();
         });
+
         // Save playlist button
         this.saveBtn.addEventListener('click', () => {
             this.savePlaylist();
         });
     }
+
     open() {
         this.modal.classList.add('SC1-active');
         this.renderTrackList();
     }
+
     close() {
         this.modal.classList.remove('SC1-active');
     }
+
     renderTrackList() {
         this.tracksContainer.innerHTML = '';
+        
         this.musicPlayer.tracks.forEach((trackPath, index) => {
             const trackElement = this.createTrackElement(trackPath, index);
             this.tracksContainer.appendChild(trackElement);
         });
     }
+
     createTrackElement(trackPath, index) {
         const trackDiv = document.createElement('div');
-		trackDiv.className = 'SC1-playlist-track';
-		// Add active class if this is the current track
-		if (index === this.musicPlayer.currentTrack) {
-			trackDiv.classList.add('active');
-		}
-		// Check if this is a shared track (blob URL)
-		const isSharedTrack = trackPath.startsWith('blob:');
-		const trackName = this.musicPlayer.trackNames[index] || 
-						 (isSharedTrack ? 'Shared Track' : trackPath.split('/').pop());
-		trackDiv.innerHTML = `
-			<div class="SC1-track-info">
-				<div class="SC1-track-name">${trackName}</div>
-				<div class="SC1-track-duration">${this.getTrackDuration(index)}</div>
-				${isSharedTrack ? '<div class="SC1-shared-badge">Shared</div>' : ''}
-			</div>
-			<div class="SC1-track-status">${this.getTrackStatus(index)}</div>
-			<div class="SC1-track-actions">
-				<button class="SC1-track-action-btn SC1-track-play" data-index="${index}">
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M8 5v14l11-7z"/>
-					</svg>
-					<span class="SC1-tooltip">${translate('SC1.music.playlistModal.playTrack')}</span>
-				</button>
-				<button class="SC1-track-action-btn SC1-track-remove" data-index="${index}">
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-						<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-					</svg>
-					<span class="SC1-tooltip">${translate('SC1.music.playlistModal.removeTrack')}</span>
-				</button>
-			</div>
-		`;
+        trackDiv.className = 'SC1-playlist-track';
+        
+        // Add active class if this is the current track
+        if (index === this.musicPlayer.currentTrack) {
+            trackDiv.classList.add('active');
+        }
+
+        // Extract filename from path for display
+        const fileName = trackPath.split('/').pop();
+        const trackName = this.musicPlayer.trackNames[index] || fileName;
+
+        trackDiv.innerHTML = `
+            <div class="SC1-track-info">
+                <div class="SC1-track-name">${trackName}</div>
+                <div class="SC1-track-duration">${this.getTrackDuration(index)}</div>
+            </div>
+            <div class="SC1-track-status">${this.getTrackStatus(index)}</div>
+            <div class="SC1-track-actions">
+                <button class="SC1-track-action-btn SC1-track-play" data-index="${index}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <span class="SC1-tooltip">${translate('SC1.music.playlistModal.playTrack')}</span>
+                </button>
+                <button class="SC1-track-action-btn SC1-track-remove" data-index="${index}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                    <span class="SC1-tooltip">${translate('SC1.music.playlistModal.removeTrack')}</span>
+                </button>
+            </div>
+        `;
+
         // Add event listeners for the buttons
         const playBtn = trackDiv.querySelector('.SC1-track-play');
         const removeBtn = trackDiv.querySelector('.SC1-track-remove');
+
         playBtn.addEventListener('click', () => {
             this.playTrack(index);
         });
+
         removeBtn.addEventListener('click', () => {
             this.removeTrack(index);
         });
+
         return trackDiv;
     }
+
     getTrackDuration(index) {
         // This is a placeholder - in a real implementation, you'd load the audio file
         // and get its duration. For now, we'll return a placeholder.
         return '2:30'; // Placeholder duration
     }
+
     getTrackStatus(index) {
         if (index === this.musicPlayer.currentTrack && this.musicPlayer.isPlaying) {
             return translate('SC1.music.playlistModal.trackPlaying');
@@ -2610,32 +2160,39 @@ class PlaylistModal {
             return translate('SC1.music.playlistModal.trackStopped');
         }
     }
+
     playTrack(index) {
         this.musicPlayer.currentTrack = index;
         this.musicPlayer.changeTrack();
         this.renderTrackList(); // Refresh to update status
         this.close(); // Close modal after selecting track
     }
+
     removeTrack(index) {
         // Don't remove if it's the last track
         if (this.musicPlayer.tracks.length <= 1) {
             showError('Cannot remove the last track');
             return;
         }
+
         // Remove track from arrays
         this.musicPlayer.tracks.splice(index, 1);
         this.musicPlayer.trackNames.splice(index, 1);
+
         // Adjust currentTrack index if needed
         if (this.musicPlayer.currentTrack >= index) {
             this.musicPlayer.currentTrack = Math.max(0, this.musicPlayer.currentTrack - 1);
         }
+
         // If we removed the currently playing track, change to the new current track
         if (index === this.musicPlayer.currentTrack) {
             this.musicPlayer.changeTrack();
         }
+
         this.renderTrackList();
         showSuccess('Track removed from playlist');
     }
+
     resetToDefault() {
         if (confirm(translate('SC1.music.playlistModal.resetConfirm'))) {
             // Reset to default tracks
@@ -2644,13 +2201,16 @@ class PlaylistModal {
                 'assets/musics/default/velvetkeys-zen-meditation-buddhist-1.mp3', 
                 'assets/musics/default/spiritualite-nature.mp3'
             ];
+            
             this.musicPlayer.updateTrackNames();
             this.musicPlayer.currentTrack = 0;
             this.musicPlayer.changeTrack();
             this.renderTrackList();
+            
             showSuccess(translate('SC1.music.playlistModal.resetSuccess'));
         }
     }
+
     savePlaylist() {
         // Save current playlist to localStorage
         const playlistData = {
@@ -2658,6 +2218,7 @@ class PlaylistModal {
             trackNames: this.musicPlayer.trackNames,
             lastSaved: new Date().toISOString()
         };
+        
         try {
             localStorage.setItem('SC1-music-playlist', JSON.stringify(playlistData));
             showSuccess(translate('SC1.music.playlistModal.saveSuccess'));
@@ -2665,6 +2226,7 @@ class PlaylistModal {
             showError('Failed to save playlist: ' + error.message);
         }
     }
+
     loadPlaylist() {
         // Load saved playlist from localStorage
         try {
@@ -2685,14 +2247,17 @@ class PlaylistModal {
 document.addEventListener('DOMContentLoaded', () => {
     window.musicPlayer = new MusicPlayer();
     window.playlistModal = new PlaylistModal(window.musicPlayer);
+    
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
+    
     // Listen for track changes to update the modal if it's open
     document.addEventListener('trackChanged', () => {
         if (window.playlistModal.modal.classList.contains('SC1-active')) {
             window.playlistModal.renderTrackList();
         }
     });
+    
     // Listen for language changes to update track names
     document.addEventListener('languageChanged', () => {
         window.musicPlayer.updateTrackNames();
@@ -2701,6 +2266,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
 // Make it available globally
 window.MusicPlayer = MusicPlayer;
 // Make playlist functions available globally
@@ -2709,11 +2275,13 @@ window.openPlaylistModal = function() {
         window.playlistModal.open();
     }
 };
+
 window.resetMusicPlaylist = function() {
     if (window.playlistModal) {
         window.playlistModal.resetToDefault();
     }
 };
+
 // Update the existing MusicPlayer instance to work with playlist
 if (window.musicPlayer) {
     // Override the updateTrackNames method to be accessible
@@ -2729,12 +2297,11 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.5.7'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.6.3'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
   '/offline.html',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   '/styles/main.css',
   '/scripts/data.js',
   '/scripts/i18n_en.js',
@@ -2748,8 +2315,6 @@ const FILES_TO_CACHE = [
   '/scripts/results.js',
   '/scripts/music.js',
   '/scripts/main.js',
-  '/scripts/supabase-config.js',
-  '/scripts/encryption-utils.js',
   '/manifest.json',
   '/assets/icons/icon-32x32.png',
   '/assets/icons/icon-72x72.png',
@@ -2764,6 +2329,7 @@ const FILES_TO_CACHE = [
   '/assets/screenshots/screenshot-mobile_375x667.png',
   '/assets/screenshots/widget-screenshot-384x384.png'
 ];
+
 // Install event - cache essential files
 self.addEventListener('install', event => {
   console.log('Service Worker: Installing and caching files');
@@ -2776,6 +2342,7 @@ self.addEventListener('install', event => {
       .then(() => self.skipWaiting())
   );
 });
+
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
   console.log('Service Worker: Activated');
@@ -2792,10 +2359,12 @@ self.addEventListener('activate', event => {
     }).then(() => self.clients.claim())
   );
 });
+
 // Fetch event - Cache First with Network Fallback and Offline Support
 self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
+  
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
@@ -2803,6 +2372,7 @@ self.addEventListener('fetch', event => {
         if (cachedResponse) {
           return cachedResponse;
         }
+
         // Not in cache - try network
         return fetch(event.request)
           .then(networkResponse => {
@@ -2818,10 +2388,12 @@ self.addEventListener('fetch', event => {
           })
           .catch(error => {
             console.log('Network failed, serving offline content:', error);
+            
             // 🔑 CRITICAL: Provide offline fallback for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('/offline.html');
             }
+            
             // For other requests (CSS, JS, images), try cache again
             return caches.match(event.request)
               .then(cachedResource => {
@@ -2838,10 +2410,13 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
 // ===== BACKGROUND SYNC CAPABILITIES =====
+
 // Push Notifications
 self.addEventListener('push', (event) => {
     console.log('Push notification received');
+    
     const options = {
         body: 'New spiritual insights available!',
         icon: '/assets/icons/icon-72x72.png',
@@ -2851,14 +2426,17 @@ self.addEventListener('push', (event) => {
             url: '/' // URL to open when notification is clicked
         }
     };
+
     event.waitUntil(
         self.registration.showNotification('Spiritual Guide', options)
     );
 });
+
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
     console.log('Notification clicked');
     event.notification.close();
+    
     event.waitUntil(
         clients.matchAll({type: 'window'}).then(windowClients => {
             // Check if app is already open
@@ -2874,9 +2452,11 @@ self.addEventListener('notificationclick', (event) => {
         })
     );
 });
+
 // Background Sync - for when app goes online after being offline
 self.addEventListener('sync', event => {
     console.log('Background Sync event:', event.tag);
+    
     if (event.tag === 'background-sync') {
         event.waitUntil(
             // This is where  would sync data with server
@@ -2889,9 +2469,11 @@ self.addEventListener('sync', event => {
         );
     }
 });
+
 // Periodic Background Sync - for regular updates
 self.addEventListener('periodicsync', event => {
     console.log('Periodic Sync event:', event.tag);
+    
     if (event.tag === 'content-update') {
         event.waitUntil(
             // This would fetch fresh content periodically
@@ -2902,152 +2484,35 @@ self.addEventListener('periodicsync', event => {
         );
     }
 });
-// ===== SHARE TARGET HANDLING =====
-self.addEventListener('fetch', event => {
-  // Handle share target POST requests
-  if (event.request.method === 'POST') {
-    event.respondWith(
-      (async () => {
-        try {
-          const formData = await event.request.formData();
-          const file = formData.get('music');
-          if (file) {
-            // Store the shared file in cache
-            const cache = await caches.open('shared-music-cache');
-            const fileName = `shared_${Date.now()}_${file.name}`;
-            const response = new Response(file, {
-              headers: { 'Content-Type': file.type }
-            });
-            await cache.put(`/shared-music/${fileName}`, response);
-            // Redirect to main app with file info
-            return Response.redirect(`/?sharedMusic=${fileName}`, 303);
-          }
-        } catch (error) {
-          console.error('Error handling share:', error);
-        }
-        // Fallback: redirect to main app
-        return Response.redirect('/', 303);
-      })()
-    );
-    return;
-  }
-});
 =====================
 FILE: netlify.toml
 ================
 [build]
   publish = "."
-  command = "echo 'No build command needed for static site'"
-[build.environment]
-  NODE_VERSION = "18"
-# ===== SECURITY HEADERS =====
-[[headers]]
-  for = "/*"
-  [headers.values]
-    # Security headers
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=()"
-    # Privacy headers
-    Cross-Origin-Embedder-Policy = "require-corp"
-    Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Resource-Policy = "same-origin"
-    # Content Security Policy - Enhanced for Supabase and PWA
-    Content-Security-Policy = """
-      default-src 'self' https://tgorqanvhjaecbysulih.supabase.co;
-      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://tgorqanvhjaecbysulih.supabase.co;
-      style-src 'self' 'unsafe-inline';
-      img-src 'self' data: https:;
-      font-src 'self' data:;
-      connect-src 'self' https://tgorqanvhjaecbysulih.supabase.co wss://tgorqanvhjaecbysulih.supabase.co https://cdn.jsdelivr.net;
-      media-src 'self' data:;
-      manifest-src 'self';
-      worker-src 'self' blob:;
-      frame-ancestors 'none';
-      base-uri 'self';
-      form-action 'self'
-    """
-# ===== SERVICE WORKER SPECIFIC HEADERS =====
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# CRITICAL: Service Worker Headers
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
-    Content-Type = "application/javascript; charset=utf-8"
-# ===== STATIC ASSETS CACHING =====
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-[[headers]]
-  for = "/styles/*"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-[[headers]]
-  for = "/scripts/*"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-# ===== CRITICAL FILES =====
+
+# Manifest headers
 [[headers]]
   for = "/manifest.json"
   [headers.values]
-    Content-Type = "application/manifest+json; charset=utf-8"
+    Content-Type = "application/manifest+json"
     Cache-Control = "public, max-age=3600"
+
+# 🔑 Headers for offline page
 [[headers]]
   for = "/offline.html"
   [headers.values]
     Cache-Control = "public, max-age=3600"
-# ===== ICONS AND IMAGES =====
-[[headers]]
-  for = "/*.png"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-[[headers]]
-  for = "/*.jpg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-[[headers]]
-  for = "/*.ico"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-# ===== REDIRECTS =====
-[[redirects]]
-  from = "http://*"
-  to = "https://:splat"
-  status = 301
-  force = true
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-# ===== SPA ROUTING FALLBACK =====
-[[redirects]]
-  from = "/app/*"
-  to = "/index.html"
-  status = 200
-# ===== SECURITY - BLOCK SENSITIVE FILES =====
-[[headers]]
-  for = "/.env"
-  [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
-# ===== PERFORMANCE - COMPRESSION =====
-# [[headers]]
-#   for = "/*.js"
-#   [headers.values]
-#     Content-Encoding = "gzip"
-# 
-# [[headers]]
-#   for = "/*.css"
-#   [headers.values]
-#     Content-Encoding = "gzip"
-# ===== PWA OFFLINE SUPPORT =====
-[[headers]]
-  for = "/"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
 =====================
 FILE: .gitignore
 ================
@@ -3146,133 +2611,4 @@ FILE: offline.html
     </div>
 </body>
 </html>
-[file name]: supabase-config.js
-[file content begin]
-// scripts/supabase-config.js - ENHANCED SECURE CONFIGURATION
-const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
-// Create Supabase client with enhanced security
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  global: {
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-Client-Info': 'spiritual-guide-app',
-      'Prefer': 'return=minimal' // Add this to fix 406 errors
-    }
-  },
-  db: {
-    schema: 'public'
-  }
-});
-// Security validation
-console.log('🔒 Supabase connection secure:', window.location.protocol === 'https:');
-console.log('📡 Supabase configured successfully for Spiritual Guide');
-[file content end]
-[file name]: encryption-utils.js
-[file content begin]
-// scripts/encryption-utils.js
-class EncryptionUtils {
-    static encryptionKey = 'my-secure-encryption-key-12345';
-    static stringToArrayBuffer(str) {
-        const encoder = new TextEncoder();
-        return encoder.encode(str);
-    }
-    static arrayBufferToString(buffer) {
-        const decoder = new TextDecoder();
-        return decoder.decode(buffer);
-    }
-    static base64ToArrayBuffer(base64) {
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes.buffer;
-    }
-    static arrayBufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-    }
-    static async deriveKey(password, salt) {
-        const encoder = new TextEncoder();
-        const keyMaterial = await window.crypto.subtle.importKey(
-            'raw',
-            encoder.encode(password),
-            'PBKDF2',
-            false,
-            ['deriveKey']
-        );
-        return window.crypto.subtle.deriveKey(
-            {
-                name: 'PBKDF2',
-                salt: encoder.encode(salt),
-                iterations: 100000,
-                hash: 'SHA-256'
-            },
-            keyMaterial,
-            { name: 'AES-GCM', length: 256 },
-            false,
-            ['encrypt', 'decrypt']
-        );
-    }
-    static async encrypt(plaintext) {
-        try {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(plaintext);
-            const salt = window.crypto.getRandomValues(new Uint8Array(16));
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const key = await this.deriveKey(this.encryptionKey, 'fixed-salt-for-now');
-            const encrypted = await window.crypto.subtle.encrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
-                key,
-                data
-            );
-            const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-            combined.set(salt, 0);
-            combined.set(iv, salt.length);
-            combined.set(new Uint8Array(encrypted), salt.length + iv.length);
-            return this.arrayBufferToBase64(combined.buffer);
-        } catch (error) {
-            console.error('Encryption failed:', error);
-            throw error;
-        }
-    }
-    static async decrypt(encryptedData) {
-        try {
-            const combined = this.base64ToArrayBuffer(encryptedData);
-            const combinedArray = new Uint8Array(combined);
-            const salt = combinedArray.slice(0, 16);
-            const iv = combinedArray.slice(16, 28);
-            const encrypted = combinedArray.slice(28);
-            const key = await this.deriveKey(this.encryptionKey, 'fixed-salt-for-now');
-            const decrypted = await window.crypto.subtle.decrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
-                key,
-                encrypted
-            );
-            return this.arrayBufferToString(decrypted);
-        } catch (error) {
-            console.error('Decryption failed:', error);
-            throw error;
-        }
-    }
-}
-[file content end]
 [file content end]

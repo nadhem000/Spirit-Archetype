@@ -2,141 +2,27 @@
 <html lang="en" dir="ltr" id="SC1-html-direction">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-		
-		<!-- Primary Meta Tags -->
-		<title>Spiritual Guide - Discover Your Spiritual Pattern</title>
-		<meta name="description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
-		<meta name="author" content="Mejri Ziad">
-		<meta name="keywords" content="spiritual, guide, test, pattern, meditation, self-discovery">
-		
-		<!-- Theme Color for PWA -->
-		<meta name="theme-color" content="#4a6fa5" media="(prefers-color-scheme: light)">
-		<meta name="theme-color" content="#2c3e50" media="(prefers-color-scheme: dark)">
-		
-		<!-- PWA Meta Tags -->
-		<meta name="mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-		<meta name="apple-mobile-web-app-title" content="Spiritual Guide">
-		
-		<!-- Open Graph / Facebook -->
-		<meta property="og:type" content="website">
-		<meta property="og:url" content="https://spiritual-consultation.netlify.app/">
-		<meta property="og:title" content="Spiritual Guide - Discover Your Spiritual Pattern">
-		<meta property="og:description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
-		<meta property="og:image" content="/assets/icons/icon-512x512.png">
-		
-		<!-- Twitter -->
-		<meta property="twitter:card" content="summary_large_image">
-		<meta property="twitter:url" content="https://spiritual-consultation.netlify.app/">
-		<meta property="twitter:title" content="Spiritual Guide - Discover Your Spiritual Pattern">
-		<meta property="twitter:description" content="Interactive spiritual guide test to discover your spiritual pattern through 8 insightful questions">
-		<meta property="twitter:image" content="/assets/icons/icon-512x512.png">
-		
-		<!-- Favicon and App Icons -->
-		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
-		<link rel="apple-touch-icon" href="/assets/icons/icon-152x152.png">
-		<link rel="apple-touch-startup-image" href="/assets/icons/icon-512x512.png">
-		
-		<!-- PWA Manifest -->
-		<link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
-		
-		<!-- Preload Critical Resources -->
-		<link rel="preload" href="/styles/main.css" as="style">
-		<link rel="preload" href="/scripts/main.js" as="script">
-		<link rel="preload" href="/scripts/supabase-config.js" as="script">
-		
-		<!-- DNS Prefetch for External Resources -->
-		<link rel="dns-prefetch" href="https://tgorqanvhjaecbysulih.supabase.co">
-		<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-		
-		<!-- Styles -->
-		<link rel="stylesheet" href="/styles/main.css">
-		
-		<!-- Structured Data for SEO -->
-		<script type="application/ld+json">
-			{
-				"@context": "https://schema.org",
-				"@type": "WebApplication",
-				"name": "Spiritual Guide",
-				"description": "Interactive spiritual guide test to discover your spiritual pattern",
-				"url": "https://spiritual-consultation.netlify.app/",
-				"applicationCategory": "LifestyleApplication",
-				"operatingSystem": "Any",
-				"permissions": "storage",
-				"author": {
-					"@type": "Person",
-					"name": "Mejri Ziad"
-				},
-				"offers": {
-					"@type": "Offer",
-					"price": "0",
-					"priceCurrency": "USD"
-				}
-			}
-		</script>
-		
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Spiritual Guide</title>
 		<!-- Immediate service worker registration for PWA detection -->
 		<script>
-			// Enhanced service worker registration
+			// Register service worker immediately for PWA detection
 			if ('serviceWorker' in navigator) {
 				window.addEventListener('load', function() {
 					navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                        
-                        // Check for updates
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            console.log('New service worker found!');
-                            
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New update available
-                                    console.log('New content is available; please refresh.');
-                                    if (window.confirm('New version available! Reload to update?')) {
-                                        window.location.reload();
-									}
-								}
-							});
-						});
+					.then(function(registration) {
+						console.log('ServiceWorker registration successful with scope: ', registration.scope);
 					})
-                    .catch(function(error) {
-                        console.log('ServiceWorker registration failed: ', error);
+					.catch(function(error) {
+						console.log('ServiceWorker registration failed: ', error);
 					});
 				});
-				
-				// Track service worker state
-				navigator.serviceWorker.ready.then(() => {
-					console.log('Service Worker is ready');
-				});
 			}
-			
-			// Enhanced error handling
-			window.addEventListener('error', function(e) {
-				console.error('Global error:', e.error);
-			});
-			
-			// Enhanced offline detection
-			window.addEventListener('online', () => {
-				console.log('App is back online');
-				if (typeof showSuccess === 'function') {
-					showSuccess('Connection restored');
-				}
-			});
-			
-			window.addEventListener('offline', () => {
-				console.log('App is offline');
-				if (typeof showWarning === 'function') {
-					showWarning('You are offline - some features may be limited');
-				}
-			});
 		</script>
-		
-		<!-- Supabase and Encryption Libraries -->
-		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-		<script src="/scripts/supabase-config.js"></script>
+		<link rel="stylesheet" href="styles/main.css">
+		<link rel="manifest" href="manifest.json">
+		<meta name="theme-color" content="#667eea">
+		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -344,7 +230,7 @@
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.6.2</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.1.6</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>

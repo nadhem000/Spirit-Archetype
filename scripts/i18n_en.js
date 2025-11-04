@@ -17,6 +17,11 @@ const translations_en = {
                 en: "English"
 			}
 		},
+        login: {
+            usernamePlaceholder: "Email or username",
+            passwordPlaceholder: "Password",
+            button: "Login"
+		},
         welcome: {
             title: "Welcome to the Spiritual Guide Test",
             description1: "This test will help you discover your spiritual pattern by analyzing your answers to a set of questions.",
@@ -158,7 +163,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.6.2",
+            version: "spiritual-guide-v2.1.6",
             project: "Atlantis Platform"
 		},
 		music: {
@@ -186,24 +191,6 @@ const translations_en = {
 				resetConfirm: "Reset playlist to default tracks?",
 				saveSuccess: "Playlist saved successfully!",
 				resetSuccess: "Playlist reset to default!"
-			}
-		},
-		login: {
-			usernamePlaceholder: "Email or username",
-			passwordPlaceholder: "Password", 
-			button: "Login",
-			loggingIn: "Logging in...",
-			success: "Login successful!",
-			welcome: "Welcome",
-			logout: "Logout",
-			loggedOut: "You have been logged out successfully",
-			error: {
-				fillFields: "Please fill in all fields",
-				invalidCredentials: "Invalid username or password",
-				generic: "Login failed. Please try again.",
-				sessionExpired: "Session expired. Please log in again.",
-				sessionTimeout: "Session timed out for security. Please log in again.",
-				sessionCheckFailed: "Session verification failed"
 			}
 		}
 	}

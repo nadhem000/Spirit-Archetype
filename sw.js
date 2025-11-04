@@ -1,10 +1,9 @@
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.6.2'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.6.3'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
   '/offline.html',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   '/styles/main.css',
   '/scripts/data.js',
   '/scripts/i18n_en.js',
@@ -18,8 +17,6 @@ const FILES_TO_CACHE = [
   '/scripts/results.js',
   '/scripts/music.js',
   '/scripts/main.js',
-  '/scripts/supabase-config.js',
-  '/scripts/encryption-utils.js',
   '/manifest.json',
   '/assets/icons/icon-32x32.png',
   '/assets/icons/icon-72x72.png',
@@ -188,39 +185,4 @@ self.addEventListener('periodicsync', event => {
             }).catch(err => console.log('Periodic sync failed:', err))
         );
     }
-});
-
-// ===== SHARE TARGET HANDLING =====
-self.addEventListener('fetch', event => {
-  // Handle share target POST requests
-  if (event.request.method === 'POST') {
-    event.respondWith(
-      (async () => {
-        try {
-          const formData = await event.request.formData();
-          const file = formData.get('music');
-          
-          if (file) {
-            // Store the shared file in cache
-            const cache = await caches.open('shared-music-cache');
-            const fileName = `shared_${Date.now()}_${file.name}`;
-            const response = new Response(file, {
-              headers: { 'Content-Type': file.type }
-            });
-            
-            await cache.put(`/shared-music/${fileName}`, response);
-            
-            // Redirect to main app with file info
-            return Response.redirect(`/?sharedMusic=${fileName}`, 303);
-          }
-        } catch (error) {
-          console.error('Error handling share:', error);
-        }
-        
-        // Fallback: redirect to main app
-        return Response.redirect('/', 303);
-      })()
-    );
-    return;
-  }
 });

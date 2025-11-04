@@ -1357,7 +1357,7 @@ body::after {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .SC1-track-name {
@@ -1457,39 +1457,3 @@ body::after {
         flex-direction: column;
     }
 }
-
-.SC1-shared-badge {
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    background: var(--SC1-success-color);
-    color: white;
-    border-radius: 8px;
-    margin-top: 4px;
-    display: inline-block;
-}
-/* Login form styles */
-.SC1-login-form {
-    display: block;
-}
-
-.SC1-user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-}
-
-.SC1-logout-btn {
-    padding: 5px 10px;
-    background: #e53e3e;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.SC1-logout-btn:hover {
-    background: #c53030;
-}
-

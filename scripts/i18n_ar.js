@@ -17,6 +17,11 @@ const translations_ar = {
                 en: "English"
 			}
 		},
+        login: {
+            usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
+            passwordPlaceholder: "كلمة المرور",
+            button: "تسجيل الدخول"
+		},
         welcome: {
             title: "مرحباً بك في اختبار المرشد الروحي",
             description1: "هذا الاختبار سيساعدك على اكتشاف نمطك الروحي من خلال تحليل إجاباتك على مجموعة من الأسئلة.",
@@ -158,7 +163,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.6.2",
+            version: "spiritual-guide-v2.1.6",
             project: "منصة أطلانتس"
 		},
 		music: {
@@ -186,24 +191,6 @@ const translations_ar = {
 				resetConfirm: "هل تريد إعادة تعيين قائمة التشغيل إلى المقاطع الافتراضية؟",
 				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
 				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
-			}
-		},
-		login: {
-			usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
-			passwordPlaceholder: "كلمة المرور",
-			button: "تسجيل الدخول",
-			loggingIn: "جاري تسجيل الدخول...",
-			success: "تم تسجيل الدخول بنجاح!",
-			welcome: "مرحباً",
-			logout: "تسجيل الخروج",
-			loggedOut: "تم تسجيل الخروج بنجاح",
-			error: {
-				fillFields: "يرجى ملء جميع الحقول",
-				invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة",
-				generic: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
-				sessionExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
-				sessionTimeout: "انتهت مدة الجلسة لأسباب أمنية. يرجى تسجيل الدخول مرة أخرى.",
-				sessionCheckFailed: "فشل التحقق من الجلسة"
 			}
 		}
 	}
