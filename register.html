@@ -131,6 +131,9 @@
             text-decoration: underline;
         }
     </style>
+    
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="register-container">
@@ -168,9 +171,6 @@
         </div>
     </div>
 
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script>
         // Supabase configuration (same as main app)
         const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
@@ -262,6 +262,8 @@
                         registered_at: new Date().toISOString()
                     })
                 };
+                
+                console.log('Inserting user:', userData);
                 
                 // Insert into auth_users table
                 const { data, error } = await supabase
