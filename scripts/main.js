@@ -71,37 +71,6 @@ function initializeAppUI() {
     }, 800);
 }
 
-// Update the DOMContentLoaded event listener:
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded - Starting initialization');
-    
-    // Show loader immediately
-    if (window.SC1Loader) {
-        window.SC1Loader.showPreparing();
-    }
-
-    // Initialize settings modal first
-    initializeSettingsModal();
-    
-    // Initialize header icon functionality
-    initializeHeaderIcon();
-    
-    // Initialize navigation and language
-    initializeNavigation();
-    initializeLanguageButtons();
-    
-    // Use our new function to initialize everything
-    initializeAppUI();
-
-    // More aggressive safety net
-    setTimeout(() => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('Main safety net - forcing loader hide after 3 seconds');
-            window.SC1Loader.forceHide();
-        }
-    }, 3000);
-});
-
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
     // Reset state
@@ -157,7 +126,7 @@ function initializeHeaderIcon() {
     headerIcon.style.cursor = 'pointer';
 }
 
-// Initialize the application
+// Initialize the application - SINGLE DOMContentLoaded EVENT LISTENER
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Starting initialization');
     
@@ -178,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Use our new function to initialize everything
     initializeAppUI();
-    
+
     // Extended safety net - force hide loader after 5 seconds
     setTimeout(() => {
         if (window.SC1Loader && window.SC1Loader.isLoadingState) {
