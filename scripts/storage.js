@@ -61,31 +61,34 @@ function resumeTestFromSavedState() {
         userAnswers = savedAnswers;
         currentQuestionIndex = savedQuestionIndex;
         
-        // If we have completed answers (all questions answered)
+        // Check if all questions are answered (test completed)
         const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
         
-        if (allQuestionsAnswered && currentQuestionIndex >= questions.length) {
-            // Show results if test was completed
+        if (allQuestionsAnswered) {
+            // Test was completed - show results
             welcomeCard.classList.remove('SC1-active');
             questionCard.classList.remove('SC1-active');
             resultCard.classList.add('SC1-active');
             displayResult();
-		} 
+        } 
         // If we're in the middle of the test
         else if (currentQuestionIndex < questions.length) {
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
             displayQuestion(currentQuestionIndex);
-		}
-        // If we're at the end but have saved answers, show results
+        }
+        // If we're at the end but haven't completed all questions
         else if (currentQuestionIndex >= questions.length && hasSavedProgress) {
+            // This handles edge cases - show the last question
             welcomeCard.classList.remove('SC1-active');
-            questionCard.classList.remove('SC1-active');
-            resultCard.classList.add('SC1-active');
-            displayResult();
-		}
-	}
+            resultCard.classList.remove('SC1-active');
+            questionCard.classList.add('SC1-active');
+            // Make sure we don't go beyond the last question
+            currentQuestionIndex = Math.min(currentQuestionIndex, questions.length - 1);
+            displayQuestion(currentQuestionIndex);
+        }
+    }
 }
 
 // Generate a unique ID for saved results

@@ -163,7 +163,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.1.6",
+            version: "spiritual-guide-v2.6.4",
             project: "Atlantis Platform"
 		},
 		music: {
@@ -192,6 +192,11 @@ const translations_en = {
 				saveSuccess: "Playlist saved successfully!",
 				resetSuccess: "Playlist reset to default!"
 			}
+		},
+		loader: {
+			loading: "Loading Spiritual Guide...",
+			preparing: "Preparing your spiritual journey...",
+			almostReady: "Almost ready..."
 		}
 	}
 };

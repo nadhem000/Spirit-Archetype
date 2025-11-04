@@ -1,5 +1,7 @@
 // Main Application Logic - Spiritual Guide Test (Simplified)
 // Global variables
+// Loader element
+window.SC1Loader = null;
 window.STORAGE_KEYS = {
     LANGUAGE: 'spiritual-guide-language',
     ANSWERS: 'spiritual-guide-answers', 
@@ -53,11 +55,23 @@ let scores = { A: 0, B: 0, C: 0, D: 0 };
 
 // Function to initialize app UI
 function initializeAppUI() {
+    // Show loader during initialization
+    if (window.SC1Loader) {
+        window.SC1Loader.showPreparing();
+    }
+    
     updatePageDirection();
     applyTranslations();
     resumeTestFromSavedState();
     updateProgressBar();
     updateNavButtons();
+    
+    // Hide loader after a short delay to ensure everything is ready
+    setTimeout(() => {
+        if (window.SC1Loader) {
+            window.SC1Loader.hide();
+        }
+    }, 500);
 }
 
 // reset the test when header icon is clicked
@@ -117,6 +131,11 @@ function initializeHeaderIcon() {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
+    // Show loader immediately
+    if (window.SC1Loader) {
+        window.SC1Loader.show();
+    }
+
     // Initialize settings modal first
     initializeSettingsModal();
     

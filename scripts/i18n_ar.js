@@ -163,7 +163,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.1.6",
+            version: "spiritual-guide-v2.6.4",
             project: "منصة أطلانتس"
 		},
 		music: {
@@ -192,6 +192,11 @@ const translations_ar = {
 				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
 				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
 			}
+		},
+		loader: {
+			loading: "جاري تحميل المرشد الروحي...",
+			preparing: "جاري تحضير رحلتك الروحية...",
+			almostReady: "جاهز تقريباً..."
 		}
 	}
 };

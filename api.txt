@@ -17,6 +17,7 @@ site structure:
 │		├──navigation.js
 │		├──results.js
 │		├──music.js
+│		├──loader.js
 │		└──main.js
 └── styles/
 │   	└── main.css
@@ -47,6 +48,7 @@ FILE: navigation.js
 function initializeNavigation() {
     // Start button
     startBtn.addEventListener('click', () => {
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
         welcomeCard.classList.remove('SC1-active');
         questionCard.classList.add('SC1-active');
         displayQuestion(currentQuestionIndex);
@@ -55,48 +57,63 @@ function initializeNavigation() {
     });
     // Previous button
     prevBtn.addEventListener('click', () => {
-		if (currentQuestionIndex > 0) {
-			currentQuestionIndex--;
-			displayQuestion(currentQuestionIndex);
-		}
-	});
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            displayQuestion(currentQuestionIndex);
+        }
+    });
     // Next button
     nextBtn.addEventListener('click', () => {
-		if (currentQuestionIndex < questions.length - 1) {
-			// Save progress BEFORE moving to next question
-			saveTestProgress();
-			currentQuestionIndex++;
-			displayQuestion(currentQuestionIndex);
-			} else {
-			// Test completed - show results
-			// Save progress before showing results
-			saveTestProgress();
-			questionCard.classList.remove('SC1-active');
-			resultCard.classList.add('SC1-active');
-			displayResult();
-		}
-	});
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
+        if (currentQuestionIndex < questions.length - 1) {
+            // Save progress BEFORE moving to next question
+            saveTestProgress();
+            currentQuestionIndex++;
+            displayQuestion(currentQuestionIndex);
+        } else {
+            // Test completed - show results
+            // Save progress before showing results
+            saveTestProgress();
+            questionCard.classList.remove('SC1-active');
+            resultCard.classList.add('SC1-active');
+            displayResult();
+        }
+    });
     // Restart button
     restartBtn.addEventListener('click', () => {
-		// إعادة تعيين الحالة
-		currentQuestionIndex = 0;
-		userAnswers = Array(questions.length).fill(null);
-		scores = { A: 0, B: 0, C: 0, D: 0 };
-		// Clear saved progress ONLY when user explicitly restarts
-		localStorage.removeItem(STORAGE_KEYS.ANSWERS);
-		localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
-		// العودة إلى بطاقة الترحيب
-		resultCard.classList.remove('SC1-active');
-		welcomeCard.classList.add('SC1-active');
-		// إعادة تعيين شريط التقدم
-		updateProgressBar();
-		// تطبيق الترجمات
-		applyTranslations();
-	});
-	// Save Results button
-	saveResultsBtn.addEventListener('click', () => {
-		saveCurrentResults();
-	});
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
+        // Show loader during reset
+        if (window.SC1Loader) {
+            window.SC1Loader.showAlmostReady();
+        }
+        // إعادة تعيين الحالة
+        currentQuestionIndex = 0;
+        userAnswers = Array(questions.length).fill(null);
+        scores = { A: 0, B: 0, C: 0, D: 0 };
+        // Clear saved progress ONLY when user explicitly restarts
+        localStorage.removeItem(STORAGE_KEYS.ANSWERS);
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+        // العودة إلى بطاقة الترحيب
+        resultCard.classList.remove('SC1-active');
+        questionCard.classList.remove('SC1-active');
+        welcomeCard.classList.add('SC1-active');
+        // إعادة تعيين شريط التقدم
+        updateProgressBar();
+        // تطبيق الترجمات
+        applyTranslations();
+        // Hide loader after reset
+        setTimeout(() => {
+            if (window.SC1Loader) {
+                window.SC1Loader.hide();
+            }
+        }, 800);
+    });
+    // Save Results button
+    saveResultsBtn.addEventListener('click', () => {
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
+        saveCurrentResults();
+    });
 }
 // Initialize language buttons
 function initializeLanguageButtons() {
@@ -160,6 +177,8 @@ FILE: main.js
 =============
 // Main Application Logic - Spiritual Guide Test (Simplified)
 // Global variables
+// Loader element
+window.SC1Loader = null;
 window.STORAGE_KEYS = {
     LANGUAGE: 'spiritual-guide-language',
     ANSWERS: 'spiritual-guide-answers', 
@@ -207,13 +226,23 @@ let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
 let currentQuestionIndex = 0;
 let userAnswers = Array(questions.length).fill(null);
 let scores = { A: 0, B: 0, C: 0, D: 0 };
-// NEW: Function to initialize app UI (replaces duplicate code)
+// Function to initialize app UI
 function initializeAppUI() {
+    // Show loader during initialization
+    if (window.SC1Loader) {
+        window.SC1Loader.showPreparing();
+    }
     updatePageDirection();
     applyTranslations();
     resumeTestFromSavedState();
     updateProgressBar();
     updateNavButtons();
+    // Hide loader after a short delay to ensure everything is ready
+    setTimeout(() => {
+        if (window.SC1Loader) {
+            window.SC1Loader.hide();
+        }
+    }, 500);
 }
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
@@ -242,34 +271,37 @@ function initializeSettingsModal() {
     // Open modal
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.add('SC1-active');
-    });
+	});
     // Close modal
     modalClose.addEventListener('click', () => {
         settingsModal.classList.remove('SC1-active');
-    });
+	});
     // Close modal when clicking outside
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('SC1-active');
-        }
-    });
+		}
+	});
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
             settingsModal.classList.remove('SC1-active');
-        }
-    });
+		}
+	});
 }
 function initializeHeaderIcon() {
     headerIcon.addEventListener('click', () => {
         resetTestFromHeader();
-    });
+	});
     // Add hover effect to indicate it's clickable
     headerIcon.style.cursor = 'pointer';
 }
 // Initialize the application
-// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
+    // Show loader immediately
+    if (window.SC1Loader) {
+        window.SC1Loader.show();
+    }
     // Initialize settings modal first
     initializeSettingsModal();
     // Initialize header icon functionality
@@ -448,7 +480,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.1.6",
+            version: "spiritual-guide-v2.6.4",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -477,6 +509,11 @@ const translations_ar = {
 				saveSuccess: "تم حفظ قائمة التشغيل بنجاح!",
 				resetSuccess: "تم إعادة تعيين قائمة التشغيل إلى الافتراضي!"
 			}
+		},
+		loader: {
+			loading: "جاري تحميل المرشد الروحي...",
+			preparing: "جاري تحضير رحلتك الروحية...",
+			almostReady: "جاهز تقريباً..."
 		}
     }
 };
@@ -758,7 +795,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.1.6",
+            version: "spiritual-guide-v2.6.4",
             project: "Atlantis Platform"
         },
 		music: {
@@ -787,6 +824,11 @@ const translations_en = {
 				saveSuccess: "Playlist saved successfully!",
 				resetSuccess: "Playlist reset to default!"
 			}
+		},
+		loader: {
+			loading: "Loading Spiritual Guide...",
+			preparing: "Preparing your spiritual journey...",
+			almostReady: "Almost ready..."
 		}
     }
 };
@@ -847,10 +889,10 @@ function resumeTestFromSavedState() {
     if (hasSavedProgress) {
         userAnswers = savedAnswers;
         currentQuestionIndex = savedQuestionIndex;
-        // If we have completed answers (all questions answered)
+        // Check if all questions are answered (test completed)
         const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
-        if (allQuestionsAnswered && currentQuestionIndex >= questions.length) {
-            // Show results if test was completed
+        if (allQuestionsAnswered) {
+            // Test was completed - show results
             welcomeCard.classList.remove('SC1-active');
             questionCard.classList.remove('SC1-active');
             resultCard.classList.add('SC1-active');
@@ -863,12 +905,15 @@ function resumeTestFromSavedState() {
             questionCard.classList.add('SC1-active');
             displayQuestion(currentQuestionIndex);
         }
-        // If we're at the end but have saved answers, show results
+        // If we're at the end but haven't completed all questions
         else if (currentQuestionIndex >= questions.length && hasSavedProgress) {
+            // This handles edge cases - show the last question
             welcomeCard.classList.remove('SC1-active');
-            questionCard.classList.remove('SC1-active');
-            resultCard.classList.add('SC1-active');
-            displayResult();
+            resultCard.classList.remove('SC1-active');
+            questionCard.classList.add('SC1-active');
+            // Make sure we don't go beyond the last question
+            currentQuestionIndex = Math.min(currentQuestionIndex, questions.length - 1);
+            displayQuestion(currentQuestionIndex);
         }
     }
 }
@@ -1161,6 +1206,11 @@ FILE: index.html
 		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
 	</head>
 	<body>
+		<!-- Loader System -->
+		<div id="SC1-loader" class="SC1-loader">
+			<div class="SC1-loader-spinner"></div>
+			<p data-i18n="SC1.loader.loading">Loading Spiritual Guide...</p>
+		</div>
 		<div class="SC1-container">
 			<header class="SC1-header">
 				<div class="SC1-header-grid">
@@ -1224,7 +1274,6 @@ FILE: index.html
 					</div>
 				</div>
 			</div>
-
 			<!-- Playlist Management Modal -->
 			<div class="SC1-modal" id="SC1-playlist-modal">
 				<div class="SC1-modal-content">
@@ -1239,7 +1288,6 @@ FILE: index.html
 								<!-- Track list will be populated here by JavaScript -->
 							</div>
 						</div>
-						
 						<div class="SC1-playlist-actions">
 							<button class="SC1-button SC1-btn-secondary" id="SC1-reset-playlist-btn" data-i18n="SC1.music.playlistModal.resetToDefault">Reset to Default</button>
 							<button class="SC1-button SC1-btn-primary" id="SC1-save-playlist-btn" data-i18n="SC1.music.playlistModal.savePlaylist">Save Playlist</button>
@@ -1358,14 +1406,16 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.1.6</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.6.4</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
 <!-- Load PWA functionality FIRST -->
-<script src="scripts/pwa.js"></script>
-<!-- Then load other scripts -->
-<script src="scripts/data.js"></script>
+		<script src="scripts/pwa.js"></script>
+		<!-- Load loader system -->
+		<script src="scripts/loader.js"></script>
+		<!-- Then load other scripts -->
+		<script src="scripts/data.js"></script>
 <script src="scripts/i18n_en.js"></script>
 <script src="scripts/i18n_ar.js"></script>
 <script src="scripts/translations.js"></script>
@@ -1621,7 +1671,6 @@ FILE: pwa.js
 ================
 // pwa.js - Enhanced PWA functionality with Background Sync
 console.log('PWA script loaded');
-
 // Enhanced service worker registration
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -1629,14 +1678,12 @@ function registerServiceWorker() {
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                
                 // Register background sync if supported
                 if ('sync' in registration) {
                     registration.sync.register('background-sync')
                         .then(() => console.log('Background Sync registered'))
                         .catch(err => console.log('Background Sync registration failed:', err));
                 }
-                
                 return registration;
             })
             .catch(function(error) {
@@ -1644,7 +1691,6 @@ function registerServiceWorker() {
             });
     }
 }
-
 // Background Sync functionality
 async function registerBackgroundSync() {
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -1660,7 +1706,6 @@ async function registerBackgroundSync() {
     }
     return false;
 }
-
 // Push Notification permission
 async function requestNotificationPermission() {
     if ('Notification' in window && 'serviceWorker' in navigator) {
@@ -1676,7 +1721,6 @@ async function requestNotificationPermission() {
     }
     return false;
 }
-
 // Install Button Logic - FIXED VERSION
 function initializeInstallButton() {
     const installBtn = document.getElementById('SC1-install-btn');
@@ -1684,36 +1728,28 @@ function initializeInstallButton() {
         console.warn('Install button not found');
         return;
     }
-
     // Start with button hidden
     installBtn.style.display = 'none';
     let deferredPrompt;
-
     window.addEventListener('beforeinstallprompt', (e) => {
         console.log('beforeinstallprompt event fired');
         e.preventDefault();
         deferredPrompt = e;
-        
         // Show the install button
         installBtn.style.display = 'flex';
-        
         // Request notification permission when install prompt shows
         setTimeout(() => {
             requestNotificationPermission();
         }, 1000);
     });
-
     installBtn.addEventListener('click', async () => {
         if (!deferredPrompt) {
             console.log('No deferred prompt available');
             return;
         }
-        
         console.log('Showing install prompt');
         deferredPrompt.prompt();
-        
         const { outcome } = await deferredPrompt.userChoice;
-        
         console.log(`User ${outcome} the install prompt`);
         if (outcome === 'accepted') {
             installBtn.style.display = 'none';
@@ -1722,43 +1758,34 @@ function initializeInstallButton() {
                 registerBackgroundSync();
             }, 2000);
         }
-        
         deferredPrompt = null;
     });
-
     window.addEventListener('appinstalled', () => {
         console.log('PWA was installed');
         installBtn.style.display = 'none';
         deferredPrompt = null;
     });
 }
-
 // Enhanced initialization
 function initializePWA() {
     console.log('Initializing PWA with enhanced features...');
-    
     // Register service worker immediately
     registerServiceWorker();
-    
     // Initialize install button
     initializeInstallButton();
-    
     // Request notification permission after a delay
     setTimeout(() => {
         requestNotificationPermission();
     }, 3000);
-    
     // Register background sync when coming online
     window.addEventListener('online', () => {
         registerBackgroundSync();
     });
 }
-
 // Make functions available globally
 window.initializePWA = initializePWA;
 window.registerBackgroundSync = registerBackgroundSync;
 window.requestNotificationPermission = requestNotificationPermission;
-
 // Auto-initialize PWA when script loads
 document.addEventListener('DOMContentLoaded', function() {
     initializePWA();
@@ -1851,6 +1878,22 @@ class MusicPlayer {
             translate('SC1.music.tracks.track3')
         ];
     }
+    // Show notification for current track
+    showTrackNotification() {
+        let trackName = this.trackNames[this.currentTrack];
+        // Truncate long track names
+        if (trackName.length > 30) {
+            trackName = trackName.substring(0, 27) + '...';
+        }
+        const notificationMessage = `🎵 ${trackName}`;
+        // Use the existing notification system
+        if (window.showInfo) {
+            window.showInfo(notificationMessage, 3000); // Show for 3 seconds
+        } else {
+            // Fallback to console if notification system not available
+            console.log('Now playing:', trackName);
+        }
+    }
     togglePlay() {
         if (this.isPlaying) {
             this.pause();
@@ -1859,27 +1902,35 @@ class MusicPlayer {
         }
     }
     play() {
-        if (!this.audio) {
-            this.audio = new Audio(this.tracks[this.currentTrack]);
-            this.audio.volume = this.volume;
-            // When track ends, play next one
-            this.audio.addEventListener('ended', () => {
-                this.nextTrack();
-            });
-            // When metadata is loaded, update total time
-            this.audio.addEventListener('loadedmetadata', () => {
-                this.updateTime();
-            });
-        }
-        this.audio.play().then(() => {
-            this.isPlaying = true;
-            this.toggleBtn.classList.add('playing');
-            this.updateTrackInfo();
-        }).catch(error => {
-            console.error('Error playing audio:', error);
-            this.showError(translate('SC1.music.error'));
-        });
-    }
+		if (!this.audio) {
+			this.audio = new Audio(this.tracks[this.currentTrack]);
+			this.audio.volume = this.volume;
+			this.audio.addEventListener('ended', () => {
+				this.nextTrack();
+			});
+			this.audio.addEventListener('loadedmetadata', () => {
+				this.updateTime();
+			});
+			// Use a flag to prevent duplicate notifications
+			let notificationShown = false;
+			this.audio.addEventListener('canplaythrough', () => {
+				if (!notificationShown && this.isPlaying) {
+					this.showTrackNotification();
+					notificationShown = true;
+				}
+			});
+		}
+		this.audio.play().then(() => {
+			this.isPlaying = true;
+			this.toggleBtn.classList.add('playing');
+			this.updateTrackInfo();
+			this.dispatchTrackChange();
+			// Don't show notification here if using canplaythrough
+			}).catch(error => {
+			console.error('Error playing audio:', error);
+			this.showError(translate('SC1.music.error'));
+		});
+	}
     pause() {
         if (this.audio) {
             this.audio.pause();
@@ -1908,72 +1959,72 @@ class MusicPlayer {
         }
     }
     updateTrackInfo() {
-		if (this.isPlaying && this.audio) {
-			this.musicTitle.textContent = this.trackNames[this.currentTrack];
-			} else {
-			this.musicTitle.textContent = translate('SC1.music.noTrack');
-		}
-	}
+        if (this.isPlaying && this.audio) {
+            this.musicTitle.textContent = this.trackNames[this.currentTrack];
+        } else {
+            this.musicTitle.textContent = translate('SC1.music.noTrack');
+        }
+    }
     updateProgress() {
         if (this.audio && this.isPlaying && this.progressBar) {
             const progress = (this.audio.currentTime / this.audio.duration) * 100;
             this.progressBar.style.width = progress + '%';
-        }
-    }
+		}
+	}
     updateTime() {
         if (this.audio && this.currentTimeElement && this.totalTimeElement) {
             // Update current time
             const currentMinutes = Math.floor(this.audio.currentTime / 60);
             const currentSeconds = Math.floor(this.audio.currentTime % 60);
             this.currentTimeElement.textContent = 
-                `${currentMinutes}:${currentSeconds.toString().padStart(2, '0')}`;
+			`${currentMinutes}:${currentSeconds.toString().padStart(2, '0')}`;
             // Update total time
             if (this.audio.duration) {
                 const totalMinutes = Math.floor(this.audio.duration / 60);
                 const totalSeconds = Math.floor(this.audio.duration % 60);
                 this.totalTimeElement.textContent = 
-                    `${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`;
-            }
-        }
-    }
+				`${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`;
+			}
+		}
+	}
     seek(e) {
         if (this.audio && this.isPlaying) {
             const rect = this.progressContainer.getBoundingClientRect();
             const percent = (e.clientX - rect.left) / rect.width;
             this.audio.currentTime = percent * this.audio.duration;
-        }
-    }
+		}
+	}
     setVolume(volume) {
         this.volume = volume;
         if (this.audio) {
             this.audio.volume = volume;
-        }
+		}
         // Update the volume slider position
         this.volumeSlider.value = volume * 100;
         // Update volume icon based on volume level
         this.updateVolumeIcon();
-    }
+	}
     toggleMute() {
         if (this.volume > 0) {
             this.lastVolume = this.volume;
             this.setVolume(0);
-        } else {
+			} else {
             this.setVolume(this.lastVolume || 0.5);
-        }
-    }
+		}
+	}
     updateVolumeIcon() {
         if (this.volumeBtn) {
             let iconPath = '';
             if (this.volume === 0) {
                 iconPath = 'M3 9v6h4l5 5V4L7 9H3z';
-            } else if (this.volume < 0.5) {
+				} else if (this.volume < 0.5) {
                 iconPath = 'M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z';
-            } else {
+				} else {
                 iconPath = 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
-            }
+			}
             this.volumeBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="${iconPath}"/></svg>`;
-        }
-    }
+		}
+	}
     updateTrackNames() {
         this.trackNames = [
             translate('SC1.music.tracks.track1'),
@@ -1981,41 +2032,20 @@ class MusicPlayer {
             translate('SC1.music.tracks.track3')
         ];
     }
-    showError(message) {
-        const errorMessage = translate(message);
-        if (window.showError) {
-            window.showError(errorMessage);
-        } else {
-            console.error(errorMessage);
-        }
-    }
-
-    // method to update Track Names
-    updateTrackNames() {
-        this.trackNames = [
-            translate('SC1.music.tracks.track1'),
-            translate('SC1.music.tracks.track2'),
-            translate('SC1.music.tracks.track3')
-        ];
-    }
-
     // method to handle track changes properly
     changeTrack() {
         if (this.audio) {
             this.audio.pause();
             this.audio = null;
         }
-        
         if (this.isPlaying) {
             this.play();
         } else {
             this.updateTrackInfo();
         }
-        
         // Dispatch event for playlist modal to listen to
         this.dispatchTrackChange();
     }
-
     // Add event dispatching for track changes
     dispatchTrackChange() {
         const event = new CustomEvent('trackChanged', {
@@ -2027,7 +2057,6 @@ class MusicPlayer {
         document.dispatchEvent(event);
     }
 }
-
 // Playlist Modal Management
 class PlaylistModal {
     constructor(musicPlayer) {
@@ -2037,77 +2066,62 @@ class PlaylistModal {
         this.closeBtn = document.getElementById('SC1-playlist-modal-close');
         this.resetBtn = document.getElementById('SC1-reset-playlist-btn');
         this.saveBtn = document.getElementById('SC1-save-playlist-btn');
-        
         this.initializeEventListeners();
     }
-
     initializeEventListeners() {
         // Open modal when playlist button is clicked
         document.getElementById('SC1-playlist-btn').addEventListener('click', () => {
             this.open();
         });
-
         // Close modal
         this.closeBtn.addEventListener('click', () => {
             this.close();
         });
-
         // Close when clicking outside modal
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
                 this.close();
             }
         });
-
         // Close with Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal.classList.contains('SC1-active')) {
                 this.close();
             }
         });
-
         // Reset playlist button
         this.resetBtn.addEventListener('click', () => {
             this.resetToDefault();
         });
-
         // Save playlist button
         this.saveBtn.addEventListener('click', () => {
             this.savePlaylist();
         });
     }
-
     open() {
         this.modal.classList.add('SC1-active');
         this.renderTrackList();
     }
-
     close() {
         this.modal.classList.remove('SC1-active');
     }
-
     renderTrackList() {
         this.tracksContainer.innerHTML = '';
-        
         this.musicPlayer.tracks.forEach((trackPath, index) => {
             const trackElement = this.createTrackElement(trackPath, index);
             this.tracksContainer.appendChild(trackElement);
         });
     }
-
     createTrackElement(trackPath, index) {
         const trackDiv = document.createElement('div');
         trackDiv.className = 'SC1-playlist-track';
-        
         // Add active class if this is the current track
         if (index === this.musicPlayer.currentTrack) {
             trackDiv.classList.add('active');
         }
-
         // Extract filename from path for display
         const fileName = trackPath.split('/').pop();
         const trackName = this.musicPlayer.trackNames[index] || fileName;
-
         trackDiv.innerHTML = `
             <div class="SC1-track-info">
                 <div class="SC1-track-name">${trackName}</div>
@@ -2129,28 +2143,22 @@ class PlaylistModal {
                 </button>
             </div>
         `;
-
         // Add event listeners for the buttons
         const playBtn = trackDiv.querySelector('.SC1-track-play');
         const removeBtn = trackDiv.querySelector('.SC1-track-remove');
-
         playBtn.addEventListener('click', () => {
             this.playTrack(index);
         });
-
         removeBtn.addEventListener('click', () => {
             this.removeTrack(index);
         });
-
         return trackDiv;
     }
-
     getTrackDuration(index) {
         // This is a placeholder - in a real implementation, you'd load the audio file
         // and get its duration. For now, we'll return a placeholder.
         return '2:30'; // Placeholder duration
     }
-
     getTrackStatus(index) {
         if (index === this.musicPlayer.currentTrack && this.musicPlayer.isPlaying) {
             return translate('SC1.music.playlistModal.trackPlaying');
@@ -2160,39 +2168,46 @@ class PlaylistModal {
             return translate('SC1.music.playlistModal.trackStopped');
         }
     }
-
     playTrack(index) {
-        this.musicPlayer.currentTrack = index;
-        this.musicPlayer.changeTrack();
-        this.renderTrackList(); // Refresh to update status
-        this.close(); // Close modal after selecting track
-    }
-
+		// If clicking the same track that's already playing, just toggle play/pause
+		if (index === this.musicPlayer.currentTrack && this.musicPlayer.isPlaying) {
+			this.musicPlayer.pause();
+		} 
+		// If clicking a different track or current track is paused
+		else {
+			this.musicPlayer.currentTrack = index;
+			// Stop current audio if exists
+			if (this.musicPlayer.audio) {
+				this.musicPlayer.audio.pause();
+				this.musicPlayer.audio = null;
+			}
+			// Start playing the selected track
+			this.musicPlayer.isPlaying = true;
+			this.musicPlayer.play();
+		}
+		this.renderTrackList(); // Refresh to update status
+		this.close(); // Close modal after selecting track
+	}
     removeTrack(index) {
         // Don't remove if it's the last track
         if (this.musicPlayer.tracks.length <= 1) {
             showError('Cannot remove the last track');
             return;
         }
-
         // Remove track from arrays
         this.musicPlayer.tracks.splice(index, 1);
         this.musicPlayer.trackNames.splice(index, 1);
-
         // Adjust currentTrack index if needed
         if (this.musicPlayer.currentTrack >= index) {
             this.musicPlayer.currentTrack = Math.max(0, this.musicPlayer.currentTrack - 1);
         }
-
         // If we removed the currently playing track, change to the new current track
         if (index === this.musicPlayer.currentTrack) {
             this.musicPlayer.changeTrack();
         }
-
         this.renderTrackList();
         showSuccess('Track removed from playlist');
     }
-
     resetToDefault() {
         if (confirm(translate('SC1.music.playlistModal.resetConfirm'))) {
             // Reset to default tracks
@@ -2201,16 +2216,13 @@ class PlaylistModal {
                 'assets/musics/default/velvetkeys-zen-meditation-buddhist-1.mp3', 
                 'assets/musics/default/spiritualite-nature.mp3'
             ];
-            
             this.musicPlayer.updateTrackNames();
             this.musicPlayer.currentTrack = 0;
             this.musicPlayer.changeTrack();
             this.renderTrackList();
-            
             showSuccess(translate('SC1.music.playlistModal.resetSuccess'));
         }
     }
-
     savePlaylist() {
         // Save current playlist to localStorage
         const playlistData = {
@@ -2218,7 +2230,6 @@ class PlaylistModal {
             trackNames: this.musicPlayer.trackNames,
             lastSaved: new Date().toISOString()
         };
-        
         try {
             localStorage.setItem('SC1-music-playlist', JSON.stringify(playlistData));
             showSuccess(translate('SC1.music.playlistModal.saveSuccess'));
@@ -2226,7 +2237,6 @@ class PlaylistModal {
             showError('Failed to save playlist: ' + error.message);
         }
     }
-
     loadPlaylist() {
         // Load saved playlist from localStorage
         try {
@@ -2247,17 +2257,14 @@ class PlaylistModal {
 document.addEventListener('DOMContentLoaded', () => {
     window.musicPlayer = new MusicPlayer();
     window.playlistModal = new PlaylistModal(window.musicPlayer);
-    
     // Load saved playlist if available
     window.playlistModal.loadPlaylist();
-    
     // Listen for track changes to update the modal if it's open
     document.addEventListener('trackChanged', () => {
         if (window.playlistModal.modal.classList.contains('SC1-active')) {
             window.playlistModal.renderTrackList();
         }
     });
-    
     // Listen for language changes to update track names
     document.addEventListener('languageChanged', () => {
         window.musicPlayer.updateTrackNames();
@@ -2266,7 +2273,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
 // Make it available globally
 window.MusicPlayer = MusicPlayer;
 // Make playlist functions available globally
@@ -2275,13 +2281,11 @@ window.openPlaylistModal = function() {
         window.playlistModal.open();
     }
 };
-
 window.resetMusicPlaylist = function() {
     if (window.playlistModal) {
         window.playlistModal.resetToDefault();
     }
 };
-
 // Update the existing MusicPlayer instance to work with playlist
 if (window.musicPlayer) {
     // Override the updateTrackNames method to be accessible
@@ -2297,7 +2301,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.6.3'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.6.4'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2329,7 +2333,6 @@ const FILES_TO_CACHE = [
   '/assets/screenshots/screenshot-mobile_375x667.png',
   '/assets/screenshots/widget-screenshot-384x384.png'
 ];
-
 // Install event - cache essential files
 self.addEventListener('install', event => {
   console.log('Service Worker: Installing and caching files');
@@ -2342,7 +2345,6 @@ self.addEventListener('install', event => {
       .then(() => self.skipWaiting())
   );
 });
-
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
   console.log('Service Worker: Activated');
@@ -2359,12 +2361,10 @@ self.addEventListener('activate', event => {
     }).then(() => self.clients.claim())
   );
 });
-
 // Fetch event - Cache First with Network Fallback and Offline Support
 self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-  
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
@@ -2372,7 +2372,6 @@ self.addEventListener('fetch', event => {
         if (cachedResponse) {
           return cachedResponse;
         }
-
         // Not in cache - try network
         return fetch(event.request)
           .then(networkResponse => {
@@ -2388,12 +2387,10 @@ self.addEventListener('fetch', event => {
           })
           .catch(error => {
             console.log('Network failed, serving offline content:', error);
-            
             // 🔑 CRITICAL: Provide offline fallback for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('/offline.html');
             }
-            
             // For other requests (CSS, JS, images), try cache again
             return caches.match(event.request)
               .then(cachedResource => {
@@ -2410,13 +2407,10 @@ self.addEventListener('fetch', event => {
       })
   );
 });
-
 // ===== BACKGROUND SYNC CAPABILITIES =====
-
 // Push Notifications
 self.addEventListener('push', (event) => {
     console.log('Push notification received');
-    
     const options = {
         body: 'New spiritual insights available!',
         icon: '/assets/icons/icon-72x72.png',
@@ -2426,17 +2420,14 @@ self.addEventListener('push', (event) => {
             url: '/' // URL to open when notification is clicked
         }
     };
-
     event.waitUntil(
         self.registration.showNotification('Spiritual Guide', options)
     );
 });
-
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
     console.log('Notification clicked');
     event.notification.close();
-    
     event.waitUntil(
         clients.matchAll({type: 'window'}).then(windowClients => {
             // Check if app is already open
@@ -2452,11 +2443,9 @@ self.addEventListener('notificationclick', (event) => {
         })
     );
 });
-
 // Background Sync - for when app goes online after being offline
 self.addEventListener('sync', event => {
     console.log('Background Sync event:', event.tag);
-    
     if (event.tag === 'background-sync') {
         event.waitUntil(
             // This is where  would sync data with server
@@ -2469,11 +2458,9 @@ self.addEventListener('sync', event => {
         );
     }
 });
-
 // Periodic Background Sync - for regular updates
 self.addEventListener('periodicsync', event => {
     console.log('Periodic Sync event:', event.tag);
-    
     if (event.tag === 'content-update') {
         event.waitUntil(
             // This would fetch fresh content periodically
@@ -2493,21 +2480,18 @@ FILE: netlify.toml
   from = "/*"
   to = "/index.html"
   status = 200
-
 # CRITICAL: Service Worker Headers
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
-
 # Manifest headers
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
     Cache-Control = "public, max-age=3600"
-
 # 🔑 Headers for offline page
 [[headers]]
   for = "/offline.html"
@@ -2611,4 +2595,135 @@ FILE: offline.html
     </div>
 </body>
 </html>
+=====================
+FILE: scripts/loader.js
+================
+// loader.js - Enhanced Loader System for Spiritual Guide
+class LoaderSystem {
+    constructor() {
+        this.loader = null;
+        this.isLoading = false;
+        this.minimumDisplayTime = 1000; // Minimum 1 second to prevent flash
+        this.startTime = null;
+        this.initializeLoader();
+    }
+    initializeLoader() {
+        // Create loader if it doesn't exist
+        if (!document.getElementById('SC1-loader')) {
+            const loaderHTML = `
+                <div id="SC1-loader" class="SC1-loader">
+                    <div class="SC1-loader-spinner"></div>
+                    <p data-i18n="SC1.loader.loading">Loading Spiritual Guide...</p>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('afterbegin', loaderHTML);
+        }
+        this.loader = document.getElementById('SC1-loader');
+        this.bindEvents();
+    }
+    bindEvents() {
+        // Prevent clicks on loader
+        this.loader.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        // Show loader when page starts loading
+        window.addEventListener('beforeunload', () => {
+            this.show();
+        });
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.show(); // Show loader when tab becomes inactive
+            }
+        });
+    }
+    show(message = null) {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        this.startTime = Date.now();
+        // Update message if provided
+        if (message && this.loader) {
+            const messageElement = this.loader.querySelector('p');
+            if (messageElement) {
+                messageElement.textContent = message;
+            }
+        }
+        // Show loader and disable interactions
+        if (this.loader) {
+            this.loader.classList.remove('hidden');
+            document.body.classList.add('SC1-loading');
+        }
+    }
+    hide() {
+        if (!this.isLoading) return;
+        const elapsed = Date.now() - this.startTime;
+        const remainingTime = Math.max(0, this.minimumDisplayTime - elapsed);
+        setTimeout(() => {
+            if (this.loader) {
+                this.loader.classList.add('hidden');
+                document.body.classList.remove('SC1-loading');
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    if (this.loader && this.loader.parentNode) {
+                        this.loader.parentNode.removeChild(this.loader);
+                    }
+                }, 300);
+            }
+            this.isLoading = false;
+            this.startTime = null;
+        }, remainingTime);
+    }
+    // Show loader with different states
+    showPreparing() {
+        this.show(translate('SC1.loader.preparing'));
+    }
+    showAlmostReady() {
+        this.show(translate('SC1.loader.almostReady'));
+    }
+    // Force hide (for emergency cases)
+    forceHide() {
+        if (this.loader) {
+            this.loader.classList.add('hidden');
+            document.body.classList.remove('SC1-loading');
+            setTimeout(() => {
+                if (this.loader && this.loader.parentNode) {
+                    this.loader.parentNode.removeChild(this.loader);
+                }
+            }, 300);
+        }
+        this.isLoading = false;
+        this.startTime = null;
+    }
+    // Check if currently loading
+    get isLoadingState() {
+        return this.isLoading;
+    }
+}
+// Create global instance
+window.SC1Loader = new LoaderSystem();
+// Make functions available globally
+window.showLoader = function(message) {
+    return window.SC1Loader.show(message);
+};
+window.hideLoader = function() {
+    return window.SC1Loader.hide();
+};
+window.forceHideLoader = function() {
+    return window.SC1Loader.forceHide();
+};
+// Error boundary for loader
+window.addEventListener('error', (event) => {
+    console.error('Loader error:', event.error);
+    if (window.SC1Loader) {
+        window.SC1Loader.forceHide();
+    }
+});
+// Handle unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Loader unhandled rejection:', event.reason);
+    if (window.SC1Loader) {
+        window.SC1Loader.forceHide();
+    }
+});
 [file content end]
