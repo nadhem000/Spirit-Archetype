@@ -53,8 +53,17 @@ let currentQuestionIndex = 0;
 let userAnswers = Array(questions.length).fill(null);
 let scores = { A: 0, B: 0, C: 0, D: 0 };
 
+// Track initialization state to prevent duplicates
+let isInitializing = false;
+let initializationComplete = false;
+
 // Function to initialize app UI
 function initializeAppUI() {
+    if (initializationComplete) {
+        console.log('App already initialized, skipping');
+        return;
+    }
+    
     console.log('Initializing app UI...');
     updatePageDirection();
     applyTranslations();
@@ -62,13 +71,16 @@ function initializeAppUI() {
     updateProgressBar();
     updateNavButtons();
     
-    // Use a more reliable approach to hide loader
+    // Mark initialization as complete
+    initializationComplete = true;
+    
+    // Hide loader after a short delay to ensure everything is ready
     setTimeout(() => {
         if (window.SC1Loader) {
-            console.log('Hiding loader from initializeAppUI - final attempt');
+            console.log('Hiding loader - initialization complete');
             window.SC1Loader.hide();
         }
-    }, 800);
+    }, 600);
 }
 
 // reset the test when header icon is clicked
@@ -126,33 +138,35 @@ function initializeHeaderIcon() {
     headerIcon.style.cursor = 'pointer';
 }
 
-// Initialize the application - SINGLE DOMContentLoaded EVENT LISTENER
-document.addEventListener('DOMContentLoaded', () => {
+// SINGLE DOMContentLoaded event listener
+document.addEventListener('DOMContentLoaded', function() {
+    if (isInitializing) {
+        console.log('Initialization already in progress, skipping');
+        return;
+    }
+    
+    isInitializing = true;
     console.log('DOM Content Loaded - Starting initialization');
     
-    // Show loader immediately but only once
+    // Show loader immediately
     if (window.SC1Loader) {
         window.SC1Loader.showPreparing();
     }
 
-    // Initialize settings modal first
+    // Initialize core functionality
     initializeSettingsModal();
-    
-    // Initialize header icon functionality
     initializeHeaderIcon();
-    
-    // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
     
-    // Use our new function to initialize everything
+    // Initialize the main UI
     initializeAppUI();
 
-    // Extended safety net - force hide loader after 5 seconds
+    // Final safety net - force hide loader after 4 seconds
     setTimeout(() => {
         if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('Safety net - forcing loader hide after 5 seconds');
+            console.log('Final safety net - forcing loader hide');
             window.SC1Loader.forceHide();
         }
-    }, 5000);
+    }, 4000);
 });

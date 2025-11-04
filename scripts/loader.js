@@ -3,9 +3,10 @@ class LoaderSystem {
     constructor() {
         this.loader = null;
         this.isLoading = false;
-        this.minimumDisplayTime = 800;
+        this.minimumDisplayTime = 600; // Reduced to 600ms
         this.startTime = null;
         this.safetyTimeout = null;
+        this.hideTimeout = null;
         this.initializeLoader();
     }
 
@@ -22,24 +23,6 @@ class LoaderSystem {
         }
         this.loader = document.getElementById('SC1-loader');
         this.bindEvents();
-        
-        // Set up safety timeout
-        this.setupSafetyTimeout();
-    }
-
-    setupSafetyTimeout() {
-        // Clear any existing safety timeout
-        if (this.safetyTimeout) {
-            clearTimeout(this.safetyTimeout);
-        }
-        
-        // Extended safety mechanism - hide after 8 seconds no matter what
-        this.safetyTimeout = setTimeout(() => {
-            if (this.isLoading) {
-                console.warn('Loader safety timeout triggered - forcing hide after 8 seconds');
-                this.forceHide();
-            }
-        }, 8000);
     }
 
     bindEvents() {
@@ -55,7 +38,7 @@ class LoaderSystem {
         window.addEventListener('load', () => {
             console.log('Window load event - checking if loader should be hidden');
             if (this.isLoading) {
-                console.log('Window loaded and loader is still showing - hiding now');
+                console.log('Window loaded - hiding loader');
                 this.hide();
             }
         });
@@ -64,10 +47,8 @@ class LoaderSystem {
     show(message = null) {
         console.log('Loader: Showing with message:', message);
         
-        // Clear any existing safety timeout
-        if (this.safetyTimeout) {
-            clearTimeout(this.safetyTimeout);
-        }
+        // Clear any existing timeouts
+        this.clearTimeouts();
 
         this.isLoading = true;
         this.startTime = Date.now();
@@ -87,8 +68,13 @@ class LoaderSystem {
             document.body.classList.add('SC1-loading');
         }
 
-        // Reset safety timeout
-        this.setupSafetyTimeout();
+        // Set up safety timeout (6 seconds)
+        this.safetyTimeout = setTimeout(() => {
+            if (this.isLoading) {
+                console.warn('Loader safety timeout triggered - forcing hide');
+                this.forceHide();
+            }
+        }, 6000);
     }
 
     hide() {
@@ -102,7 +88,12 @@ class LoaderSystem {
         
         console.log(`Loader: Hiding in ${remainingTime}ms (elapsed: ${elapsed}ms)`);
 
-        setTimeout(() => {
+        // Clear any pending hide timeout
+        if (this.hideTimeout) {
+            clearTimeout(this.hideTimeout);
+        }
+
+        this.hideTimeout = setTimeout(() => {
             this.executeHide();
         }, remainingTime);
     }
@@ -127,14 +118,20 @@ class LoaderSystem {
         
         this.isLoading = false;
         this.startTime = null;
+        this.clearTimeouts();
         
-        // Clear safety timeout
+        console.log('Loader: Hidden successfully');
+    }
+
+    clearTimeouts() {
         if (this.safetyTimeout) {
             clearTimeout(this.safetyTimeout);
             this.safetyTimeout = null;
         }
-        
-        console.log('Loader: Hidden successfully');
+        if (this.hideTimeout) {
+            clearTimeout(this.hideTimeout);
+            this.hideTimeout = null;
+        }
     }
 
     // Show loader with different states
@@ -149,6 +146,7 @@ class LoaderSystem {
     // Force hide (for emergency cases)
     forceHide() {
         console.log('Loader: Force hiding loader');
+        this.clearTimeouts();
         this.executeHide();
     }
 
@@ -190,15 +188,5 @@ window.addEventListener('unhandledrejection', (event) => {
     }
 });
 
-// Ensure loader hides when DOM is fully ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded - setting up loader safety');
-    
-    // Additional safety: hide loader if everything seems ready
-    setTimeout(() => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('DOM loaded safety check - forcing loader hide');
-            window.SC1Loader.forceHide();
-        }
-    }, 3000);
-});
+// Remove the duplicate DOMContentLoaded event listener from loader.js
+// This prevents multiple initialization calls
