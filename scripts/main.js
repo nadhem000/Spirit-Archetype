@@ -22,7 +22,7 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI; // NEW: Added this line
+window.initializeAppUI = initializeAppUI;
 
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
@@ -55,10 +55,7 @@ let scores = { A: 0, B: 0, C: 0, D: 0 };
 
 // Function to initialize app UI
 function initializeAppUI() {
-    // Show loader during initialization
-    if (window.SC1Loader) {
-        window.SC1Loader.showPreparing();
-    }
+    console.log('Initializing app UI...');
     
     updatePageDirection();
     applyTranslations();
@@ -69,9 +66,10 @@ function initializeAppUI() {
     // Hide loader after ensuring everything is ready
     setTimeout(() => {
         if (window.SC1Loader) {
+            console.log('Hiding loader from initializeAppUI');
             window.SC1Loader.hide();
         }
-    }, 800);
+    }, 600);
 }
 
 // reset the test when header icon is clicked
@@ -102,38 +100,40 @@ function initializeSettingsModal() {
     // Open modal
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.add('SC1-active');
-	});
+    });
     // Close modal
     modalClose.addEventListener('click', () => {
         settingsModal.classList.remove('SC1-active');
-	});
+    });
     // Close modal when clicking outside
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('SC1-active');
-		}
-	});
+        }
+    });
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
             settingsModal.classList.remove('SC1-active');
-		}
-	});
+        }
+    });
 }
 
 function initializeHeaderIcon() {
     headerIcon.addEventListener('click', () => {
         resetTestFromHeader();
-	});
+    });
     // Add hover effect to indicate it's clickable
     headerIcon.style.cursor = 'pointer';
 }
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    // Show loader immediately
+    console.log('DOM Content Loaded - Starting initialization');
+    
+    // Show loader immediately but only once
     if (window.SC1Loader) {
-        window.SC1Loader.show();
+        window.SC1Loader.showPreparing();
     }
 
     // Initialize settings modal first
@@ -149,11 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use our new function to initialize everything
     initializeAppUI();
     
-    // Safety net - force hide loader after 3 seconds
+    // Extended safety net - force hide loader after 5 seconds
     setTimeout(() => {
         if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('Safety net - forcing loader hide');
+            console.log('Safety net - forcing loader hide after 5 seconds');
             window.SC1Loader.forceHide();
         }
-    }, 3000);
+    }, 5000);
 });

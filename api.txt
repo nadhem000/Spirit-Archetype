@@ -198,7 +198,7 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI; // NEW: Added this line
+window.initializeAppUI = initializeAppUI;
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
 window.welcomeCard = document.getElementById('SC1-welcome-card');
@@ -228,23 +228,19 @@ let userAnswers = Array(questions.length).fill(null);
 let scores = { A: 0, B: 0, C: 0, D: 0 };
 // Function to initialize app UI
 function initializeAppUI() {
-    // Show loader during initialization
-    if (window.SC1Loader) {
-        window.SC1Loader.showPreparing();
-    }
-    
+    console.log('Initializing app UI...');
     updatePageDirection();
     applyTranslations();
     resumeTestFromSavedState();
     updateProgressBar();
     updateNavButtons();
-    
     // Hide loader after ensuring everything is ready
     setTimeout(() => {
         if (window.SC1Loader) {
+            console.log('Hiding loader from initializeAppUI');
             window.SC1Loader.hide();
         }
-    }, 800);
+    }, 600);
 }
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
@@ -273,58 +269,54 @@ function initializeSettingsModal() {
     // Open modal
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.add('SC1-active');
-	});
+    });
     // Close modal
     modalClose.addEventListener('click', () => {
         settingsModal.classList.remove('SC1-active');
-	});
+    });
     // Close modal when clicking outside
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('SC1-active');
-		}
-	});
+        }
+    });
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && settingsModal.classList.contains('SC1-active')) {
             settingsModal.classList.remove('SC1-active');
-		}
-	});
+        }
+    });
 }
 function initializeHeaderIcon() {
     headerIcon.addEventListener('click', () => {
         resetTestFromHeader();
-	});
+    });
     // Add hover effect to indicate it's clickable
     headerIcon.style.cursor = 'pointer';
 }
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    // Show loader immediately
+    console.log('DOM Content Loaded - Starting initialization');
+    // Show loader immediately but only once
     if (window.SC1Loader) {
-        window.SC1Loader.show();
+        window.SC1Loader.showPreparing();
     }
-
     // Initialize settings modal first
     initializeSettingsModal();
-    
     // Initialize header icon functionality
     initializeHeaderIcon();
-    
     // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
-    
     // Use our new function to initialize everything
     initializeAppUI();
-    
-    // Safety net - force hide loader after 3 seconds
+    // Extended safety net - force hide loader after 5 seconds
     setTimeout(() => {
         if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('Safety net - forcing loader hide');
+            console.log('Safety net - forcing loader hide after 5 seconds');
             window.SC1Loader.forceHide();
         }
-    }, 3000);
+    }, 5000);
 });
 =====================
 FILE: i18n_ar.js
@@ -494,7 +486,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.6.5",
+            version: "spiritual-guide-v2.6.6",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -809,7 +801,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.6.5",
+            version: "spiritual-guide-v2.6.6",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1420,7 +1412,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.6.5</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.6.6</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2315,7 +2307,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.6.5'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.6.6'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2617,7 +2609,7 @@ class LoaderSystem {
     constructor() {
         this.loader = null;
         this.isLoading = false;
-        this.minimumDisplayTime = 800; // Reduced to 800ms for better UX
+        this.minimumDisplayTime = 800;
         this.startTime = null;
         this.safetyTimeout = null;
         this.initializeLoader();
@@ -2635,13 +2627,13 @@ class LoaderSystem {
         }
         this.loader = document.getElementById('SC1-loader');
         this.bindEvents();
-        // Auto-hide safety mechanism
+        // Extended safety mechanism
         this.safetyTimeout = setTimeout(() => {
             if (this.isLoading) {
-                console.warn('Loader safety timeout triggered - forcing hide');
+                console.warn('Loader safety timeout triggered - forcing hide after 8 seconds');
                 this.forceHide();
             }
-        }, 5000); // Force hide after 5 seconds max
+        }, 8000);
     }
     bindEvents() {
         // Prevent clicks on loader
@@ -2651,27 +2643,22 @@ class LoaderSystem {
                 e.stopPropagation();
             });
         }
-        // Show loader when page starts loading
-        window.addEventListener('beforeunload', () => {
-            this.show();
-        });
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.show();
-            }
-        });
         // Listen for when all resources are loaded
         window.addEventListener('load', () => {
+            console.log('Window load event - hiding loader');
             setTimeout(() => {
                 this.hide();
             }, 300);
         });
     }
     show(message = null) {
-        if (this.isLoading) return;
+        if (this.isLoading) {
+            console.log('Loader already showing, skipping');
+            return;
+        }
         this.isLoading = true;
         this.startTime = Date.now();
+        console.log('Showing loader:', message);
         // Clear any existing safety timeout
         if (this.safetyTimeout) {
             clearTimeout(this.safetyTimeout);
@@ -2689,11 +2676,22 @@ class LoaderSystem {
             this.loader.style.display = 'flex';
             document.body.classList.add('SC1-loading');
         }
+        // Reset safety timeout
+        this.safetyTimeout = setTimeout(() => {
+            if (this.isLoading) {
+                console.warn('Loader safety timeout - forcing hide');
+                this.forceHide();
+            }
+        }, 8000);
     }
     hide() {
-        if (!this.isLoading) return;
+        if (!this.isLoading) {
+            console.log('Loader not loading, skipping hide');
+            return;
+        }
         const elapsed = Date.now() - this.startTime;
         const remainingTime = Math.max(0, this.minimumDisplayTime - elapsed);
+        console.log(`Hiding loader in ${remainingTime}ms (elapsed: ${elapsed}ms)`);
         setTimeout(() => {
             if (this.loader) {
                 this.loader.classList.add('hidden');
@@ -2711,6 +2709,7 @@ class LoaderSystem {
                 clearTimeout(this.safetyTimeout);
                 this.safetyTimeout = null;
             }
+            console.log('Loader hidden successfully');
         }, remainingTime);
     }
     // Show loader with different states
@@ -2722,6 +2721,7 @@ class LoaderSystem {
     }
     // Force hide (for emergency cases)
     forceHide() {
+        console.log('Force hiding loader');
         if (this.loader) {
             this.loader.classList.add('hidden');
             setTimeout(() => {
@@ -2772,12 +2772,13 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 // Ensure loader hides when DOM is fully ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded - setting up loader safety');
     // Set a safety timeout to hide loader
     setTimeout(() => {
         if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('DOM loaded - forcing loader hide');
+            console.log('DOM loaded safety - forcing loader hide');
             window.SC1Loader.forceHide();
         }
-    }, 3000);
+    }, 5000);
 });
 [file content end]

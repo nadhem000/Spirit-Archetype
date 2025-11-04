@@ -3,7 +3,7 @@ class LoaderSystem {
     constructor() {
         this.loader = null;
         this.isLoading = false;
-        this.minimumDisplayTime = 800; // Reduced to 800ms for better UX
+        this.minimumDisplayTime = 800;
         this.startTime = null;
         this.safetyTimeout = null;
         this.initializeLoader();
@@ -23,13 +23,13 @@ class LoaderSystem {
         this.loader = document.getElementById('SC1-loader');
         this.bindEvents();
         
-        // Auto-hide safety mechanism
+        // Extended safety mechanism
         this.safetyTimeout = setTimeout(() => {
             if (this.isLoading) {
-                console.warn('Loader safety timeout triggered - forcing hide');
+                console.warn('Loader safety timeout triggered - forcing hide after 8 seconds');
                 this.forceHide();
             }
-        }, 5000); // Force hide after 5 seconds max
+        }, 8000);
     }
 
     bindEvents() {
@@ -41,20 +41,9 @@ class LoaderSystem {
             });
         }
 
-        // Show loader when page starts loading
-        window.addEventListener('beforeunload', () => {
-            this.show();
-        });
-
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.show();
-            }
-        });
-
         // Listen for when all resources are loaded
         window.addEventListener('load', () => {
+            console.log('Window load event - hiding loader');
             setTimeout(() => {
                 this.hide();
             }, 300);
@@ -62,10 +51,14 @@ class LoaderSystem {
     }
 
     show(message = null) {
-        if (this.isLoading) return;
+        if (this.isLoading) {
+            console.log('Loader already showing, skipping');
+            return;
+        }
         
         this.isLoading = true;
         this.startTime = Date.now();
+        console.log('Showing loader:', message);
         
         // Clear any existing safety timeout
         if (this.safetyTimeout) {
@@ -86,13 +79,26 @@ class LoaderSystem {
             this.loader.style.display = 'flex';
             document.body.classList.add('SC1-loading');
         }
+
+        // Reset safety timeout
+        this.safetyTimeout = setTimeout(() => {
+            if (this.isLoading) {
+                console.warn('Loader safety timeout - forcing hide');
+                this.forceHide();
+            }
+        }, 8000);
     }
 
     hide() {
-        if (!this.isLoading) return;
+        if (!this.isLoading) {
+            console.log('Loader not loading, skipping hide');
+            return;
+        }
         
         const elapsed = Date.now() - this.startTime;
         const remainingTime = Math.max(0, this.minimumDisplayTime - elapsed);
+        
+        console.log(`Hiding loader in ${remainingTime}ms (elapsed: ${elapsed}ms)`);
         
         setTimeout(() => {
             if (this.loader) {
@@ -112,6 +118,8 @@ class LoaderSystem {
                 clearTimeout(this.safetyTimeout);
                 this.safetyTimeout = null;
             }
+            
+            console.log('Loader hidden successfully');
         }, remainingTime);
     }
 
@@ -126,6 +134,7 @@ class LoaderSystem {
 
     // Force hide (for emergency cases)
     forceHide() {
+        console.log('Force hiding loader');
         if (this.loader) {
             this.loader.classList.add('hidden');
             setTimeout(() => {
@@ -185,11 +194,13 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Ensure loader hides when DOM is fully ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded - setting up loader safety');
+    
     // Set a safety timeout to hide loader
     setTimeout(() => {
         if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('DOM loaded - forcing loader hide');
+            console.log('DOM loaded safety - forcing loader hide');
             window.SC1Loader.forceHide();
         }
-    }, 3000);
+    }, 5000);
 });
