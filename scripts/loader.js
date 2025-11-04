@@ -3,8 +3,9 @@ class LoaderSystem {
     constructor() {
         this.loader = null;
         this.isLoading = false;
-        this.minimumDisplayTime = 1000; // Minimum 1 second to prevent flash
+        this.minimumDisplayTime = 800; // Reduced to 800ms for better UX
         this.startTime = null;
+        this.safetyTimeout = null;
         this.initializeLoader();
     }
 
@@ -19,17 +20,26 @@ class LoaderSystem {
             `;
             document.body.insertAdjacentHTML('afterbegin', loaderHTML);
         }
-        
         this.loader = document.getElementById('SC1-loader');
         this.bindEvents();
+        
+        // Auto-hide safety mechanism
+        this.safetyTimeout = setTimeout(() => {
+            if (this.isLoading) {
+                console.warn('Loader safety timeout triggered - forcing hide');
+                this.forceHide();
+            }
+        }, 5000); // Force hide after 5 seconds max
     }
 
     bindEvents() {
         // Prevent clicks on loader
-        this.loader.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        });
+        if (this.loader) {
+            this.loader.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        }
 
         // Show loader when page starts loading
         window.addEventListener('beforeunload', () => {
@@ -39,8 +49,15 @@ class LoaderSystem {
         // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                this.show(); // Show loader when tab becomes inactive
+                this.show();
             }
+        });
+
+        // Listen for when all resources are loaded
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                this.hide();
+            }, 300);
         });
     }
 
@@ -50,6 +67,11 @@ class LoaderSystem {
         this.isLoading = true;
         this.startTime = Date.now();
         
+        // Clear any existing safety timeout
+        if (this.safetyTimeout) {
+            clearTimeout(this.safetyTimeout);
+        }
+
         // Update message if provided
         if (message && this.loader) {
             const messageElement = this.loader.querySelector('p');
@@ -57,35 +79,39 @@ class LoaderSystem {
                 messageElement.textContent = message;
             }
         }
-        
+
         // Show loader and disable interactions
         if (this.loader) {
             this.loader.classList.remove('hidden');
+            this.loader.style.display = 'flex';
             document.body.classList.add('SC1-loading');
         }
     }
 
     hide() {
         if (!this.isLoading) return;
-
+        
         const elapsed = Date.now() - this.startTime;
         const remainingTime = Math.max(0, this.minimumDisplayTime - elapsed);
-
+        
         setTimeout(() => {
             if (this.loader) {
                 this.loader.classList.add('hidden');
-                document.body.classList.remove('SC1-loading');
-                
-                // Remove from DOM after animation
                 setTimeout(() => {
-                    if (this.loader && this.loader.parentNode) {
-                        this.loader.parentNode.removeChild(this.loader);
+                    if (this.loader) {
+                        this.loader.style.display = 'none';
                     }
                 }, 300);
+                document.body.classList.remove('SC1-loading');
             }
-            
             this.isLoading = false;
             this.startTime = null;
+            
+            // Clear safety timeout
+            if (this.safetyTimeout) {
+                clearTimeout(this.safetyTimeout);
+                this.safetyTimeout = null;
+            }
         }, remainingTime);
     }
 
@@ -102,16 +128,21 @@ class LoaderSystem {
     forceHide() {
         if (this.loader) {
             this.loader.classList.add('hidden');
-            document.body.classList.remove('SC1-loading');
-            
             setTimeout(() => {
-                if (this.loader && this.loader.parentNode) {
-                    this.loader.parentNode.removeChild(this.loader);
+                if (this.loader) {
+                    this.loader.style.display = 'none';
                 }
             }, 300);
+            document.body.classList.remove('SC1-loading');
         }
         this.isLoading = false;
         this.startTime = null;
+        
+        // Clear safety timeout
+        if (this.safetyTimeout) {
+            clearTimeout(this.safetyTimeout);
+            this.safetyTimeout = null;
+        }
     }
 
     // Check if currently loading
@@ -136,9 +167,9 @@ window.forceHideLoader = function() {
     return window.SC1Loader.forceHide();
 };
 
-// Error boundary for loader
+// Enhanced error handling
 window.addEventListener('error', (event) => {
-    console.error('Loader error:', event.error);
+    console.error('Global error:', event.error);
     if (window.SC1Loader) {
         window.SC1Loader.forceHide();
     }
@@ -146,8 +177,19 @@ window.addEventListener('error', (event) => {
 
 // Handle unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-    console.error('Loader unhandled rejection:', event.reason);
+    console.error('Unhandled rejection:', event.reason);
     if (window.SC1Loader) {
         window.SC1Loader.forceHide();
     }
+});
+
+// Ensure loader hides when DOM is fully ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Set a safety timeout to hide loader
+    setTimeout(() => {
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) {
+            console.log('DOM loaded - forcing loader hide');
+            window.SC1Loader.forceHide();
+        }
+    }, 3000);
 });

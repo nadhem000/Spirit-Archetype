@@ -1475,9 +1475,9 @@ body::after {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-
 .SC1-loader.hidden {
     opacity: 0;
+    pointer-events: none;
     visibility: hidden;
 }
 
@@ -1504,6 +1504,10 @@ body::after {
 }
 
 /* Disable interactions when loading */
+.SC1-loading {
+    overflow: hidden;
+}
+
 .SC1-loading * {
     pointer-events: none !important;
 }

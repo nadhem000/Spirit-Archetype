@@ -66,12 +66,12 @@ function initializeAppUI() {
     updateProgressBar();
     updateNavButtons();
     
-    // Hide loader after a short delay to ensure everything is ready
+    // Hide loader after ensuring everything is ready
     setTimeout(() => {
         if (window.SC1Loader) {
             window.SC1Loader.hide();
         }
-    }, 500);
+    }, 800);
 }
 
 // reset the test when header icon is clicked
@@ -148,4 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Use our new function to initialize everything
     initializeAppUI();
+    
+    // Safety net - force hide loader after 3 seconds
+    setTimeout(() => {
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) {
+            console.log('Safety net - forcing loader hide');
+            window.SC1Loader.forceHide();
+        }
+    }, 3000);
 });

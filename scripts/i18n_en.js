@@ -163,7 +163,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.6.4",
+            version: "spiritual-guide-v2.6.5",
             project: "Atlantis Platform"
 		},
 		music: {
