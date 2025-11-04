@@ -17,12 +17,12 @@ site structure:
 │		├──navigation.js
 │		├──results.js
 │		├──music.js
-│		├──loader.js
 │		└──main.js
 └── styles/
 │   	└── main.css
 └── assets/
 	│	└── icons/
+	│		├──icon-32x32.png
 	│		├──icon-72x72.png
 	│		├──icon-96x96.png
 	│		├──icon-128x128.png
@@ -48,7 +48,6 @@ FILE: navigation.js
 function initializeNavigation() {
     // Start button
     startBtn.addEventListener('click', () => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
         welcomeCard.classList.remove('SC1-active');
         questionCard.classList.add('SC1-active');
         displayQuestion(currentQuestionIndex);
@@ -57,63 +56,48 @@ function initializeNavigation() {
     });
     // Previous button
     prevBtn.addEventListener('click', () => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
-        if (currentQuestionIndex > 0) {
-            currentQuestionIndex--;
-            displayQuestion(currentQuestionIndex);
-        }
-    });
+		if (currentQuestionIndex > 0) {
+			currentQuestionIndex--;
+			displayQuestion(currentQuestionIndex);
+		}
+	});
     // Next button
     nextBtn.addEventListener('click', () => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
-        if (currentQuestionIndex < questions.length - 1) {
-            // Save progress BEFORE moving to next question
-            saveTestProgress();
-            currentQuestionIndex++;
-            displayQuestion(currentQuestionIndex);
-        } else {
-            // Test completed - show results
-            // Save progress before showing results
-            saveTestProgress();
-            questionCard.classList.remove('SC1-active');
-            resultCard.classList.add('SC1-active');
-            displayResult();
-        }
-    });
+		if (currentQuestionIndex < questions.length - 1) {
+			// Save progress BEFORE moving to next question
+			saveTestProgress();
+			currentQuestionIndex++;
+			displayQuestion(currentQuestionIndex);
+			} else {
+			// Test completed - show results
+			// Save progress before showing results
+			saveTestProgress();
+			questionCard.classList.remove('SC1-active');
+			resultCard.classList.add('SC1-active');
+			displayResult();
+		}
+	});
     // Restart button
     restartBtn.addEventListener('click', () => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
-        // Show loader during reset
-        if (window.SC1Loader) {
-            window.SC1Loader.showAlmostReady();
-        }
-        // إعادة تعيين الحالة
-        currentQuestionIndex = 0;
-        userAnswers = Array(questions.length).fill(null);
-        scores = { A: 0, B: 0, C: 0, D: 0 };
-        // Clear saved progress ONLY when user explicitly restarts
-        localStorage.removeItem(STORAGE_KEYS.ANSWERS);
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
-        // العودة إلى بطاقة الترحيب
-        resultCard.classList.remove('SC1-active');
-        questionCard.classList.remove('SC1-active');
-        welcomeCard.classList.add('SC1-active');
-        // إعادة تعيين شريط التقدم
-        updateProgressBar();
-        // تطبيق الترجمات
-        applyTranslations();
-        // Hide loader after reset
-        setTimeout(() => {
-            if (window.SC1Loader) {
-                window.SC1Loader.hide();
-            }
-        }, 800);
-    });
-    // Save Results button
-    saveResultsBtn.addEventListener('click', () => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) return;
-        saveCurrentResults();
-    });
+		// إعادة تعيين الحالة
+		currentQuestionIndex = 0;
+		userAnswers = Array(questions.length).fill(null);
+		scores = { A: 0, B: 0, C: 0, D: 0 };
+		// Clear saved progress ONLY when user explicitly restarts
+		localStorage.removeItem(STORAGE_KEYS.ANSWERS);
+		localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+		// العودة إلى بطاقة الترحيب
+		resultCard.classList.remove('SC1-active');
+		welcomeCard.classList.add('SC1-active');
+		// إعادة تعيين شريط التقدم
+		updateProgressBar();
+		// تطبيق الترجمات
+		applyTranslations();
+	});
+	// Save Results button
+	saveResultsBtn.addEventListener('click', () => {
+		saveCurrentResults();
+	});
 }
 // Initialize language buttons
 function initializeLanguageButtons() {
@@ -177,8 +161,6 @@ FILE: main.js
 =============
 // Main Application Logic - Spiritual Guide Test (Simplified)
 // Global variables
-// Loader element
-window.SC1Loader = null;
 window.STORAGE_KEYS = {
     LANGUAGE: 'spiritual-guide-language',
     ANSWERS: 'spiritual-guide-answers', 
@@ -198,7 +180,7 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI;
+window.initializeAppUI = initializeAppUI; // NEW: Added this line
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
 window.welcomeCard = document.getElementById('SC1-welcome-card');
@@ -226,30 +208,13 @@ let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
 let currentQuestionIndex = 0;
 let userAnswers = Array(questions.length).fill(null);
 let scores = { A: 0, B: 0, C: 0, D: 0 };
-// Track initialization state to prevent duplicates
-let isInitializing = false;
-let initializationComplete = false;
-// Function to initialize app UI
+// NEW: Function to initialize app UI (replaces duplicate code)
 function initializeAppUI() {
-    if (initializationComplete) {
-        console.log('App already initialized, skipping');
-        return;
-    }
-    console.log('Initializing app UI...');
     updatePageDirection();
     applyTranslations();
     resumeTestFromSavedState();
     updateProgressBar();
     updateNavButtons();
-    // Mark initialization as complete
-    initializationComplete = true;
-    // Hide loader after a short delay to ensure everything is ready
-    setTimeout(() => {
-        if (window.SC1Loader) {
-            console.log('Hiding loader - initialization complete');
-            window.SC1Loader.hide();
-        }
-    }, 600);
 }
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
@@ -303,32 +268,18 @@ function initializeHeaderIcon() {
     // Add hover effect to indicate it's clickable
     headerIcon.style.cursor = 'pointer';
 }
-// SINGLE DOMContentLoaded event listener
-document.addEventListener('DOMContentLoaded', function() {
-    if (isInitializing) {
-        console.log('Initialization already in progress, skipping');
-        return;
-    }
-    isInitializing = true;
-    console.log('DOM Content Loaded - Starting initialization');
-    // Show loader immediately
-    if (window.SC1Loader) {
-        window.SC1Loader.showPreparing();
-    }
-    // Initialize core functionality
+// Initialize the application
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize settings modal first
     initializeSettingsModal();
+    // Initialize header icon functionality
     initializeHeaderIcon();
+    // Initialize navigation and language
     initializeNavigation();
     initializeLanguageButtons();
-    // Initialize the main UI
+    // Use our new function to initialize everything
     initializeAppUI();
-    // Final safety net - force hide loader after 4 seconds
-    setTimeout(() => {
-        if (window.SC1Loader && window.SC1Loader.isLoadingState) {
-            console.log('Final safety net - forcing loader hide');
-            window.SC1Loader.forceHide();
-        }
-    }, 4000);
 });
 =====================
 FILE: i18n_ar.js
@@ -498,7 +449,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.6.9",
+            version: "spiritual-guide-v2.7.0",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -813,7 +764,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.6.9",
+            version: "spiritual-guide-v2.7.0",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1424,16 +1375,14 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.6.9</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.0</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
 <!-- Load PWA functionality FIRST -->
-		<script src="scripts/pwa.js"></script>
-		<!-- Load loader system -->
-		<script src="scripts/loader.js"></script>
-		<!-- Then load other scripts -->
-		<script src="scripts/data.js"></script>
+<script src="scripts/pwa.js"></script>
+<!-- Then load other scripts -->
+<script src="scripts/data.js"></script>
 <script src="scripts/i18n_en.js"></script>
 <script src="scripts/i18n_ar.js"></script>
 <script src="scripts/translations.js"></script>
@@ -2319,7 +2268,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.6.9'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.7.0'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2616,18 +2565,15 @@ FILE: offline.html
 =====================
 FILE: scripts/loader.js
 ================
-// loader.js - Enhanced Loader System for Spiritual Guide (FIXED VERSION)
+// loader.js - Enhanced Loader System for Spiritual Guide
 class LoaderSystem {
     constructor() {
         this.loader = null;
         this.isLoading = false;
-        this.minimumDisplayTime = 600; // Reduced to 600ms
+        this.minimumDisplayTime = 1000; // Minimum 1 second to prevent flash
         this.startTime = null;
-        this.safetyTimeout = null;
-        this.hideTimeout = null;
         this.initializeLoader();
     }
-
     initializeLoader() {
         // Create loader if it doesn't exist
         if (!document.getElementById('SC1-loader')) {
@@ -2642,35 +2588,27 @@ class LoaderSystem {
         this.loader = document.getElementById('SC1-loader');
         this.bindEvents();
     }
-
     bindEvents() {
         // Prevent clicks on loader
-        if (this.loader) {
-            this.loader.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            });
-        }
-
-        // Listen for when all resources are loaded
-        window.addEventListener('load', () => {
-            console.log('Window load event - checking if loader should be hidden');
-            if (this.isLoading) {
-                console.log('Window loaded - hiding loader');
-                this.hide();
+        this.loader.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        // Show loader when page starts loading
+        window.addEventListener('beforeunload', () => {
+            this.show();
+        });
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.show(); // Show loader when tab becomes inactive
             }
         });
     }
-
     show(message = null) {
-        console.log('Loader: Showing with message:', message);
-        
-        // Clear any existing timeouts
-        this.clearTimeouts();
-
+        if (this.isLoading) return;
         this.isLoading = true;
         this.startTime = Date.now();
-
         // Update message if provided
         if (message && this.loader) {
             const messageElement = this.loader.querySelector('p');
@@ -2678,134 +2616,67 @@ class LoaderSystem {
                 messageElement.textContent = message;
             }
         }
-
         // Show loader and disable interactions
         if (this.loader) {
             this.loader.classList.remove('hidden');
-            this.loader.style.display = 'flex';
             document.body.classList.add('SC1-loading');
         }
-
-        // Set up safety timeout (6 seconds)
-        this.safetyTimeout = setTimeout(() => {
-            if (this.isLoading) {
-                console.warn('Loader safety timeout triggered - forcing hide');
-                this.forceHide();
-            }
-        }, 6000);
     }
-
     hide() {
-        if (!this.isLoading) {
-            console.log('Loader: Not currently loading, skipping hide');
-            return;
-        }
-
+        if (!this.isLoading) return;
         const elapsed = Date.now() - this.startTime;
         const remainingTime = Math.max(0, this.minimumDisplayTime - elapsed);
-        
-        console.log(`Loader: Hiding in ${remainingTime}ms (elapsed: ${elapsed}ms)`);
-
-        // Clear any pending hide timeout
-        if (this.hideTimeout) {
-            clearTimeout(this.hideTimeout);
-        }
-
-        this.hideTimeout = setTimeout(() => {
-            this.executeHide();
+        setTimeout(() => {
+            if (this.loader) {
+                this.loader.classList.add('hidden');
+                document.body.classList.remove('SC1-loading');
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    if (this.loader && this.loader.parentNode) {
+                        this.loader.parentNode.removeChild(this.loader);
+                    }
+                }, 300);
+            }
+            this.isLoading = false;
+            this.startTime = null;
         }, remainingTime);
     }
-
-    executeHide() {
-        if (!this.isLoading) {
-            console.log('Loader: Already hidden, skipping execution');
-            return;
-        }
-
-        console.log('Loader: Executing hide operation');
-        
-        if (this.loader) {
-            this.loader.classList.add('hidden');
-            setTimeout(() => {
-                if (this.loader) {
-                    this.loader.style.display = 'none';
-                }
-            }, 300);
-            document.body.classList.remove('SC1-loading');
-        }
-        
-        this.isLoading = false;
-        this.startTime = null;
-        this.clearTimeouts();
-        
-        console.log('Loader: Hidden successfully');
-    }
-
-    clearTimeouts() {
-        if (this.safetyTimeout) {
-            clearTimeout(this.safetyTimeout);
-            this.safetyTimeout = null;
-        }
-        if (this.hideTimeout) {
-            clearTimeout(this.hideTimeout);
-            this.hideTimeout = null;
-        }
-    }
-
     // Show loader with different states
     showPreparing() {
         this.show(translate('SC1.loader.preparing'));
     }
-
     showAlmostReady() {
         this.show(translate('SC1.loader.almostReady'));
     }
-
     // Force hide (for emergency cases)
     forceHide() {
-        console.log('Loader: Force hiding loader');
-        this.clearTimeouts();
-        this.executeHide();
+        if (this.loader) {
+            this.loader.classList.add('hidden');
+            document.body.classList.remove('SC1-loading');
+            setTimeout(() => {
+                if (this.loader && this.loader.parentNode) {
+                    this.loader.parentNode.removeChild(this.loader);
+                }
+            }, 300);
+        }
+        this.isLoading = false;
+        this.startTime = null;
     }
-
     // Check if currently loading
     get isLoadingState() {
         return this.isLoading;
     }
 }
-
 // Create global instance
 window.SC1Loader = new LoaderSystem();
-
 // Make functions available globally
 window.showLoader = function(message) {
     return window.SC1Loader.show(message);
 };
-
 window.hideLoader = function() {
     return window.SC1Loader.hide();
 };
-
 window.forceHideLoader = function() {
     return window.SC1Loader.forceHide();
 };
-
-// Enhanced error handling
-window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
-    if (window.SC1Loader) {
-        window.SC1Loader.forceHide();
-    }
-});
-
-// Handle unhandled promise rejections
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled rejection:', event.reason);
-    if (window.SC1Loader) {
-        window.SC1Loader.forceHide();
-    }
-});
-
-// Remove the duplicate DOMContentLoaded event listener from loader.js
-// This prevents multiple initialization calls
 [file content end]
