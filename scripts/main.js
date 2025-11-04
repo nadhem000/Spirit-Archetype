@@ -56,21 +56,51 @@ let scores = { A: 0, B: 0, C: 0, D: 0 };
 // Function to initialize app UI
 function initializeAppUI() {
     console.log('Initializing app UI...');
-    
     updatePageDirection();
     applyTranslations();
     resumeTestFromSavedState();
     updateProgressBar();
     updateNavButtons();
     
-    // Hide loader after ensuring everything is ready
+    // Use a more reliable approach to hide loader
     setTimeout(() => {
         if (window.SC1Loader) {
-            console.log('Hiding loader from initializeAppUI');
+            console.log('Hiding loader from initializeAppUI - final attempt');
             window.SC1Loader.hide();
         }
-    }, 600);
+    }, 800);
 }
+
+// Update the DOMContentLoaded event listener:
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Starting initialization');
+    
+    // Show loader immediately
+    if (window.SC1Loader) {
+        window.SC1Loader.showPreparing();
+    }
+
+    // Initialize settings modal first
+    initializeSettingsModal();
+    
+    // Initialize header icon functionality
+    initializeHeaderIcon();
+    
+    // Initialize navigation and language
+    initializeNavigation();
+    initializeLanguageButtons();
+    
+    // Use our new function to initialize everything
+    initializeAppUI();
+
+    // More aggressive safety net
+    setTimeout(() => {
+        if (window.SC1Loader && window.SC1Loader.isLoadingState) {
+            console.log('Main safety net - forcing loader hide after 3 seconds');
+            window.SC1Loader.forceHide();
+        }
+    }, 3000);
+});
 
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
