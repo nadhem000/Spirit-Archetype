@@ -3,317 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register Test User - Spiritual Guide</title>
+    <title>Register Test User</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #4a6fa5 0%, #2c3e50 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .register-container {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-            width: 100%;
-        }
-
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 30px;
-            font-size: 1.8rem;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #4a6fa5;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #4a6fa5;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background: #3a5a80;
-        }
-
-        button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-        }
-
-        .message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .test-credentials {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e9ecef;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        .test-credentials h3 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-        }
-
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .back-link a {
-            color: #4a6fa5;
-            text-decoration: none;
-        }
-
-        .back-link a:hover {
-            text-decoration: underline;
-        }
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; }
+        button { width: 100%; padding: 10px; background: #4a6fa5; color: white; border: none; }
+        .message { margin-top: 15px; padding: 10px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
     </style>
-    
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="register-container">
-        <h1>Register Test User</h1>
-        
-        <form id="registerForm">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" required>
-            </div>
-            
-            <button type="submit" id="registerBtn">Register User</button>
-        </form>
-        
-        <div id="message" class="message" style="display: none;"></div>
-        
-        <div class="test-credentials">
-            <h3>Test Credentials (use these):</h3>
-            <p><strong>Email:</strong> tester111@gmail.com</p>
-            <p><strong>Password:</strong> tester111@@@</p>
+    <h1>Register Test User</h1>
+    <form id="registerForm">
+        <div class="form-group">
+            <label>Username: <input type="text" id="username" required value="tester111"></label>
         </div>
-        
-        <div class="back-link">
-            <a href="index.html">← Back to Spiritual Guide App</a>
+        <div class="form-group">
+            <label>Email: <input type="email" id="email" required value="tester111@gmail.com"></label>
         </div>
-    </div>
+        <div class="form-group">
+            <label>Password: <input type="password" id="password" required value="tester111@@@"></label>
+        </div>
+        <button type="submit">Register User</button>
+    </form>
+    <div id="message"></div>
+    <p><a href="index.html">← Back to Main App</a></p>
 
+    <!-- Load Supabase first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        // Supabase configuration (same as main app)
-        const SUPABASE_URL = 'https://tgorqanvhjaecbysulih.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI';
-        
-        // Create Supabase client
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // Enhanced password hashing (same as main app)
-        async function hashPassword(password) {
-            // Generate a random salt
-            const salt = crypto.getRandomValues(new Uint8Array(16));
-            
-            // Convert password to bytes
-            const encoder = new TextEncoder();
-            const passwordBuffer = encoder.encode(password);
-            
-            // Combine salt and password
-            const combined = new Uint8Array(salt.length + passwordBuffer.length);
-            combined.set(salt);
-            combined.set(passwordBuffer, salt.length);
-            
-            // Hash with multiple iterations for better security
-            let hashBuffer = await crypto.subtle.digest('SHA-256', combined);
-            // Additional iteration for strengthening
-            hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
-            
-            // Convert salt and hash to hex strings
-            const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-            const hashHex = Array.from(new Uint8Array(hashBuffer))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-            
-            // Return salt + hash for storage
-            return `${saltHex}.${hashHex}`;
-        }
+        // Initialize Supabase immediately after loading the library
+        const supabase = supabase.createClient(
+            'https://tgorqanvhjaecbysulih.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb3JxYW52aGphZWNieXN1bGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNTM3NjcsImV4cCI6MjA3NzYyOTc2N30.QD34e4pLSfUurerNlVXDb1vRWmQluPMuwDXSzaL1eoI'
+        );
 
-        // Simple encryption for storing in profile (same as main app concept)
-        async function simpleEncrypt(password) {
-            // This is a simplified version - in production you'd use proper encryption
-            const encoder = new TextEncoder();
-            const data = encoder.encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        // Form submission handler
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const registerBtn = document.getElementById('registerBtn');
-            const messageDiv = document.getElementById('message');
-            
-            // Basic validation
-            if (!username || !email || !password) {
-                showMessage('Please fill in all fields', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage('Password must be at least 6 characters', 'error');
-                return;
-            }
-            
-            // Show loading state
-            registerBtn.disabled = true;
-            registerBtn.textContent = 'Registering...';
-            messageDiv.style.display = 'none';
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
             
             try {
-                // Hash the password
-                const hashedPassword = await hashPassword(password);
+                // Simple password hash (for testing)
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashedPassword = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
                 
-                // Create encrypted version for profile (backup)
-                const encryptedPassword = await simpleEncrypt(password);
-                
-                // Prepare user data
-                const userData = {
-                    username: username,
-                    email: email,
-                    hashed_password: hashedPassword,
-                    profile: JSON.stringify({
-                        encrypted_password: encryptedPassword,
-                        registration_method: 'test_registration_page',
-                        registered_at: new Date().toISOString()
-                    })
-                };
-                
-                console.log('Inserting user:', userData);
-                
-                // Insert into auth_users table
-                const { data, error } = await supabase
+                const { data: user, error } = await supabase
                     .from('auth_users')
-                    .insert([userData])
+                    .insert([{
+                        username: username,
+                        email: email,
+                        hashed_password: hashedPassword,
+                        profile: JSON.stringify({ test_user: true })
+                    }])
                     .select();
                 
-                if (error) {
-                    throw error;
-                }
+                if (error) throw error;
                 
-                // Success
-                showMessage(`User "${username}" registered successfully! You can now login to the main app.`, 'success');
-                document.getElementById('registerForm').reset();
-                
-                console.log('Registered user:', data[0]);
-                
+                document.getElementById('message').innerHTML = 
+                    `<div class="success">User ${username} registered successfully!</div>`;
+                    
             } catch (error) {
-                console.error('Registration error:', error);
-                
-                if (error.code === '23505') { // Unique constraint violation
-                    if (error.message.includes('username')) {
-                        showMessage('Username already exists', 'error');
-                    } else if (error.message.includes('email')) {
-                        showMessage('Email already exists', 'error');
-                    } else {
-                        showMessage('User already exists', 'error');
-                    }
-                } else {
-                    showMessage('Registration failed: ' + error.message, 'error');
-                }
-            } finally {
-                // Restore button state
-                registerBtn.disabled = false;
-                registerBtn.textContent = 'Register User';
+                document.getElementById('message').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
             }
-        });
-        
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = text;
-            messageDiv.className = `message ${type}`;
-            messageDiv.style.display = 'block';
-        }
-        
-        // Auto-fill test credentials for easy testing
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('username').value = 'tester111';
-            document.getElementById('email').value = 'tester111@gmail.com';
-            document.getElementById('password').value = 'tester111@@@';
         });
     </script>
 </body>
