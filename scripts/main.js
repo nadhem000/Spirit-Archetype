@@ -6,6 +6,10 @@ window.STORAGE_KEYS = {
     CURRENT_QUESTION: 'spiritual-guide-current-question',
     SAVED_RESULTS: 'spiritual-guide-saved-results'
 };
+// Loader system
+window.showLoader = showLoader;
+window.hideLoader = hideLoader;
+window.forceHideLoader = forceHideLoader;
 
 // Make functions global so they can be accessed across files
 window.initializeNavigation = initializeNavigation;
@@ -116,17 +120,24 @@ function initializeHeaderIcon() {
 }
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize settings modal first
-    initializeSettingsModal();
+document.addEventListener('DOMContentLoaded', () => {// Show loader immediately when page starts loading
+    showLoader();
     
-    // Initialize header icon functionality
-    initializeHeaderIcon();
-    
-    // Initialize navigation and language
-    initializeNavigation();
-    initializeLanguageButtons();
-    
-    // Use our new function to initialize everything
-    initializeAppUI();
+    // Initialize everything after a short delay to ensure loader is visible
+    setTimeout(() => {
+        // Initialize settings modal first
+        initializeSettingsModal();
+        // Initialize header icon functionality
+        initializeHeaderIcon();
+        // Initialize navigation and language
+        initializeNavigation();
+        initializeLanguageButtons();
+        // Use our new function to initialize everything
+        initializeAppUI();
+        
+        // Hide loader when everything is ready
+        setTimeout(() => {
+            hideLoader();
+        }, 1000); // Wait 1 second to show loader properly
+    }, 100);
 });

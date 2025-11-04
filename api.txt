@@ -167,6 +167,10 @@ window.STORAGE_KEYS = {
     CURRENT_QUESTION: 'spiritual-guide-current-question',
     SAVED_RESULTS: 'spiritual-guide-saved-results'
 };
+// Loader system
+window.showLoader = showLoader;
+window.hideLoader = hideLoader;
+window.forceHideLoader = forceHideLoader;
 // Make functions global so they can be accessed across files
 window.initializeNavigation = initializeNavigation;
 window.initializeLanguageButtons = initializeLanguageButtons;
@@ -270,16 +274,26 @@ function initializeHeaderIcon() {
 }
 // Initialize the application
 // Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize settings modal first
-    initializeSettingsModal();
-    // Initialize header icon functionality
-    initializeHeaderIcon();
-    // Initialize navigation and language
-    initializeNavigation();
-    initializeLanguageButtons();
-    // Use our new function to initialize everything
-    initializeAppUI();
+document.addEventListener('DOMContentLoaded', () => {// Show loader immediately when page starts loading
+    showLoader();
+    
+    // Initialize everything after a short delay to ensure loader is visible
+    setTimeout(() => {
+        // Initialize settings modal first
+        initializeSettingsModal();
+        // Initialize header icon functionality
+        initializeHeaderIcon();
+        // Initialize navigation and language
+        initializeNavigation();
+        initializeLanguageButtons();
+        // Use our new function to initialize everything
+        initializeAppUI();
+        
+        // Hide loader when everything is ready
+        setTimeout(() => {
+            hideLoader();
+        }, 1000); // Wait 1 second to show loader properly
+    }, 100);
 });
 =====================
 FILE: i18n_ar.js
@@ -449,7 +463,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.7.0",
+            version: "spiritual-guide-v2.7.1",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -764,7 +778,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.7.0",
+            version: "spiritual-guide-v2.7.1",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1375,12 +1389,14 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.0</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.1</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
 <!-- Load PWA functionality FIRST -->
 <script src="scripts/pwa.js"></script>
+<!-- Loader system -->
+<script src="scripts/loader.js"></script>
 <!-- Then load other scripts -->
 <script src="scripts/data.js"></script>
 <script src="scripts/i18n_en.js"></script>
@@ -2268,7 +2284,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.7.0'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.7.1'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
