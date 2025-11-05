@@ -23,7 +23,7 @@
 		<link rel="manifest" href="manifest.json">
 		<meta name="theme-color" content="#667eea">
 		<link rel="icon" type="image/png" href="/assets/icons/icon-32x32.png">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	</head>
 	<body>
 		<div class="SC1-container">
@@ -55,6 +55,11 @@
 								<button type="submit" class="SC1-login-btn" id="SC1-login-btn" data-i18n="SC1.login.button">Login</button>
 							</div>
 						</form>
+						<div style="text-align: center; margin-top: 10px;">
+							<a href="register.html" style="color: rgba(255,255,255,0.8); font-size: 0.8rem; text-decoration: none;">
+								Need an account? Register here
+							</a>
+						</div>
 						<div class="SC1-controls-line">
 							<button class="SC1-install-btn" id="SC1-install-btn">
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -239,15 +244,15 @@
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.4</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.5</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
 		
 		<!-- Load PWA functionality FIRST -->
 		<script src="scripts/pwa.js"></script>
-<!-- Load Supabase configuration -->
-<script src="scripts/supabase-config.js"></script>
+		<!-- Load Supabase configuration -->
+		<script src="scripts/supabase-config.js"></script>
 		
 		<!-- Loader system -->
 		<script src="scripts/loader.js"></script>

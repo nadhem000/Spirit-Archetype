@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration - Spiritual Guide</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+        .registration-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .registration-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--SC1-primary-color);
+        }
+        
+        .form-input {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--SC1-primary-color);
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .btn-register {
+            background: var(--SC1-primary-color);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-register:hover {
+            background: var(--SC1-secondary-color);
+        }
+        
+        .btn-back {
+            background: #e0e0e0;
+            color: var(--SC1-dark-color);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-decoration: none;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-back:hover {
+            background: #d0d0d0;
+        }
+        
+        .registration-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-container">
+        <h1 style="text-align: center; color: var(--SC1-primary-color); margin-bottom: 30px;">
+            User Registration
+        </h1>
+        
+        <form class="registration-form" id="registrationForm">
+            <div class="form-group">
+                <label class="form-label" for="username">Username *</label>
+                <input type="text" id="username" class="form-input" required 
+                       placeholder="Choose a username (min 3 characters)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="email">Email *</label>
+                <input type="email" id="email" class="form-input" required 
+                       placeholder="Enter your email address">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Password *</label>
+                <input type="password" id="password" class="form-input" required 
+                       placeholder="Choose a password (min 6 characters)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="confirmPassword">Confirm Password *</label>
+                <input type="password" id="confirmPassword" class="form-input" required 
+                       placeholder="Confirm your password">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="profile">Profile Information (Optional)</label>
+                <textarea id="profile" class="form-input form-textarea" 
+                         placeholder="Tell us about yourself..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-register" id="registerBtn">
+                    Register User
+                </button>
+                <a href="index.html" class="btn-back">Back to App</a>
+            </div>
+        </form>
+        
+        <div id="registrationMessage" class="registration-message"></div>
+    </div>
+
+    <!-- Load Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/register.js"></script>
+</body>
+</html>
