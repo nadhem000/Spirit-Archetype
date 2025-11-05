@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.7.7'
+      'X-Client-Info': 'spiritual-guide-v2.7.8'
     }
   }
 });

@@ -20,7 +20,10 @@ const translations_ar = {
         login: {
             usernamePlaceholder: "البريد الإلكتروني أو اسم المستخدم",
             passwordPlaceholder: "كلمة المرور",
-            button: "تسجيل الدخول"
+            button: "تسجيل الدخول",
+			welcome: "مرحبا, {username}",
+			logout: "تسجيل الخروج",
+			logoutSuccess: "تسجيل الخروج بنجاح"
 		},
         welcome: {
             title: "مرحباً بك في اختبار المرشد الروحي",
@@ -163,7 +166,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.7.7",
+            version: "spiritual-guide-v2.7.8",
             project: "منصة أطلانتس"
 		},
 		music: {

@@ -1572,3 +1572,64 @@ body.SC1-loading * {
         max-width: 200px;
     }
 }
+
+/* ===== USER INFO STYLES ===== */
+.SC1-user-info {
+    margin-bottom: 10px;
+}
+
+.SC1-user-welcome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.SC1-user-welcome span {
+    color: white;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.SC1-logout-btn {
+    background: rgba(231, 111, 81, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.SC1-logout-btn:hover {
+    background: rgba(231, 111, 81, 1);
+    transform: translateY(-1px);
+}
+
+/* RTL support for user info */
+[dir="rtl"] .SC1-user-welcome {
+    text-align: right;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .SC1-user-welcome {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .SC1-user-welcome span {
+        font-size: 0.85rem;
+    }
+    
+    .SC1-logout-btn {
+        width: 100%;
+    }
+}

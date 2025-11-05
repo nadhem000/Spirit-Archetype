@@ -20,7 +20,10 @@ const translations_en = {
         login: {
             usernamePlaceholder: "Email or username",
             passwordPlaceholder: "Password",
-            button: "Login"
+            button: "Login",
+			welcome: "Welcome, {username}",
+			logout: "Logout",
+			logoutSuccess: "Logged out successfully"
 		},
         welcome: {
             title: "Welcome to the Spiritual Guide Test",
@@ -163,7 +166,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.7.7",
+            version: "spiritual-guide-v2.7.8",
             project: "Atlantis Platform"
 		},
 		music: {

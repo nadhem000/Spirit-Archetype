@@ -68,6 +68,7 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginBtn = document.getElementById('SC1-login-btn');
+    const loginContainer = document.getElementById('SC1-login-form-container');
     
     if (!loginForm || !usernameInput || !passwordInput || !loginBtn) {
         console.log('Login elements not found - skipping login initialization');
@@ -114,7 +115,7 @@ function initializeLogin() {
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
                 .from('auth_users')
-                .select('id, username, email, is_active, inscription_date')
+                .select('id, username, email, hashed_password, is_active, inscription_date')
                 .eq('username', username)
                 .eq('is_active', true)
                 .single();
@@ -129,14 +130,18 @@ function initializeLogin() {
                 return;
             }
 
-            // IMPORTANT: In Phase 4, we'll implement proper password verification
-            // For Phase 3, we accept the login if username exists and is active
-            // This maintains functionality while we build the secure infrastructure
-            
+            // Verify password (in Phase 4 we'll implement proper password hashing)
+            // For now, we're comparing plain text (this will be improved in Phase 4)
+            if (users.hashed_password !== password) {
+                showError('Invalid password');
+                return;
+            }
+
             currentUser = users.username;
             
             // Store minimal secure user info
             const userData = {
+                id: users.id,
                 username: users.username,
                 email: users.email,
                 loginTime: new Date().toISOString(),
@@ -147,9 +152,8 @@ function initializeLogin() {
             
             showSuccess('Login successful! Welcome back!');
             
-            // Clear form securely
-            usernameInput.value = '';
-            passwordInput.value = '';
+            // Hide login form and show user info
+            updateUIAfterLogin(userData);
             
             console.log('✅ Secure login successful for user:', currentUser);
 
@@ -161,6 +165,58 @@ function initializeLogin() {
             loginBtn.disabled = false;
             loginBtn.textContent = originalText;
         }
+    }
+
+    // Update UI after successful login
+    function updateUIAfterLogin(userData) {
+        const loginContainer = document.querySelector('.SC1-login-form');
+        if (loginContainer) {
+            loginContainer.style.display = 'none';
+        }
+        
+        // Create user info display
+        const userInfoDiv = document.createElement('div');
+        userInfoDiv.className = 'SC1-user-info';
+        userInfoDiv.innerHTML = `
+            <div class="SC1-user-welcome">
+                <span>Welcome, ${userData.username}</span>
+                <button id="SC1-logout-btn" class="SC1-logout-btn">Logout</button>
+            </div>
+        `;
+        
+        // Insert user info after the login form container
+        const headerControls = document.querySelector('.SC1-header-controls');
+        if (headerControls && !document.getElementById('SC1-logout-btn')) {
+            headerControls.appendChild(userInfoDiv);
+            
+            // Add logout functionality
+            document.getElementById('SC1-logout-btn').addEventListener('click', handleLogout);
+        }
+        
+        // Clear form securely
+        usernameInput.value = '';
+        passwordInput.value = '';
+    }
+
+    // Logout function
+    function handleLogout() {
+        localStorage.removeItem('currentUser');
+        currentUser = null;
+        
+        // Show login form again
+        const loginContainer = document.querySelector('.SC1-login-form');
+        if (loginContainer) {
+            loginContainer.style.display = 'block';
+        }
+        
+        // Remove user info
+        const userInfoDiv = document.querySelector('.SC1-user-info');
+        if (userInfoDiv) {
+            userInfoDiv.remove();
+        }
+        
+        showSuccess('Logged out successfully');
+        console.log('✅ User logged out');
     }
 
     // Generate secure session ID
@@ -182,6 +238,7 @@ function initializeLogin() {
                 if (sessionAge < maxSessionAge) {
                     currentUser = userData.username;
                     console.log('🔐 User already logged in:', currentUser);
+                    updateUIAfterLogin(userData);
                 } else {
                     // Session expired
                     localStorage.removeItem('currentUser');
