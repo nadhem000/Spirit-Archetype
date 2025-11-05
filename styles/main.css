@@ -1511,3 +1511,64 @@ body.SC1-loading * {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* ===== RESULT IMAGES STYLES ===== */
+.SC1-result-images {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 25px 0;
+    flex-wrap: wrap;
+}
+
+.SC1-animal-image-container,
+.SC1-guide-image-container {
+    text-align: center;
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.SC1-result-image {
+    width: 100%;
+    max-width: 250px;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.SC1-result-image:hover {
+    transform: scale(1.05);
+}
+
+.SC1-image-label {
+    margin-top: 10px;
+    font-weight: 600;
+    color: var(--SC1-primary-color);
+    font-size: 0.9rem;
+}
+
+/* RTL support for result images */
+[dir="rtl"] .SC1-result-images {
+    flex-direction: row-reverse;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .SC1-result-images {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .SC1-animal-image-container,
+    .SC1-guide-image-container {
+        min-width: 150px;
+        max-width: 250px;
+    }
+    
+    .SC1-result-image {
+        max-width: 200px;
+    }
+}

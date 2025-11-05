@@ -75,6 +75,31 @@ function updateNavButtons() {
 	}
 }
 
+// Function to display result images
+function displayResultImages(resultPattern) {
+    const animalImage = document.getElementById('SC1-animal-image');
+    const guideImage = document.getElementById('SC1-guide-image');
+    
+    // Map result patterns to image filenames
+    const imageMap = {
+        'A': { animal: 'eagle.jpg', guide: 'guide_a.jpg' },
+        'B': { animal: 'whale.jpg', guide: 'guide_b.jpg' },
+        'C': { animal: 'owl.jpg', guide: 'guide_c.jpg' },
+        'D': { animal: 'snake.jpg', guide: 'guide_d.jpg' }
+    };
+    
+    const images = imageMap[resultPattern];
+    
+    if (images && animalImage && guideImage) {
+        // Set the image sources
+        animalImage.src = `assets/results/animals/${images.animal}`;
+        guideImage.src = `assets/results/guidelines/${images.guide}`;
+        
+        // Set alt text for accessibility
+        animalImage.alt = translate(`SC1.results.${resultPattern}.guide`) + ' Symbol';
+        guideImage.alt = translate(`SC1.results.${resultPattern}.title`) + ' Guideline';
+    }
+}
 // عرض النتيجة
 function displayResult() {
     const resultPattern = calculateResult();
@@ -87,4 +112,6 @@ function displayResult() {
     mission90DaysElement.textContent = translate(`SC1.results.${result.key}.mission90Days`);
     kpiElement.textContent = translate(`SC1.results.${result.key}.kpi`);
     allianceTipElement.textContent = translate(`SC1.results.${result.key}.allianceTip`);
+    // Display images based on result pattern
+    displayResultImages(resultPattern);
 }

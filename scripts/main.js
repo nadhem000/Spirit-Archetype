@@ -52,6 +52,9 @@ window.mission90DaysElement = document.getElementById('SC1-mission-90-days');
 window.kpiElement = document.getElementById('SC1-kpi');
 window.allianceTipElement = document.getElementById('SC1-alliance-tip');
 window.saveResultsBtn = document.getElementById('SC1-save-results-btn');
+// image elements
+window.animalImage = document.getElementById('SC1-animal-image');
+window.guideImage = document.getElementById('SC1-guide-image');
 
 // Application state
 let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');

@@ -211,6 +211,9 @@ window.mission90DaysElement = document.getElementById('SC1-mission-90-days');
 window.kpiElement = document.getElementById('SC1-kpi');
 window.allianceTipElement = document.getElementById('SC1-alliance-tip');
 window.saveResultsBtn = document.getElementById('SC1-save-results-btn');
+// image elements
+window.animalImage = document.getElementById('SC1-animal-image');
+window.guideImage = document.getElementById('SC1-guide-image');
 // Application state
 let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
 let currentQuestionIndex = 0;
@@ -475,7 +478,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.7.2",
+            version: "spiritual-guide-v2.7.3",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -790,7 +793,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.7.2",
+            version: "spiritual-guide-v2.7.3",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1159,6 +1162,27 @@ function updateNavButtons() {
         nextBtn.disabled = true;
     }
 }
+// Function to display result images
+function displayResultImages(resultPattern) {
+    const animalImage = document.getElementById('SC1-animal-image');
+    const guideImage = document.getElementById('SC1-guide-image');
+    // Map result patterns to image filenames
+    const imageMap = {
+        'A': { animal: 'eagle.jpg', guide: 'guide_a.jpg' },
+        'B': { animal: 'whale.jpg', guide: 'guide_b.jpg' },
+        'C': { animal: 'owl.jpg', guide: 'guide_c.jpg' },
+        'D': { animal: 'snake.jpg', guide: 'guide_d.jpg' }
+    };
+    const images = imageMap[resultPattern];
+    if (images && animalImage && guideImage) {
+        // Set the image sources
+        animalImage.src = `assets/results/animals/${images.animal}`;
+        guideImage.src = `assets/results/guidelines/${images.guide}`;
+        // Set alt text for accessibility
+        animalImage.alt = translate(`SC1.results.${resultPattern}.guide`) + ' Symbol';
+        guideImage.alt = translate(`SC1.results.${resultPattern}.title`) + ' Guideline';
+    }
+}
 // عرض النتيجة
 function displayResult() {
     const resultPattern = calculateResult();
@@ -1170,6 +1194,8 @@ function displayResult() {
     mission90DaysElement.textContent = translate(`SC1.results.${result.key}.mission90Days`);
     kpiElement.textContent = translate(`SC1.results.${result.key}.kpi`);
     allianceTipElement.textContent = translate(`SC1.results.${result.key}.allianceTip`);
+    // Display images based on result pattern
+    displayResultImages(resultPattern);
 }
 =====================
 FILE: index.html
@@ -1314,6 +1340,14 @@ FILE: index.html
 			</div>
 			<div class="SC1-card" id="SC1-result-card" id="results">
 				<div class="SC1-result-title" data-i18n="SC1.results.title">Spiritual Guide Test Result</div>
+				<div class="SC1-result-images">
+					<div class="SC1-animal-image-container">
+						<img id="SC1-animal-image" src="" alt="Animal Symbol" class="SC1-result-image">
+					</div>
+					<div class="SC1-guide-image-container">
+						<img id="SC1-guide-image" src="" alt="Guideline Symbol" class="SC1-result-image">
+					</div>
+				</div>
 				<div class="SC1-result-guide" id="SC1-result-guide"></div>
 				<div class="SC1-result-section">
 					<h3 data-i18n="SC1.results.symbolicMeaning">Symbolic Meaning</h3>
@@ -1401,7 +1435,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.2</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.3</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2296,7 +2330,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.7.2'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.7.3'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
