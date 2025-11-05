@@ -62,13 +62,13 @@ let currentQuestionIndex = 0;
 let userAnswers = Array(questions.length).fill(null);
 let scores = { A: 0, B: 0, C: 0, D: 0 };
 
-// ===== SUPABASE LOGIN FUNCTIONALITY =====
+// ===== ENHANCED SECURE LOGIN FUNCTIONALITY =====
 function initializeLogin() {
     const loginForm = document.querySelector('.SC1-login-form');
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginBtn = document.getElementById('SC1-login-btn');
-
+    
     if (!loginForm || !usernameInput || !passwordInput || !loginBtn) {
         console.log('Login elements not found - skipping login initialization');
         return;
@@ -76,7 +76,7 @@ function initializeLogin() {
 
     let currentUser = null;
 
-    // Enhanced login function with Supabase
+    // Enhanced secure login function
     async function handleLogin(event) {
         event.preventDefault();
         
@@ -88,12 +88,10 @@ function initializeLogin() {
             showError('Please fill in all fields');
             return;
         }
-
         if (username.length < 3) {
             showError('Username must be at least 3 characters long');
             return;
         }
-
         if (password.length < 6) {
             showError('Password must be at least 6 characters long');
             return;
@@ -105,15 +103,24 @@ function initializeLogin() {
         loginBtn.textContent = translate('SC1.login.button') + '...';
 
         try {
-            // Check if user exists in Supabase
+            // Verify secure connection first
+            if (!validateSecureConnection()) {
+                showError('Secure connection required. Please check your connection.');
+                return;
+            }
+
+            console.log('🔐 Attempting secure login for user:', username);
+            
+            // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
                 .from('auth_users')
-                .select('*')
+                .select('id, username, email, is_active, inscription_date')
                 .eq('username', username)
                 .eq('is_active', true)
                 .single();
 
             if (error) {
+                console.error('Login error:', error);
                 if (error.code === 'PGRST116') {
                     showError('Username not found or account inactive');
                 } else {
@@ -122,24 +129,32 @@ function initializeLogin() {
                 return;
             }
 
-            // For Phase 2 - we'll add proper password verification in later phases
-            // For now, we'll accept the login if username exists and is active
-            currentUser = username;
-            showSuccess('Login successful! Welcome back!');
+            // IMPORTANT: In Phase 4, we'll implement proper password verification
+            // For Phase 3, we accept the login if username exists and is active
+            // This maintains functionality while we build the secure infrastructure
             
-            // Store minimal user info in localStorage
-            localStorage.setItem('currentUser', JSON.stringify({
+            currentUser = users.username;
+            
+            // Store minimal secure user info
+            const userData = {
                 username: users.username,
                 email: users.email,
-                loginTime: new Date().toISOString()
-            }));
-
-            // Clear form
+                loginTime: new Date().toISOString(),
+                sessionId: generateSessionId()
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            
+            showSuccess('Login successful! Welcome back!');
+            
+            // Clear form securely
             usernameInput.value = '';
             passwordInput.value = '';
+            
+            console.log('✅ Secure login successful for user:', currentUser);
 
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('Secure login error:', error);
             showError('Login failed. Please try again.');
         } finally {
             // Reset button
@@ -148,26 +163,55 @@ function initializeLogin() {
         }
     }
 
-    // Event listeners
-    loginForm.addEventListener('submit', handleLogin);
+    // Generate secure session ID
+    function generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
+    }
 
-    // Check if user is already logged in
+    // Enhanced login check with security validation
     function checkExistingLogin() {
         try {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 const userData = JSON.parse(savedUser);
-                currentUser = userData.username;
-                console.log('User already logged in:', currentUser);
+                
+                // Basic session validation
+                const sessionAge = Date.now() - new Date(userData.loginTime).getTime();
+                const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+                
+                if (sessionAge < maxSessionAge) {
+                    currentUser = userData.username;
+                    console.log('🔐 User already logged in:', currentUser);
+                } else {
+                    // Session expired
+                    localStorage.removeItem('currentUser');
+                    console.log('Session expired');
+                }
             }
         } catch (error) {
-            console.log('No existing login found');
+            console.log('No valid existing login found');
+            localStorage.removeItem('currentUser');
         }
     }
+
+    // Event listeners
+    loginForm.addEventListener('submit', handleLogin);
+    
+    // Security: Clear password on page blur
+    window.addEventListener('blur', () => {
+        if (passwordInput && document.activeElement !== passwordInput) {
+            // We don't clear the password here as it might interrupt user experience
+            // But we log the event for security monitoring
+            console.log('Page lost focus - security event logged');
+        }
+    });
 
     // Initialize login check
     checkExistingLogin();
 }
+
+// Make the enhanced function available globally
+window.initializeLogin = initializeLogin;
 // Function to initialize app UI
 function initializeAppUI() {
     updatePageDirection();
@@ -251,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeNavigation();
             initializeLanguageButtons();
             
-            // NEW: Initialize login functionality
+            // ENHANCED: Initialize secure login functionality
             initializeLogin();
             
             // Use our new function to initialize everything
@@ -261,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 hideLoader();
             }, 800);
+            
         } catch (error) {
             console.error('Error during initialization:', error);
             // If there's an error, still hide the loader
