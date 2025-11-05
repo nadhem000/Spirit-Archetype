@@ -62,6 +62,112 @@ let currentQuestionIndex = 0;
 let userAnswers = Array(questions.length).fill(null);
 let scores = { A: 0, B: 0, C: 0, D: 0 };
 
+// ===== SUPABASE LOGIN FUNCTIONALITY =====
+function initializeLogin() {
+    const loginForm = document.querySelector('.SC1-login-form');
+    const usernameInput = document.getElementById('SC1-username');
+    const passwordInput = document.getElementById('SC1-password');
+    const loginBtn = document.getElementById('SC1-login-btn');
+
+    if (!loginForm || !usernameInput || !passwordInput || !loginBtn) {
+        console.log('Login elements not found - skipping login initialization');
+        return;
+    }
+
+    let currentUser = null;
+
+    // Enhanced login function with Supabase
+    async function handleLogin(event) {
+        event.preventDefault();
+        
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        // Basic validation
+        if (!username || !password) {
+            showError('Please fill in all fields');
+            return;
+        }
+
+        if (username.length < 3) {
+            showError('Username must be at least 3 characters long');
+            return;
+        }
+
+        if (password.length < 6) {
+            showError('Password must be at least 6 characters long');
+            return;
+        }
+
+        // Show loading state
+        loginBtn.disabled = true;
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = translate('SC1.login.button') + '...';
+
+        try {
+            // Check if user exists in Supabase
+            const { data: users, error } = await supabaseClient
+                .from('auth_users')
+                .select('*')
+                .eq('username', username)
+                .eq('is_active', true)
+                .single();
+
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    showError('Username not found or account inactive');
+                } else {
+                    showError('Login failed: ' + error.message);
+                }
+                return;
+            }
+
+            // For Phase 2 - we'll add proper password verification in later phases
+            // For now, we'll accept the login if username exists and is active
+            currentUser = username;
+            showSuccess('Login successful! Welcome back!');
+            
+            // Store minimal user info in localStorage
+            localStorage.setItem('currentUser', JSON.stringify({
+                username: users.username,
+                email: users.email,
+                loginTime: new Date().toISOString()
+            }));
+
+            // Clear form
+            usernameInput.value = '';
+            passwordInput.value = '';
+
+        } catch (error) {
+            console.error('Login error:', error);
+            showError('Login failed. Please try again.');
+        } finally {
+            // Reset button
+            loginBtn.disabled = false;
+            loginBtn.textContent = originalText;
+        }
+    }
+
+    // Event listeners
+    loginForm.addEventListener('submit', handleLogin);
+
+    // Check if user is already logged in
+    function checkExistingLogin() {
+        try {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                const userData = JSON.parse(savedUser);
+                currentUser = userData.username;
+                console.log('User already logged in:', currentUser);
+            }
+        } catch (error) {
+            console.log('No existing login found');
+        }
+    }
+
+    // Initialize login check
+    checkExistingLogin();
+}
 // Function to initialize app UI
 function initializeAppUI() {
     updatePageDirection();
@@ -126,6 +232,7 @@ function initializeHeaderIcon() {
     headerIcon.style.cursor = 'pointer';
 }
 
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Show loader immediately when page starts loading
@@ -136,11 +243,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Initialize settings modal first
             initializeSettingsModal();
+            
             // Initialize header icon functionality
             initializeHeaderIcon();
+            
             // Initialize navigation and language
             initializeNavigation();
             initializeLanguageButtons();
+            
+            // NEW: Initialize login functionality
+            initializeLogin();
+            
             // Use our new function to initialize everything
             initializeAppUI();
             
