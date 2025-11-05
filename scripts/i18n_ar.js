@@ -23,7 +23,20 @@ const translations_ar = {
             button: "تسجيل الدخول",
 			welcome: "مرحبا, {username}",
 			logout: "تسجيل الخروج",
-			logoutSuccess: "تسجيل الخروج بنجاح"
+			logoutSuccess: "تسجيل الخروج بنجاح",
+			validation: {
+				fillAllFields: "يرجى ملء جميع الحقول",
+				usernameLength: "يجب أن يكون اسم المستخدم 3 أحرف على الأقل",
+				passwordLength: "يجب أن تكون كلمة المرور 6 أحرف على الأقل", 
+				secureConnection: "الاتصال الآمن مطلوب. يرجى التحقق من اتصالك.",
+				usernameNotFound: "اسم المستخدم غير موجود أو الحساب غير نشط",
+				invalidPassword: "كلمة مرور غير صالحة",
+				loginFailed: "فشل تسجيل الدخول"
+			},
+			success: {
+				loginSuccessful: "تم تسجيل الدخول بنجاح! مرحباً بعودتك!",
+				logoutSuccess: "تم تسجيل الخروج بنجاح"
+			}
 		},
         welcome: {
             title: "مرحباً بك في اختبار المرشد الروحي",
@@ -166,7 +179,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.7.8",
+            version: "spiritual-guide-v2.7.9",
             project: "منصة أطلانتس"
 		},
 		music: {

@@ -23,7 +23,20 @@ const translations_en = {
             button: "Login",
 			welcome: "Welcome, {username}",
 			logout: "Logout",
-			logoutSuccess: "Logged out successfully"
+			logoutSuccess: "Logged out successfully",
+			validation: {
+				fillAllFields: "Please fill in all fields",
+				usernameLength: "Username must be at least 3 characters long", 
+				passwordLength: "Password must be at least 6 characters long",
+				secureConnection: "Secure connection required. Please check your connection.",
+				usernameNotFound: "Username not found or account inactive",
+				invalidPassword: "Invalid password",
+				loginFailed: "Login failed"
+			},
+			success: {
+				loginSuccessful: "Login successful! Welcome back!",
+				logoutSuccess: "Logged out successfully"
+			}
 		},
         welcome: {
             title: "Welcome to the Spiritual Guide Test",
@@ -166,7 +179,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.7.8",
+            version: "spiritual-guide-v2.7.9",
             project: "Atlantis Platform"
 		},
 		music: {

@@ -86,15 +86,15 @@ function initializeLogin() {
 
         // Basic validation
         if (!username || !password) {
-            showError('Please fill in all fields');
+            showError(translate('SC1.login.validation.fillAllFields'));
             return;
         }
         if (username.length < 3) {
-            showError('Username must be at least 3 characters long');
+           showError(translate('SC1.login.validation.usernameLength'));
             return;
         }
         if (password.length < 6) {
-            showError('Password must be at least 6 characters long');
+            showError(translate('SC1.login.validation.passwordLength'));
             return;
         }
 
@@ -106,7 +106,7 @@ function initializeLogin() {
         try {
             // Verify secure connection first
             if (!validateSecureConnection()) {
-                showError('Secure connection required. Please check your connection.');
+                showError(translate('SC1.login.validation.secureConnection'));
                 return;
             }
 
@@ -123,9 +123,9 @@ function initializeLogin() {
             if (error) {
                 console.error('Login error:', error);
                 if (error.code === 'PGRST116') {
-                    showError('Username not found or account inactive');
+                    showError(translate('SC1.login.validation.usernameNotFound'));
                 } else {
-                    showError('Login failed: ' + error.message);
+                    showError(translate('SC1.login.validation.loginFailed') + ': ' + error.message);
                 }
                 return;
             }
@@ -133,7 +133,7 @@ function initializeLogin() {
             // Verify password (in Phase 4 we'll implement proper password hashing)
             // For now, we're comparing plain text (this will be improved in Phase 4)
             if (users.hashed_password !== password) {
-                showError('Invalid password');
+                showError(translate('SC1.login.validation.invalidPassword'));
                 return;
             }
 
@@ -150,7 +150,7 @@ function initializeLogin() {
             
             localStorage.setItem('currentUser', JSON.stringify(userData));
             
-            showSuccess('Login successful! Welcome back!');
+            showSuccess(translate('SC1.login.success.loginSuccessful'));
             
             // Hide login form and show user info
             updateUIAfterLogin(userData);
@@ -215,7 +215,7 @@ function initializeLogin() {
             userInfoDiv.remove();
         }
         
-        showSuccess('Logged out successfully');
+        showSuccess(translate('SC1.login.success.logoutSuccess'));
         console.log('✅ User logged out');
     }
 
