@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
         registerBtn.textContent = 'Registering...';
         
         try {
+            console.log('Attempting to register user:', { username, email });
+            
             // Insert user into Supabase
             const { data, error } = await supabaseClient
                 .from('auth_users')
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         username: username,
                         email: email,
-                        hashed_password: password, // Note: In Phase 3, we'll hash this properly
+                        hashed_password: password, // Note: We'll hash this properly in Phase 3
                         profile: profile || null,
                         is_active: true
                     }
@@ -62,6 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 .select();
             
             if (error) {
+                console.error('Supabase error:', error);
+                
                 if (error.code === '23505') { // Unique violation
                     if (error.message.includes('username')) {
                         showMessage('Username already exists. Please choose a different one.', 'error');
@@ -70,6 +74,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         showMessage('Registration failed: ' + error.message, 'error');
                     }
+                } else if (error.code === '42501') { // RLS policy violation
+                    showMessage('Registration not allowed. Please contact administrator.', 'error');
                 } else {
                     showMessage('Registration failed: ' + error.message, 'error');
                 }
@@ -77,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Success
+            console.log('Registration successful:', data);
             showMessage('User registered successfully! You can now login to the main app.', 'success');
             registrationForm.reset();
             
