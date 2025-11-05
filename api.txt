@@ -184,7 +184,11 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI; // NEW: Added this line
+window.initializeAppUI = initializeAppUI;
+// Loader functions
+window.showLoader = showLoader;
+window.hideLoader = hideLoader;
+window.forceHideLoader = forceHideLoader;
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
 window.welcomeCard = document.getElementById('SC1-welcome-card');
@@ -273,27 +277,35 @@ function initializeHeaderIcon() {
     headerIcon.style.cursor = 'pointer';
 }
 // Initialize the application
-// Initialize the application
-document.addEventListener('DOMContentLoaded', () => {// Show loader immediately when page starts loading
+document.addEventListener('DOMContentLoaded', () => {
+    // Show loader immediately when page starts loading
     showLoader();
-    
-    // Initialize everything after a short delay to ensure loader is visible
+    // Use setTimeout to ensure loader is visible before starting initialization
     setTimeout(() => {
-        // Initialize settings modal first
-        initializeSettingsModal();
-        // Initialize header icon functionality
-        initializeHeaderIcon();
-        // Initialize navigation and language
-        initializeNavigation();
-        initializeLanguageButtons();
-        // Use our new function to initialize everything
-        initializeAppUI();
-        
-        // Hide loader when everything is ready
-        setTimeout(() => {
-            hideLoader();
-        }, 1000); // Wait 1 second to show loader properly
+        try {
+            // Initialize settings modal first
+            initializeSettingsModal();
+            // Initialize header icon functionality
+            initializeHeaderIcon();
+            // Initialize navigation and language
+            initializeNavigation();
+            initializeLanguageButtons();
+            // Use our new function to initialize everything
+            initializeAppUI();
+            // Hide loader after everything is initialized
+            setTimeout(() => {
+                hideLoader();
+            }, 800);
+        } catch (error) {
+            console.error('Error during initialization:', error);
+            // If there's an error, still hide the loader
+            forceHideLoader();
+        }
     }, 100);
+});
+// Also show loader when page is about to refresh/unload
+window.addEventListener('beforeunload', function() {
+    showLoader();
 });
 =====================
 FILE: i18n_ar.js
@@ -463,7 +475,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.7.1",
+            version: "spiritual-guide-v2.7.2",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -778,7 +790,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.7.1",
+            version: "spiritual-guide-v2.7.2",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1389,7 +1401,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.1</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.2</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2284,7 +2296,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.7.1'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.7.2'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2581,13 +2593,11 @@ FILE: offline.html
 =====================
 FILE: scripts/loader.js
 ================
-// loader.js - Enhanced Loader System for Spiritual Guide
+// loader.js - Simple Loader System for Spiritual Guide
 class LoaderSystem {
     constructor() {
         this.loader = null;
         this.isLoading = false;
-        this.minimumDisplayTime = 1000; // Minimum 1 second to prevent flash
-        this.startTime = null;
         this.initializeLoader();
     }
     initializeLoader() {
@@ -2596,42 +2606,16 @@ class LoaderSystem {
             const loaderHTML = `
                 <div id="SC1-loader" class="SC1-loader">
                     <div class="SC1-loader-spinner"></div>
-                    <p data-i18n="SC1.loader.loading">Loading Spiritual Guide...</p>
+                    <p>Loading Spiritual Guide...</p>
                 </div>
             `;
             document.body.insertAdjacentHTML('afterbegin', loaderHTML);
         }
         this.loader = document.getElementById('SC1-loader');
-        this.bindEvents();
     }
-    bindEvents() {
-        // Prevent clicks on loader
-        this.loader.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        });
-        // Show loader when page starts loading
-        window.addEventListener('beforeunload', () => {
-            this.show();
-        });
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.show(); // Show loader when tab becomes inactive
-            }
-        });
-    }
-    show(message = null) {
+    show() {
         if (this.isLoading) return;
         this.isLoading = true;
-        this.startTime = Date.now();
-        // Update message if provided
-        if (message && this.loader) {
-            const messageElement = this.loader.querySelector('p');
-            if (messageElement) {
-                messageElement.textContent = message;
-            }
-        }
         // Show loader and disable interactions
         if (this.loader) {
             this.loader.classList.remove('hidden');
@@ -2640,29 +2624,17 @@ class LoaderSystem {
     }
     hide() {
         if (!this.isLoading) return;
-        const elapsed = Date.now() - this.startTime;
-        const remainingTime = Math.max(0, this.minimumDisplayTime - elapsed);
-        setTimeout(() => {
-            if (this.loader) {
-                this.loader.classList.add('hidden');
-                document.body.classList.remove('SC1-loading');
-                // Remove from DOM after animation
-                setTimeout(() => {
-                    if (this.loader && this.loader.parentNode) {
-                        this.loader.parentNode.removeChild(this.loader);
-                    }
-                }, 300);
-            }
-            this.isLoading = false;
-            this.startTime = null;
-        }, remainingTime);
-    }
-    // Show loader with different states
-    showPreparing() {
-        this.show(translate('SC1.loader.preparing'));
-    }
-    showAlmostReady() {
-        this.show(translate('SC1.loader.almostReady'));
+        if (this.loader) {
+            this.loader.classList.add('hidden');
+            document.body.classList.remove('SC1-loading');
+            // Remove from DOM after animation
+            setTimeout(() => {
+                if (this.loader && this.loader.parentNode) {
+                    this.loader.parentNode.removeChild(this.loader);
+                }
+            }, 500);
+        }
+        this.isLoading = false;
     }
     // Force hide (for emergency cases)
     forceHide() {
@@ -2676,18 +2648,13 @@ class LoaderSystem {
             }, 300);
         }
         this.isLoading = false;
-        this.startTime = null;
-    }
-    // Check if currently loading
-    get isLoadingState() {
-        return this.isLoading;
     }
 }
 // Create global instance
 window.SC1Loader = new LoaderSystem();
 // Make functions available globally
-window.showLoader = function(message) {
-    return window.SC1Loader.show(message);
+window.showLoader = function() {
+    return window.SC1Loader.show();
 };
 window.hideLoader = function() {
     return window.SC1Loader.hide();

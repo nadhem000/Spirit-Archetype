@@ -24,7 +24,11 @@ window.displayResult = displayResult;
 window.calculateResult = calculateResult;
 window.saveTestProgress = saveTestProgress;
 window.translate = translate;
-window.initializeAppUI = initializeAppUI; // NEW: Added this line
+window.initializeAppUI = initializeAppUI;
+// Loader functions
+window.showLoader = showLoader;
+window.hideLoader = hideLoader;
+window.forceHideLoader = forceHideLoader;
 
 // Global element assignments
 window.headerIcon = document.getElementById('SC1-header-icon');
@@ -120,24 +124,36 @@ function initializeHeaderIcon() {
 }
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', () => {// Show loader immediately when page starts loading
+document.addEventListener('DOMContentLoaded', () => {
+    // Show loader immediately when page starts loading
     showLoader();
     
-    // Initialize everything after a short delay to ensure loader is visible
+    // Use setTimeout to ensure loader is visible before starting initialization
     setTimeout(() => {
-        // Initialize settings modal first
-        initializeSettingsModal();
-        // Initialize header icon functionality
-        initializeHeaderIcon();
-        // Initialize navigation and language
-        initializeNavigation();
-        initializeLanguageButtons();
-        // Use our new function to initialize everything
-        initializeAppUI();
-        
-        // Hide loader when everything is ready
-        setTimeout(() => {
-            hideLoader();
-        }, 1000); // Wait 1 second to show loader properly
+        try {
+            // Initialize settings modal first
+            initializeSettingsModal();
+            // Initialize header icon functionality
+            initializeHeaderIcon();
+            // Initialize navigation and language
+            initializeNavigation();
+            initializeLanguageButtons();
+            // Use our new function to initialize everything
+            initializeAppUI();
+            
+            // Hide loader after everything is initialized
+            setTimeout(() => {
+                hideLoader();
+            }, 800);
+        } catch (error) {
+            console.error('Error during initialization:', error);
+            // If there's an error, still hide the loader
+            forceHideLoader();
+        }
     }, 100);
+});
+
+// Also show loader when page is about to refresh/unload
+window.addEventListener('beforeunload', function() {
+    showLoader();
 });
