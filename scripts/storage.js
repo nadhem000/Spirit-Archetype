@@ -161,7 +161,7 @@ function saveCurrentResults() {
     }, 10); // Small delay to allow UI to update
 }
 
-// PHASE 4 STEP 5: Save user data to Supabase profile
+// PHASE 4 STEP 5: Save user data to Supabase profile - FIXED VERSION
 async function saveUserDataToSupabase() {
     try {
         const session = SessionManager.getCurrentSession();
@@ -169,46 +169,51 @@ async function saveUserDataToSupabase() {
             console.log('No user logged in - skipping Supabase save');
             return;
         }
-        
-        console.log('Saving user data to Supabase for user:', session.username);
+
+        console.log('🔄 Saving user data to Supabase for user:', session.username);
         
         // Collect all user data from local storage
         const userData = {
             // Test progress
             currentQuestionIndex: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
             userAnswers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
-            
             // Saved results
             savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
-            
             // User preferences
             language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
-            
-            // Music preferences (if you have them)
+            // Music preferences
             musicPlaylist: loadFromStorage('SC1-music-playlist', null),
-            
             // Timestamp
             lastSaved: new Date().toISOString(),
-            appVersion: 'spiritual-guide-v2.8.7'
+            appVersion: 'spiritual-guide-v2.8.8'
         };
-        
-        // Save to Supabase
+
+        console.log('📦 User data to save:', userData);
+
+        // Save to Supabase - FIXED: Using the correct user ID
         const { data, error } = await supabaseClient
             .from('auth_users')
             .update({ 
                 user_data: userData,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', session.id);
-            
+            .eq('id', session.id);  // Make sure this matches your user ID
+
         if (error) {
-            console.error('Error saving user data to Supabase:', error);
+            console.error('❌ Error saving user data to Supabase:', error);
+            // Show error notification to user
+            if (window.showError) {
+                window.showError('Failed to sync data to cloud: ' + error.message);
+            }
         } else {
-            console.log('User data successfully saved to Supabase');
+            console.log('✅ User data successfully saved to Supabase');
+            // Optional: Show success notification
+            if (window.showSuccess) {
+                window.showSuccess('Data synced to cloud successfully!');
+            }
         }
-        
     } catch (error) {
-        console.error('Error in saveUserDataToSupabase:', error);
+        console.error('❌ Error in saveUserDataToSupabase:', error);
     }
 }
 
@@ -229,7 +234,22 @@ function deleteSavedResult(resultId) {
     const filteredResults = allResults.filter(result => result.id !== resultId);
     return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
 }
+// Debug function to check user session
+function debugUserSession() {
+    const session = SessionManager.getCurrentSession();
+    console.log('🔍 Debug - User Session:', session);
+    
+    if (session && session.id) {
+        console.log('✅ User is logged in with ID:', session.id);
+        return true;
+    } else {
+        console.log('❌ No valid user session found');
+        return false;
+    }
+}
 
+// Make it available globally
+window.debugUserSession = debugUserSession;
 // Make functions global
 window.saveCurrentResults = saveCurrentResults;
 window.loadSavedResults = loadSavedResults;

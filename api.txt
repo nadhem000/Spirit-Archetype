@@ -345,11 +345,9 @@ function initializeLogin() {
 		try {
 			// Enhanced logout: Clear both local session and Supabase connection
 			console.log('🔐 Starting secure logout process...');
-			
 			// 1. Clear local session first
 			SessionManager.clearSession();
 			currentUser = null;
-			
 			// 2. Clear any Supabase session data
 			if (window.supabaseClient) {
 				// Sign out from Supabase (if using auth)
@@ -358,45 +356,36 @@ function initializeLogin() {
 					console.log('Supabase signout note:', error.message);
 				}
 			}
-			
 			// 3. Clear any additional localStorage items
 			localStorage.removeItem('currentUser');
 			localStorage.removeItem('spiritual-guide-supabase-auth');
-			
 			// 4. Remove logout button from UI
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) {
 				logoutBtn.remove();
 			}
-			
 			// 5. Show login form again
 			const loginContainer = document.querySelector('.SC1-login-form');
 			if (loginContainer) {
 				loginContainer.style.display = 'block';
 			}
-			
 			// 6. Clear login form fields
 			const usernameInput = document.getElementById('SC1-username');
 			const passwordInput = document.getElementById('SC1-password');
 			if (usernameInput) usernameInput.value = '';
 			if (passwordInput) passwordInput.value = '';
-			
 			// 7. Show success message
 			showSuccess(translate('SC1.login.success.logoutSuccess'));
 			console.log('✅ Secure logout completed - all sessions cleared');
-			
 			} catch (error) {
 			console.error('Logout error:', error);
 			// Even if there's an error, ensure basic cleanup happens
 			SessionManager.clearSession();
 			localStorage.removeItem('currentUser');
-			
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) logoutBtn.remove();
-			
 			const loginContainer = document.querySelector('.SC1-login-form');
 			if (loginContainer) loginContainer.style.display = 'block';
-			
 			showSuccess(translate('SC1.login.success.logoutSuccess'));
 		}
 	}
@@ -466,22 +455,17 @@ function resetTestFromHeader() {
     window.currentQuestionIndex = 0;
     window.userAnswers = Array(questions.length).fill(null);
     window.scores = { A: 0, B: 0, C: 0, D: 0 };
-    
     // Clear saved progress
     localStorage.removeItem(STORAGE_KEYS.ANSWERS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
-    
     // Return to welcome card
     resultCard.classList.remove('SC1-active');
     questionCard.classList.remove('SC1-active');
     welcomeCard.classList.add('SC1-active');
-    
     // Reset progress bar
     updateProgressBar();
-    
     // Apply translations
     applyTranslations();
-    
     // Update navigation buttons
     updateNavButtons();
 }
@@ -734,7 +718,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.8.7",
+            version: "spiritual-guide-v2.8.8",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1065,7 +1049,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.8.7",
+            version: "spiritual-guide-v2.8.8",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1140,7 +1124,6 @@ function saveUserPreferences() {
 function saveTestProgress() {
     saveToStorage(STORAGE_KEYS.ANSWERS, window.userAnswers);
     saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, window.currentQuestionIndex);
-    
     // PHASE 4 STEP 5: Also save to Supabase if user is logged in
     saveUserDataToSupabase();
 }
@@ -1159,14 +1142,11 @@ function loadTestProgress() {
 function resumeTestFromSavedState() {
     const { savedAnswers, savedQuestionIndex } = loadTestProgress();
     const hasSavedProgress = savedAnswers.some(answer => answer !== null);
-    
     if (hasSavedProgress) {
         window.userAnswers = savedAnswers;
         window.currentQuestionIndex = savedQuestionIndex;
-        
         // Check if all questions are answered (test completed)
         const allQuestionsAnswered = window.userAnswers.every(answer => answer !== null);
-        
         if (allQuestionsAnswered) {
             // Test was completed - show results
             welcomeCard.classList.remove('SC1-active');
@@ -1203,16 +1183,13 @@ function saveCurrentResults() {
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
-    
     // Use setTimeout to break up the work and prevent blocking
     setTimeout(() => {
         try {
             const resultPattern = calculateResult();
             const resultId = generateResultId();
-            
             // Get translations more efficiently
             const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
-            
             const resultData = {
                 id: resultId,
                 date: new Date().toISOString(),
@@ -1229,19 +1206,14 @@ function saveCurrentResults() {
                     allianceTip: resultTranslations.allianceTip
                 }
             };
-            
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
-            
             // Add new result
             existingResults.push(resultData);
-            
             // Save back to storage
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
-            
             // PHASE 4 STEP 5: Save to Supabase user profile if logged in
             saveUserDataToSupabase();
-            
             // Show result using notification system
             if (saved) {
                 showSuccess(translate('SC1.results.saveSuccess'));
@@ -1258,8 +1230,7 @@ function saveCurrentResults() {
         }
     }, 10); // Small delay to allow UI to update
 }
-
-// PHASE 4 STEP 5: Save user data to Supabase profile
+// PHASE 4 STEP 5: Save user data to Supabase profile - FIXED VERSION
 async function saveUserDataToSupabase() {
     try {
         const session = SessionManager.getCurrentSession();
@@ -1267,46 +1238,46 @@ async function saveUserDataToSupabase() {
             console.log('No user logged in - skipping Supabase save');
             return;
         }
-        
-        console.log('Saving user data to Supabase for user:', session.username);
-        
+        console.log('🔄 Saving user data to Supabase for user:', session.username);
         // Collect all user data from local storage
         const userData = {
             // Test progress
             currentQuestionIndex: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
             userAnswers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
-            
             // Saved results
             savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
-            
             // User preferences
             language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
-            
-            // Music preferences (if you have them)
+            // Music preferences
             musicPlaylist: loadFromStorage('SC1-music-playlist', null),
-            
             // Timestamp
             lastSaved: new Date().toISOString(),
-            appVersion: 'spiritual-guide-v2.8.7'
+            appVersion: 'spiritual-guide-v2.8.8'
         };
-        
-        // Save to Supabase
+        console.log('📦 User data to save:', userData);
+        // Save to Supabase - FIXED: Using the correct user ID
         const { data, error } = await supabaseClient
             .from('auth_users')
             .update({ 
                 user_data: userData,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', session.id);
-            
+            .eq('id', session.id);  // Make sure this matches your user ID
         if (error) {
-            console.error('Error saving user data to Supabase:', error);
+            console.error('❌ Error saving user data to Supabase:', error);
+            // Show error notification to user
+            if (window.showError) {
+                window.showError('Failed to sync data to cloud: ' + error.message);
+            }
         } else {
-            console.log('User data successfully saved to Supabase');
+            console.log('✅ User data successfully saved to Supabase');
+            // Optional: Show success notification
+            if (window.showSuccess) {
+                window.showSuccess('Data synced to cloud successfully!');
+            }
         }
-        
     } catch (error) {
-        console.error('Error in saveUserDataToSupabase:', error);
+        console.error('❌ Error in saveUserDataToSupabase:', error);
     }
 }
 // Load all saved results
@@ -1324,6 +1295,22 @@ function deleteSavedResult(resultId) {
     const filteredResults = allResults.filter(result => result.id !== resultId);
     return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
 }
+// Debug function to check user session
+function debugUserSession() {
+    const session = SessionManager.getCurrentSession();
+    console.log('🔍 Debug - User Session:', session);
+    
+    if (session && session.id) {
+        console.log('✅ User is logged in with ID:', session.id);
+        return true;
+    } else {
+        console.log('❌ No valid user session found');
+        return false;
+    }
+}
+
+// Make it available globally
+window.debugUserSession = debugUserSession;
 // Make functions global
 window.saveCurrentResults = saveCurrentResults;
 window.loadSavedResults = loadSavedResults;
@@ -1783,7 +1770,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.7</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.8</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2683,7 +2670,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.8.7'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.8.8'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3072,7 +3059,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.8.7'
+      'X-Client-Info': 'spiritual-guide-v2.8.8'
     }
   }
 });
@@ -3106,7 +3093,6 @@ const SessionManager = {
       return null;
     }
   },
-	
 	// automatic session verification
 	setupAutomaticRefresh: function() {
 		// Check session every 30 minutes
@@ -3117,7 +3103,6 @@ const SessionManager = {
 				console.log('🔄 Session automatically refreshed');
 			}
 		}, 30 * 60 * 1000); // 30 minutes
-		
 		// Also refresh when user becomes active again
 		document.addEventListener('visibilitychange', () => {
 			if (!document.hidden) {
@@ -3175,7 +3160,6 @@ function validateSecureConnection() {
 // Initialize security check when script loads
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(validateSecureConnection, 1000);
-  
   // Start automatic session refresh
   SessionManager.setupAutomaticRefresh();
 });
