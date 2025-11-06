@@ -225,7 +225,6 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginBtn = document.getElementById('SC1-login-btn');
-    const loginContainer = document.getElementById('SC1-login-form-container');
     if (!loginForm || !usernameInput || !passwordInput || !loginBtn) {
         console.log('Login elements not found - skipping login initialization');
         return;
@@ -242,7 +241,7 @@ function initializeLogin() {
             return;
         }
         if (username.length < 3) {
-            showError('Username must be at least 3 characters long');
+            showError(translate('SC1.login.validation.usernameLength'));
             return;
         }
         if (password.length < 6) {
@@ -260,6 +259,8 @@ function initializeLogin() {
                 return;
             }
             console.log('🔐 Attempting secure login for user:', username);
+            // SECURE: Hash password before sending (basic client-side hashing)
+            const passwordHash = await simpleHash(password);
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
                 .from('auth_users')
@@ -276,9 +277,8 @@ function initializeLogin() {
                 }
                 return;
             }
-            // Verify password (in Phase 4 we'll implement proper password hashing)
-            // For now, we're comparing plain text (this will be improved in Phase 4)
-            if (users.hashed_password !== password) {
+            // SECURE: Compare hashed passwords instead of plain text
+            if (users.hashed_password !== passwordHash) {
                 showError(translate('SC1.login.validation.invalidPassword'));
                 return;
             }
@@ -305,55 +305,61 @@ function initializeLogin() {
             loginBtn.textContent = originalText;
         }
     }
-    // Update UI after successful login
-     function updateUIAfterLogin(userData) {
-		const loginContainer = document.querySelector('.SC1-login-form');
-		if (loginContainer) {
-			loginContainer.style.display = 'none';
-		}
-		// Create logout button and add it to controls line
-		const logoutBtn = document.createElement('button');
-		logoutBtn.className = 'SC1-logout-btn';
-		logoutBtn.id = 'SC1-logout-btn';
-		logoutBtn.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-		<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-        </svg>
-        <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
-		`;
-		// Add logout button to controls line
-		const controlsLine = document.querySelector('.SC1-controls-line');
-		if (controlsLine && !document.getElementById('SC1-logout-btn')) {
-			controlsLine.appendChild(logoutBtn);
-			// Add logout functionality
-			logoutBtn.addEventListener('click', handleLogout);
-		}
-		// Clear form securely
-		usernameInput.value = '';
-		passwordInput.value = '';
-		}
-    // Logout function
+    // Simple client-side hash function (for basic security)
+    async function simpleHash(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+    // Rest of your existing functions remain the same...
+    function updateUIAfterLogin(userData) {
+        const loginContainer = document.querySelector('.SC1-login-form');
+        if (loginContainer) {
+            loginContainer.style.display = 'none';
+        }
+        // Create logout button and add it to controls line
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'SC1-logout-btn';
+        logoutBtn.id = 'SC1-logout-btn';
+        logoutBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+            <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
+        `;
+        // Add logout button to controls line
+        const controlsLine = document.querySelector('.SC1-controls-line');
+        if (controlsLine && !document.getElementById('SC1-logout-btn')) {
+            controlsLine.appendChild(logoutBtn);
+            // Add logout functionality
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+        // Clear form securely
+        usernameInput.value = '';
+        passwordInput.value = '';
+    }
     function handleLogout() {
-    localStorage.removeItem('currentUser');
-    currentUser = null;
-    // Remove logout button
-    const logoutBtn = document.getElementById('SC1-logout-btn');
-    if (logoutBtn) {
-        logoutBtn.remove();
+        localStorage.removeItem('currentUser');
+        currentUser = null;
+        // Remove logout button
+        const logoutBtn = document.getElementById('SC1-logout-btn');
+        if (logoutBtn) {
+            logoutBtn.remove();
+        }
+        // Show login form again
+        const loginContainer = document.querySelector('.SC1-login-form');
+        if (loginContainer) {
+            loginContainer.style.display = 'block';
+        }
+        showSuccess(translate('SC1.login.success.logoutSuccess'));
+        console.log('✅ User logged out');
     }
-    // Show login form again
-    const loginContainer = document.querySelector('.SC1-login-form');
-    if (loginContainer) {
-        loginContainer.style.display = 'block';
-    }
-    showSuccess(translate('SC1.login.success.logoutSuccess'));
-    console.log('✅ User logged out');
-}
-    // Generate secure session ID
     function generateSessionId() {
         return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
     }
-    // Enhanced login check with security validation
     function checkExistingLogin() {
         try {
             const savedUser = localStorage.getItem('currentUser');
@@ -382,8 +388,6 @@ function initializeLogin() {
     // Security: Clear password on page blur
     window.addEventListener('blur', () => {
         if (passwordInput && document.activeElement !== passwordInput) {
-            // We don't clear the password here as it might interrupt user experience
-            // But we log the event for security monitoring
             console.log('Page lost focus - security event logged');
         }
     });
@@ -669,7 +673,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.8.2",
+            version: "spiritual-guide-v2.8.3",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1000,7 +1004,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.8.2",
+            version: "spiritual-guide-v2.8.3",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1650,7 +1654,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.2</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.3</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2547,7 +2551,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.8.2'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.8.3'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2936,7 +2940,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.8.2'
+      'X-Client-Info': 'spiritual-guide-v2.8.3'
     }
   }
 });
@@ -3117,6 +3121,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const registrationForm = document.getElementById('registrationForm');
     const registerBtn = document.getElementById('registerBtn');
     const registrationMessage = document.getElementById('registrationMessage');
+    // Simple client-side hash function
+    async function simpleHash(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
     // Registration form handler
     registrationForm.addEventListener('submit', async function(event) {
         event.preventDefault();
@@ -3132,11 +3145,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         if (username.length < 3) {
-            showError(translate('SC1.login.validation.usernameLength'));
+            showMessage('Username must be at least 3 characters long', 'error');
             return;
         }
         if (password.length < 6) {
-            showError(translate('SC1.login.validation.passwordLength'));
+            showMessage('Password must be at least 6 characters long', 'error');
             return;
         }
         if (password !== confirmPassword) {
@@ -3153,14 +3166,16 @@ document.addEventListener('DOMContentLoaded', function() {
         registerBtn.textContent = 'Registering...';
         try {
             console.log('Attempting to register user:', { username, email });
-            // Insert user into Supabase
+            // SECURE: Hash password before sending to database
+            const passwordHash = await simpleHash(password);
+            // Insert user into Supabase with hashed password
             const { data, error } = await supabaseClient
                 .from('auth_users')
                 .insert([
                     {
                         username: username,
                         email: email,
-                        hashed_password: password, // Note: We'll hash this properly in Phase 3
+                        hashed_password: passwordHash, // Now storing hash instead of plain text
                         profile: profile || null,
                         is_active: true
                     }

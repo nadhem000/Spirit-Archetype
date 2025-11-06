@@ -68,75 +68,75 @@ function initializeLogin() {
     const usernameInput = document.getElementById('SC1-username');
     const passwordInput = document.getElementById('SC1-password');
     const loginBtn = document.getElementById('SC1-login-btn');
-    const loginContainer = document.getElementById('SC1-login-form-container');
     
     if (!loginForm || !usernameInput || !passwordInput || !loginBtn) {
         console.log('Login elements not found - skipping login initialization');
         return;
-	}
-	
+    }
+
     let currentUser = null;
-	
+
     // Enhanced secure login function
     async function handleLogin(event) {
         event.preventDefault();
-        
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-		
+
         // Basic validation
         if (!username || !password) {
             showError(translate('SC1.login.validation.fillAllFields'));
             return;
-		}
+        }
         if (username.length < 3) {
-			showError(translate('SC1.login.validation.usernameLength'));
+            showError(translate('SC1.login.validation.usernameLength'));
             return;
-		}
+        }
         if (password.length < 6) {
             showError(translate('SC1.login.validation.passwordLength'));
             return;
-		}
-		
+        }
+
         // Show loading state
         loginBtn.disabled = true;
         const originalText = loginBtn.textContent;
         loginBtn.textContent = translate('SC1.login.button') + '...';
-		
+
         try {
             // Verify secure connection first
             if (!validateSecureConnection()) {
                 showError(translate('SC1.login.validation.secureConnection'));
                 return;
-			}
-			
+            }
+
             console.log('🔐 Attempting secure login for user:', username);
+
+            // SECURE: Hash password before sending (basic client-side hashing)
+            const passwordHash = await simpleHash(password);
             
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
-			.from('auth_users')
-			.select('id, username, email, hashed_password, is_active, inscription_date')
-			.eq('username', username)
-			.eq('is_active', true)
-			.single();
-			
+                .from('auth_users')
+                .select('id, username, email, hashed_password, is_active, inscription_date')
+                .eq('username', username)
+                .eq('is_active', true)
+                .single();
+
             if (error) {
                 console.error('Login error:', error);
                 if (error.code === 'PGRST116') {
                     showError(translate('SC1.login.validation.usernameNotFound'));
-					} else {
+                } else {
                     showError(translate('SC1.login.validation.loginFailed') + ': ' + error.message);
-				}
+                }
                 return;
-			}
-			
-            // Verify password (in Phase 4 we'll implement proper password hashing)
-            // For now, we're comparing plain text (this will be improved in Phase 4)
-            if (users.hashed_password !== password) {
+            }
+
+            // SECURE: Compare hashed passwords instead of plain text
+            if (users.hashed_password !== passwordHash) {
                 showError(translate('SC1.login.validation.invalidPassword'));
                 return;
-			}
-			
+            }
+
             currentUser = users.username;
             
             // Store minimal secure user info
@@ -146,88 +146,95 @@ function initializeLogin() {
                 email: users.email,
                 loginTime: new Date().toISOString(),
                 sessionId: generateSessionId()
-			};
+            };
             
             localStorage.setItem('currentUser', JSON.stringify(userData));
-            
             showSuccess(translate('SC1.login.success.loginSuccessful'));
             
             // Hide login form and show user info
             updateUIAfterLogin(userData);
-            
             console.log('✅ Secure login successful for user:', currentUser);
-			
-			} catch (error) {
+
+        } catch (error) {
             console.error('Secure login error:', error);
             showError('Login failed. Please try again.');
-			} finally {
+        } finally {
             // Reset button
             loginBtn.disabled = false;
             loginBtn.textContent = originalText;
-		}
-	}
-	
-    // Update UI after successful login
+        }
+    }
+
+    // Simple client-side hash function (for basic security)
+    async function simpleHash(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    // Rest of your existing functions remain the same...
     function updateUIAfterLogin(userData) {
-		const loginContainer = document.querySelector('.SC1-login-form');
-		if (loginContainer) {
-			loginContainer.style.display = 'none';
-		}
-		// Create logout button and add it to controls line
-		const logoutBtn = document.createElement('button');
-		logoutBtn.className = 'SC1-logout-btn';
-		logoutBtn.id = 'SC1-logout-btn';
-		logoutBtn.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-		<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-        </svg>
-        <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
-		`;
-		// Add logout button to controls line
-		const controlsLine = document.querySelector('.SC1-controls-line');
-		if (controlsLine && !document.getElementById('SC1-logout-btn')) {
-			controlsLine.appendChild(logoutBtn);
-			// Add logout functionality
-			logoutBtn.addEventListener('click', handleLogout);
-		}
-		// Clear form securely
-		usernameInput.value = '';
-		passwordInput.value = '';
-		}
-	
-    // Logout function
+        const loginContainer = document.querySelector('.SC1-login-form');
+        if (loginContainer) {
+            loginContainer.style.display = 'none';
+        }
+        
+        // Create logout button and add it to controls line
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'SC1-logout-btn';
+        logoutBtn.id = 'SC1-logout-btn';
+        logoutBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+            <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
+        `;
+        
+        // Add logout button to controls line
+        const controlsLine = document.querySelector('.SC1-controls-line');
+        if (controlsLine && !document.getElementById('SC1-logout-btn')) {
+            controlsLine.appendChild(logoutBtn);
+            // Add logout functionality
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+        
+        // Clear form securely
+        usernameInput.value = '';
+        passwordInput.value = '';
+    }
+
     function handleLogout() {
-		localStorage.removeItem('currentUser');
-		currentUser = null;
-		
-		// Remove logout button
-		const logoutBtn = document.getElementById('SC1-logout-btn');
-		if (logoutBtn) {
-			logoutBtn.remove();
-		}
-		
-		// Show login form again
-		const loginContainer = document.querySelector('.SC1-login-form');
-		if (loginContainer) {
-			loginContainer.style.display = 'block';
-		}
-		
-		showSuccess(translate('SC1.login.success.logoutSuccess'));
-		console.log('✅ User logged out');
-	}
-	
-    // Generate secure session ID
+        localStorage.removeItem('currentUser');
+        currentUser = null;
+        
+        // Remove logout button
+        const logoutBtn = document.getElementById('SC1-logout-btn');
+        if (logoutBtn) {
+            logoutBtn.remove();
+        }
+        
+        // Show login form again
+        const loginContainer = document.querySelector('.SC1-login-form');
+        if (loginContainer) {
+            loginContainer.style.display = 'block';
+        }
+        
+        showSuccess(translate('SC1.login.success.logoutSuccess'));
+        console.log('✅ User logged out');
+    }
+
     function generateSessionId() {
         return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
-	}
-	
-    // Enhanced login check with security validation
+    }
+
     function checkExistingLogin() {
         try {
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 const userData = JSON.parse(savedUser);
-                
                 // Basic session validation
                 const sessionAge = Date.now() - new Date(userData.loginTime).getTime();
                 const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
@@ -236,30 +243,28 @@ function initializeLogin() {
                     currentUser = userData.username;
                     console.log('🔐 User already logged in:', currentUser);
                     updateUIAfterLogin(userData);
-					} else {
+                } else {
                     // Session expired
                     localStorage.removeItem('currentUser');
                     console.log('Session expired');
-				}
-			}
-			} catch (error) {
+                }
+            }
+        } catch (error) {
             console.log('No valid existing login found');
             localStorage.removeItem('currentUser');
-		}
-	}
-	
+        }
+    }
+
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     
     // Security: Clear password on page blur
     window.addEventListener('blur', () => {
         if (passwordInput && document.activeElement !== passwordInput) {
-            // We don't clear the password here as it might interrupt user experience
-            // But we log the event for security monitoring
             console.log('Page lost focus - security event logged');
-		}
-	});
-	
+        }
+    });
+
     // Initialize login check
     checkExistingLogin();
 }
