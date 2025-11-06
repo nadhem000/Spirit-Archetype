@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 	},
 	global: {
 		headers: {
-			'X-Client-Info': 'spiritual-guide-v2.9.0'
+			'X-Client-Info': 'spiritual-guide-v2.9.1'
 		}
 	}
 });
@@ -94,10 +94,18 @@ const SessionManager = {
 	isSessionValid: function(session) {
 		if (!session || !session.loginTime) return false;
 		
+		// Check if session is older than 24 hours
 		const sessionAge = Date.now() - new Date(session.loginTime).getTime();
 		const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
 		
-		return sessionAge < maxSessionAge;
+		const isValid = sessionAge < maxSessionAge;
+		
+		if (!isValid) {
+			console.log('❌ Session expired - age:', sessionAge, 'max:', maxSessionAge);
+			this.clearSession();
+		}
+		
+		return isValid;
 	},
 	
 	// Generate secure session ID
@@ -132,10 +140,10 @@ function validateSecureConnection() {
 
 // Initialize security check when script loads
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(validateSecureConnection, 1000);
-  
-  // Start automatic session refresh
-  SessionManager.setupAutomaticRefresh();
+	setTimeout(validateSecureConnection, 1000);
+	
+	// Start automatic session refresh
+	SessionManager.setupAutomaticRefresh();
 });
 
 // Export for global access

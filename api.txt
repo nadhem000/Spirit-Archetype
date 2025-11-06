@@ -718,7 +718,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.9.0",
+            version: "spiritual-guide-v2.9.1",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1049,7 +1049,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.9.0",
+            version: "spiritual-guide-v2.9.1",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1235,16 +1235,22 @@ async function saveUserDataToSupabase() {
     try {
         const session = SessionManager.getCurrentSession();
         if (!session || !session.id) {
-            console.log('No user logged in - skipping Supabase save');
-            return;
+            console.log('❌ No user logged in - skipping Supabase save');
+            return false;
+        }
+        // Verify session is still valid
+        if (!SessionManager.isSessionValid(session)) {
+            console.log('❌ Session expired - clearing and skipping save');
+            SessionManager.clearSession();
+            return false;
         }
         console.log('🔄 Saving user data to Supabase for user:', session.username);
-        // Collect all user data from local storage - SIMPLIFIED STRUCTURE
+        // SIMPLIFIED data structure - only save essential data
         const userData = {
             test_progress: {
                 current_question: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
                 user_answers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
-                saved_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, [])
+                // Don't save saved_results here to avoid circular references
             },
             preferences: {
                 language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
@@ -1252,20 +1258,20 @@ async function saveUserDataToSupabase() {
             },
             app_info: {
                 last_saved: new Date().toISOString(),
-                app_version: 'spiritual-guide-v2.9.0',
+                app_version: 'spiritual-guide-v2.9.1',
                 total_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []).length
             }
         };
-        console.log('📦 User data to save:', userData);
-        // Save to Supabase - FIXED: Using simpler data structure
+        console.log('📦 User data prepared:', userData);
+        // Save to Supabase - SIMPLIFIED UPDATE
         const { data, error } = await supabaseClient
             .from('auth_users')
             .update({ 
                 user_data: userData,
-                updated_at: new Date().toISOString(),
-                last_login: new Date().toISOString() // Also update last_login
+                updated_at: new Date().toISOString()
             })
-            .eq('id', session.id);
+            .eq('id', session.id)
+            .select(); // Add select to see what was updated
         if (error) {
             console.error('❌ Error saving user data to Supabase:', error);
             console.error('Error details:', {
@@ -1273,12 +1279,15 @@ async function saveUserDataToSupabase() {
                 code: error.code,
                 details: error.details
             });
+            return false;
         } else {
             console.log('✅ User data successfully saved to Supabase');
-            console.log('Updated rows:', data);
+            console.log('Updated user:', data);
+            return true;
         }
     } catch (error) {
-        console.error('❌ Error in saveUserDataToSupabase:', error);
+        console.error('❌ Unexpected error in saveUserDataToSupabase:', error);
+        return false;
     }
 }
 // Load all saved results
@@ -1378,6 +1387,37 @@ async function enhancedDebug() {
         console.error('❌ Error in enhancedDebug:', error);
     }
 }
+// for testing
+async function testSupabaseSave() {
+    console.log('🧪 Testing Supabase save functionality...');
+    const session = SessionManager.getCurrentSession();
+    if (!session) {
+        console.log('❌ No session found - please login first');
+        return;
+    }
+    console.log('📋 Current session:', session);
+    // Test with simple data first
+    const testData = {
+        test_timestamp: new Date().toISOString(),
+        message: 'Test save from spiritual guide app'
+    };
+    console.log('🔄 Attempting to save test data:', testData);
+    const { data, error } = await supabaseClient
+        .from('auth_users')
+        .update({ 
+            user_data: testData,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', session.id)
+        .select();
+    if (error) {
+        console.error('❌ Test save failed:', error);
+    } else {
+        console.log('✅ Test save successful:', data);
+    }
+}
+// Make it available globally
+window.testSupabaseSave = testSupabaseSave;
 // Make it available globally
 window.enhancedDebug = enhancedDebug;
 // Make it available globally
@@ -1843,7 +1883,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.0</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.1</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2743,7 +2783,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.9.0'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.9.1'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3132,7 +3172,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.0'
+      'X-Client-Info': 'spiritual-guide-v2.9.1'
     }
   }
 });
@@ -3199,11 +3239,17 @@ const SessionManager = {
   },
   // Check if session is valid
   isSessionValid: function(session) {
-    if (!session || !session.loginTime) return false;
-    const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-    const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
-    return sessionAge < maxSessionAge;
-  },
+		if (!session || !session.loginTime) return false;
+		// Check if session is older than 24 hours
+		const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+		const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+		const isValid = sessionAge < maxSessionAge;
+		if (!isValid) {
+			console.log('❌ Session expired - age:', sessionAge, 'max:', maxSessionAge);
+			this.clearSession();
+		}
+		return isValid;
+	},
   // Generate secure session ID
   generateSessionId: function() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);

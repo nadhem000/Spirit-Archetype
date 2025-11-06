@@ -166,18 +166,25 @@ async function saveUserDataToSupabase() {
     try {
         const session = SessionManager.getCurrentSession();
         if (!session || !session.id) {
-            console.log('No user logged in - skipping Supabase save');
-            return;
+            console.log('❌ No user logged in - skipping Supabase save');
+            return false;
+        }
+
+        // Verify session is still valid
+        if (!SessionManager.isSessionValid(session)) {
+            console.log('❌ Session expired - clearing and skipping save');
+            SessionManager.clearSession();
+            return false;
         }
 
         console.log('🔄 Saving user data to Supabase for user:', session.username);
         
-        // Collect all user data from local storage - SIMPLIFIED STRUCTURE
+        // SIMPLIFIED data structure - only save essential data
         const userData = {
             test_progress: {
                 current_question: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
                 user_answers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
-                saved_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, [])
+                // Don't save saved_results here to avoid circular references
             },
             preferences: {
                 language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
@@ -185,22 +192,22 @@ async function saveUserDataToSupabase() {
             },
             app_info: {
                 last_saved: new Date().toISOString(),
-                app_version: 'spiritual-guide-v2.9.0',
+                app_version: 'spiritual-guide-v2.9.1',
                 total_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []).length
             }
         };
 
-        console.log('📦 User data to save:', userData);
+        console.log('📦 User data prepared:', userData);
 
-        // Save to Supabase - FIXED: Using simpler data structure
+        // Save to Supabase - SIMPLIFIED UPDATE
         const { data, error } = await supabaseClient
             .from('auth_users')
             .update({ 
                 user_data: userData,
-                updated_at: new Date().toISOString(),
-                last_login: new Date().toISOString() // Also update last_login
+                updated_at: new Date().toISOString()
             })
-            .eq('id', session.id);
+            .eq('id', session.id)
+            .select(); // Add select to see what was updated
 
         if (error) {
             console.error('❌ Error saving user data to Supabase:', error);
@@ -209,12 +216,15 @@ async function saveUserDataToSupabase() {
                 code: error.code,
                 details: error.details
             });
+            return false;
         } else {
             console.log('✅ User data successfully saved to Supabase');
-            console.log('Updated rows:', data);
+            console.log('Updated user:', data);
+            return true;
         }
     } catch (error) {
-        console.error('❌ Error in saveUserDataToSupabase:', error);
+        console.error('❌ Unexpected error in saveUserDataToSupabase:', error);
+        return false;
     }
 }
 
@@ -332,6 +342,45 @@ async function enhancedDebug() {
         console.error('❌ Error in enhancedDebug:', error);
     }
 }
+
+// for testing
+async function testSupabaseSave() {
+    console.log('🧪 Testing Supabase save functionality...');
+    
+    const session = SessionManager.getCurrentSession();
+    if (!session) {
+        console.log('❌ No session found - please login first');
+        return;
+    }
+    
+    console.log('📋 Current session:', session);
+    
+    // Test with simple data first
+    const testData = {
+        test_timestamp: new Date().toISOString(),
+        message: 'Test save from spiritual guide app'
+    };
+    
+    console.log('🔄 Attempting to save test data:', testData);
+    
+    const { data, error } = await supabaseClient
+        .from('auth_users')
+        .update({ 
+            user_data: testData,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', session.id)
+        .select();
+    
+    if (error) {
+        console.error('❌ Test save failed:', error);
+    } else {
+        console.log('✅ Test save successful:', data);
+    }
+}
+
+// Make it available globally
+window.testSupabaseSave = testSupabaseSave;
 
 // Make it available globally
 window.enhancedDebug = enhancedDebug;

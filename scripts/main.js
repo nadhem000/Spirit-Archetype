@@ -115,11 +115,11 @@ function initializeLogin() {
             
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
-			.from('auth_users')
-			.select('id, username, email, hashed_password, is_active, inscription_date')
-			.eq('username', username)
-			.eq('is_active', true)
-			.single();
+    .from('auth_users')  // NEW - change this!
+    .select('id, username, email, hashed_password, is_active, inscription_date')
+    .eq('username', username)
+    .eq('is_active', true)
+    .single();
 			
             if (error) {
                 console.error('Login error:', error);
@@ -285,11 +285,11 @@ function initializeLogin() {
 			console.log('🔐 Verifying existing session with Supabase...');
 			
 			const { data: users, error } = await supabaseClient
-            .from('auth_users')
-            .select('id, username, email, is_active')
-            .eq('username', session.username)
-            .eq('is_active', true)
-            .single();
+    .from('auth_users')  // NEW - change this!
+    .select('id, username, email, hashed_password, is_active, inscription_date')
+    .eq('username', username)
+    .eq('is_active', true)
+    .single();
 			
 			if (error || !users) {
 				console.log('Session verification failed:', error);
