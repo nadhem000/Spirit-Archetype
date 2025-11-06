@@ -154,7 +154,10 @@ class MusicPlayer {
 			// Don't show notification here if using canplaythrough
 			}).catch(error => {
 			console.error('Error playing audio:', error);
-			this.showError(translate('SC1.music.error'));
+			// Use the global showError function instead of this.showError
+			if (window.showError) {
+				window.showError(translate('SC1.music.error'));
+			}
 		});
 	}
 	

@@ -1,5 +1,5 @@
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.8.4'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.8.5'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -29,7 +29,18 @@ const FILES_TO_CACHE = [
   '/assets/icons/icon-512x512.png',
   '/assets/screenshots/screenshot-desktop_1280x720.png',
   '/assets/screenshots/screenshot-mobile_375x667.png',
-  '/assets/screenshots/widget-screenshot-384x384.png'
+  '/assets/screenshots/widget-screenshot-384x384.png',
+  '/assets/results/animals/eagle.jpg',
+  '/assets/results/animals/whale.jpg',
+  '/assets/results/animals/owl.jpg',
+  '/assets/results/animals/snake.jpg',
+  '/assets/results/guidelines/guide_a.jpg',
+  '/assets/results/guidelines/guide_b.jpg',
+  '/assets/results/guidelines/guide_c.jpg',
+  '/assets/results/guidelines/guide_d.jpg',
+  '/assets/musics/default/velvetkeys-zen-meditation-buddhist.mp3',
+  '/assets/musics/default/velvetkeys-zen-meditation-buddhist-1.mp3',
+  '/assets/musics/default/spiritualite-nature.mp3'
 ];
 
 // Install event - cache essential files
