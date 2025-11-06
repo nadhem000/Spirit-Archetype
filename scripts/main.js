@@ -58,9 +58,9 @@ window.guideImage = document.getElementById('SC1-guide-image');
 
 // Application state
 let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
-let currentQuestionIndex = 0;
-let userAnswers = Array(questions.length).fill(null);
-let scores = { A: 0, B: 0, C: 0, D: 0 };
+window.currentQuestionIndex = 0;
+window.userAnswers = Array(questions.length).fill(null);
+window.scores = { A: 0, B: 0, C: 0, D: 0 };
 
 // ===== ENHANCED SECURE LOGIN FUNCTIONALITY =====
 function initializeLogin() {
@@ -345,20 +345,25 @@ function initializeAppUI() {
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
     // Reset state
-    currentQuestionIndex = 0;
-    userAnswers = Array(questions.length).fill(null);
-    scores = { A: 0, B: 0, C: 0, D: 0 };
+    window.currentQuestionIndex = 0;
+    window.userAnswers = Array(questions.length).fill(null);
+    window.scores = { A: 0, B: 0, C: 0, D: 0 };
+    
     // Clear saved progress
     localStorage.removeItem(STORAGE_KEYS.ANSWERS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+    
     // Return to welcome card
     resultCard.classList.remove('SC1-active');
     questionCard.classList.remove('SC1-active');
     welcomeCard.classList.add('SC1-active');
+    
     // Reset progress bar
     updateProgressBar();
+    
     // Apply translations
     applyTranslations();
+    
     // Update navigation buttons
     updateNavButtons();
 }

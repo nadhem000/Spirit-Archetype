@@ -216,9 +216,9 @@ window.animalImage = document.getElementById('SC1-animal-image');
 window.guideImage = document.getElementById('SC1-guide-image');
 // Application state
 let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
-let currentQuestionIndex = 0;
-let userAnswers = Array(questions.length).fill(null);
-let scores = { A: 0, B: 0, C: 0, D: 0 };
+window.currentQuestionIndex = 0;
+window.userAnswers = Array(questions.length).fill(null);
+window.scores = { A: 0, B: 0, C: 0, D: 0 };
 // ===== ENHANCED SECURE LOGIN FUNCTIONALITY =====
 function initializeLogin() {
     const loginForm = document.querySelector('.SC1-login-form');
@@ -463,20 +463,25 @@ function initializeAppUI() {
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
     // Reset state
-    currentQuestionIndex = 0;
-    userAnswers = Array(questions.length).fill(null);
-    scores = { A: 0, B: 0, C: 0, D: 0 };
+    window.currentQuestionIndex = 0;
+    window.userAnswers = Array(questions.length).fill(null);
+    window.scores = { A: 0, B: 0, C: 0, D: 0 };
+    
     // Clear saved progress
     localStorage.removeItem(STORAGE_KEYS.ANSWERS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
+    
     // Return to welcome card
     resultCard.classList.remove('SC1-active');
     questionCard.classList.remove('SC1-active');
     welcomeCard.classList.add('SC1-active');
+    
     // Reset progress bar
     updateProgressBar();
+    
     // Apply translations
     applyTranslations();
+    
     // Update navigation buttons
     updateNavButtons();
 }
@@ -729,7 +734,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.8.6",
+            version: "spiritual-guide-v2.8.7",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1060,7 +1065,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.8.6",
+            version: "spiritual-guide-v2.8.7",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1133,8 +1138,11 @@ function saveUserPreferences() {
 }
 // Save test progress
 function saveTestProgress() {
-    saveToStorage(STORAGE_KEYS.ANSWERS, userAnswers);
-    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, currentQuestionIndex);
+    saveToStorage(STORAGE_KEYS.ANSWERS, window.userAnswers);
+    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, window.currentQuestionIndex);
+    
+    // PHASE 4 STEP 5: Also save to Supabase if user is logged in
+    saveUserDataToSupabase();
 }
 // Load user preferences
 function loadUserPreferences() {
@@ -1151,11 +1159,14 @@ function loadTestProgress() {
 function resumeTestFromSavedState() {
     const { savedAnswers, savedQuestionIndex } = loadTestProgress();
     const hasSavedProgress = savedAnswers.some(answer => answer !== null);
+    
     if (hasSavedProgress) {
-        userAnswers = savedAnswers;
-        currentQuestionIndex = savedQuestionIndex;
+        window.userAnswers = savedAnswers;
+        window.currentQuestionIndex = savedQuestionIndex;
+        
         // Check if all questions are answered (test completed)
-        const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
+        const allQuestionsAnswered = window.userAnswers.every(answer => answer !== null);
+        
         if (allQuestionsAnswered) {
             // Test was completed - show results
             welcomeCard.classList.remove('SC1-active');
@@ -1164,21 +1175,21 @@ function resumeTestFromSavedState() {
             displayResult();
         } 
         // If we're in the middle of the test
-        else if (currentQuestionIndex < questions.length) {
+        else if (window.currentQuestionIndex < questions.length) {
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
-            displayQuestion(currentQuestionIndex);
+            displayQuestion(window.currentQuestionIndex);
         }
         // If we're at the end but haven't completed all questions
-        else if (currentQuestionIndex >= questions.length && hasSavedProgress) {
+        else if (window.currentQuestionIndex >= questions.length && hasSavedProgress) {
             // This handles edge cases - show the last question
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
             // Make sure we don't go beyond the last question
-            currentQuestionIndex = Math.min(currentQuestionIndex, questions.length - 1);
-            displayQuestion(currentQuestionIndex);
+            window.currentQuestionIndex = Math.min(window.currentQuestionIndex, questions.length - 1);
+            displayQuestion(window.currentQuestionIndex);
         }
     }
 }
@@ -1192,13 +1203,16 @@ function saveCurrentResults() {
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
+    
     // Use setTimeout to break up the work and prevent blocking
     setTimeout(() => {
         try {
             const resultPattern = calculateResult();
             const resultId = generateResultId();
+            
             // Get translations more efficiently
             const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
+            
             const resultData = {
                 id: resultId,
                 date: new Date().toISOString(),
@@ -1215,27 +1229,85 @@ function saveCurrentResults() {
                     allianceTip: resultTranslations.allianceTip
                 }
             };
+            
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+            
             // Add new result
             existingResults.push(resultData);
+            
             // Save back to storage
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
+            
+            // PHASE 4 STEP 5: Save to Supabase user profile if logged in
+            saveUserDataToSupabase();
+            
             // Show result using notification system
-			if (saved) {
-				showSuccess(translate('SC1.results.saveSuccess'));
-				} else {
-				showError(translate('SC1.results.saveError'));
-			}
+            if (saved) {
+                showSuccess(translate('SC1.results.saveSuccess'));
+            } else {
+                showError(translate('SC1.results.saveError'));
+            }
         } catch (error) {
-			console.error('Error saving results:', error);
-			showError(translate('SC1.results.saveError'));
-			} finally {
+            console.error('Error saving results:', error);
+            showError(translate('SC1.results.saveError'));
+        } finally {
             // Restore button state
             saveResultsBtn.textContent = originalText;
             saveResultsBtn.disabled = false;
         }
     }, 10); // Small delay to allow UI to update
+}
+
+// PHASE 4 STEP 5: Save user data to Supabase profile
+async function saveUserDataToSupabase() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        if (!session || !session.id) {
+            console.log('No user logged in - skipping Supabase save');
+            return;
+        }
+        
+        console.log('Saving user data to Supabase for user:', session.username);
+        
+        // Collect all user data from local storage
+        const userData = {
+            // Test progress
+            currentQuestionIndex: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+            userAnswers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
+            
+            // Saved results
+            savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
+            
+            // User preferences
+            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+            
+            // Music preferences (if you have them)
+            musicPlaylist: loadFromStorage('SC1-music-playlist', null),
+            
+            // Timestamp
+            lastSaved: new Date().toISOString(),
+            appVersion: 'spiritual-guide-v2.8.7'
+        };
+        
+        // Save to Supabase
+        const { data, error } = await supabaseClient
+            .from('auth_users')
+            .update({ 
+                user_data: userData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', session.id);
+            
+        if (error) {
+            console.error('Error saving user data to Supabase:', error);
+        } else {
+            console.log('User data successfully saved to Supabase');
+        }
+        
+    } catch (error) {
+        console.error('Error in saveUserDataToSupabase:', error);
+    }
 }
 // Load all saved results
 function loadSavedResults() {
@@ -1257,6 +1329,7 @@ window.saveCurrentResults = saveCurrentResults;
 window.loadSavedResults = loadSavedResults;
 window.getSavedResultById = getSavedResultById;
 window.deleteSavedResult = deleteSavedResult;
+window.saveUserDataToSupabase = saveUserDataToSupabase;
 =====================
 FILE: translations.js
 =====================
@@ -1710,7 +1783,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.6</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.7</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2610,7 +2683,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.8.6'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.8.7'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2999,7 +3072,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.8.6'
+      'X-Client-Info': 'spiritual-guide-v2.8.7'
     }
   }
 });

@@ -35,8 +35,11 @@ function saveUserPreferences() {
 
 // Save test progress
 function saveTestProgress() {
-    saveToStorage(STORAGE_KEYS.ANSWERS, userAnswers);
-    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, currentQuestionIndex);
+    saveToStorage(STORAGE_KEYS.ANSWERS, window.userAnswers);
+    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, window.currentQuestionIndex);
+    
+    // PHASE 4 STEP 5: Also save to Supabase if user is logged in
+    saveUserDataToSupabase();
 }
 
 // Load user preferences
@@ -58,11 +61,11 @@ function resumeTestFromSavedState() {
     const hasSavedProgress = savedAnswers.some(answer => answer !== null);
     
     if (hasSavedProgress) {
-        userAnswers = savedAnswers;
-        currentQuestionIndex = savedQuestionIndex;
+        window.userAnswers = savedAnswers;
+        window.currentQuestionIndex = savedQuestionIndex;
         
         // Check if all questions are answered (test completed)
-        const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
+        const allQuestionsAnswered = window.userAnswers.every(answer => answer !== null);
         
         if (allQuestionsAnswered) {
             // Test was completed - show results
@@ -72,21 +75,21 @@ function resumeTestFromSavedState() {
             displayResult();
         } 
         // If we're in the middle of the test
-        else if (currentQuestionIndex < questions.length) {
+        else if (window.currentQuestionIndex < questions.length) {
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
-            displayQuestion(currentQuestionIndex);
+            displayQuestion(window.currentQuestionIndex);
         }
         // If we're at the end but haven't completed all questions
-        else if (currentQuestionIndex >= questions.length && hasSavedProgress) {
+        else if (window.currentQuestionIndex >= questions.length && hasSavedProgress) {
             // This handles edge cases - show the last question
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
             // Make sure we don't go beyond the last question
-            currentQuestionIndex = Math.min(currentQuestionIndex, questions.length - 1);
-            displayQuestion(currentQuestionIndex);
+            window.currentQuestionIndex = Math.min(window.currentQuestionIndex, questions.length - 1);
+            displayQuestion(window.currentQuestionIndex);
         }
     }
 }
@@ -102,7 +105,7 @@ function saveCurrentResults() {
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
-	
+    
     // Use setTimeout to break up the work and prevent blocking
     setTimeout(() => {
         try {
@@ -126,9 +129,9 @@ function saveCurrentResults() {
                     mission90Days: resultTranslations.mission90Days,
                     kpi: resultTranslations.kpi,
                     allianceTip: resultTranslations.allianceTip
-				}
-			};
-			
+                }
+            };
+            
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
             
@@ -138,22 +141,75 @@ function saveCurrentResults() {
             // Save back to storage
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
             
-            // Show result using notification system
-			if (saved) {
-				showSuccess(translate('SC1.results.saveSuccess'));
-				} else {
-				showError(translate('SC1.results.saveError'));
-			}
+            // PHASE 4 STEP 5: Save to Supabase user profile if logged in
+            saveUserDataToSupabase();
             
-			} catch (error) {
-			console.error('Error saving results:', error);
-			showError(translate('SC1.results.saveError'));
-			} finally {
+            // Show result using notification system
+            if (saved) {
+                showSuccess(translate('SC1.results.saveSuccess'));
+            } else {
+                showError(translate('SC1.results.saveError'));
+            }
+        } catch (error) {
+            console.error('Error saving results:', error);
+            showError(translate('SC1.results.saveError'));
+        } finally {
             // Restore button state
             saveResultsBtn.textContent = originalText;
             saveResultsBtn.disabled = false;
-		}
-	}, 10); // Small delay to allow UI to update
+        }
+    }, 10); // Small delay to allow UI to update
+}
+
+// PHASE 4 STEP 5: Save user data to Supabase profile
+async function saveUserDataToSupabase() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        if (!session || !session.id) {
+            console.log('No user logged in - skipping Supabase save');
+            return;
+        }
+        
+        console.log('Saving user data to Supabase for user:', session.username);
+        
+        // Collect all user data from local storage
+        const userData = {
+            // Test progress
+            currentQuestionIndex: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+            userAnswers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
+            
+            // Saved results
+            savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
+            
+            // User preferences
+            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+            
+            // Music preferences (if you have them)
+            musicPlaylist: loadFromStorage('SC1-music-playlist', null),
+            
+            // Timestamp
+            lastSaved: new Date().toISOString(),
+            appVersion: 'spiritual-guide-v2.8.7'
+        };
+        
+        // Save to Supabase
+        const { data, error } = await supabaseClient
+            .from('auth_users')
+            .update({ 
+                user_data: userData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', session.id);
+            
+        if (error) {
+            console.error('Error saving user data to Supabase:', error);
+        } else {
+            console.log('User data successfully saved to Supabase');
+        }
+        
+    } catch (error) {
+        console.error('Error in saveUserDataToSupabase:', error);
+    }
 }
 
 // Load all saved results
@@ -179,3 +235,4 @@ window.saveCurrentResults = saveCurrentResults;
 window.loadSavedResults = loadSavedResults;
 window.getSavedResultById = getSavedResultById;
 window.deleteSavedResult = deleteSavedResult;
+window.saveUserDataToSupabase = saveUserDataToSupabase;
