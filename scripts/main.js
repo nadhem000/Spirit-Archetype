@@ -206,24 +206,64 @@ function initializeLogin() {
         passwordInput.value = '';
 	}
 	
-    function handleLogout() {
-		SessionManager.clearSession();
-		currentUser = null;
-		
-		// Remove logout button
-		const logoutBtn = document.getElementById('SC1-logout-btn');
-		if (logoutBtn) {
-			logoutBtn.remove();
+    async function handleLogout() {
+		try {
+			// Enhanced logout: Clear both local session and Supabase connection
+			console.log('🔐 Starting secure logout process...');
+			
+			// 1. Clear local session first
+			SessionManager.clearSession();
+			currentUser = null;
+			
+			// 2. Clear any Supabase session data
+			if (window.supabaseClient) {
+				// Sign out from Supabase (if using auth)
+				const { error } = await supabaseClient.auth.signOut();
+				if (error) {
+					console.log('Supabase signout note:', error.message);
+				}
+			}
+			
+			// 3. Clear any additional localStorage items
+			localStorage.removeItem('currentUser');
+			localStorage.removeItem('spiritual-guide-supabase-auth');
+			
+			// 4. Remove logout button from UI
+			const logoutBtn = document.getElementById('SC1-logout-btn');
+			if (logoutBtn) {
+				logoutBtn.remove();
+			}
+			
+			// 5. Show login form again
+			const loginContainer = document.querySelector('.SC1-login-form');
+			if (loginContainer) {
+				loginContainer.style.display = 'block';
+			}
+			
+			// 6. Clear login form fields
+			const usernameInput = document.getElementById('SC1-username');
+			const passwordInput = document.getElementById('SC1-password');
+			if (usernameInput) usernameInput.value = '';
+			if (passwordInput) passwordInput.value = '';
+			
+			// 7. Show success message
+			showSuccess(translate('SC1.login.success.logoutSuccess'));
+			console.log('✅ Secure logout completed - all sessions cleared');
+			
+			} catch (error) {
+			console.error('Logout error:', error);
+			// Even if there's an error, ensure basic cleanup happens
+			SessionManager.clearSession();
+			localStorage.removeItem('currentUser');
+			
+			const logoutBtn = document.getElementById('SC1-logout-btn');
+			if (logoutBtn) logoutBtn.remove();
+			
+			const loginContainer = document.querySelector('.SC1-login-form');
+			if (loginContainer) loginContainer.style.display = 'block';
+			
+			showSuccess(translate('SC1.login.success.logoutSuccess'));
 		}
-		
-		// Show login form again
-		const loginContainer = document.querySelector('.SC1-login-form');
-		if (loginContainer) {
-			loginContainer.style.display = 'block';
-		}
-		
-		showSuccess(translate('SC1.login.success.logoutSuccess'));
-		console.log('✅ User logged out and session cleared');
 	}
 	
     /* function generateSessionId() {

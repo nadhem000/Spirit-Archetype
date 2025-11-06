@@ -341,21 +341,64 @@ function initializeLogin() {
         usernameInput.value = '';
         passwordInput.value = '';
     }
-    function handleLogout() {
-		SessionManager.clearSession();
-		currentUser = null;
-		// Remove logout button
-		const logoutBtn = document.getElementById('SC1-logout-btn');
-		if (logoutBtn) {
-			logoutBtn.remove();
+    async function handleLogout() {
+		try {
+			// Enhanced logout: Clear both local session and Supabase connection
+			console.log('🔐 Starting secure logout process...');
+			
+			// 1. Clear local session first
+			SessionManager.clearSession();
+			currentUser = null;
+			
+			// 2. Clear any Supabase session data
+			if (window.supabaseClient) {
+				// Sign out from Supabase (if using auth)
+				const { error } = await supabaseClient.auth.signOut();
+				if (error) {
+					console.log('Supabase signout note:', error.message);
+				}
+			}
+			
+			// 3. Clear any additional localStorage items
+			localStorage.removeItem('currentUser');
+			localStorage.removeItem('spiritual-guide-supabase-auth');
+			
+			// 4. Remove logout button from UI
+			const logoutBtn = document.getElementById('SC1-logout-btn');
+			if (logoutBtn) {
+				logoutBtn.remove();
+			}
+			
+			// 5. Show login form again
+			const loginContainer = document.querySelector('.SC1-login-form');
+			if (loginContainer) {
+				loginContainer.style.display = 'block';
+			}
+			
+			// 6. Clear login form fields
+			const usernameInput = document.getElementById('SC1-username');
+			const passwordInput = document.getElementById('SC1-password');
+			if (usernameInput) usernameInput.value = '';
+			if (passwordInput) passwordInput.value = '';
+			
+			// 7. Show success message
+			showSuccess(translate('SC1.login.success.logoutSuccess'));
+			console.log('✅ Secure logout completed - all sessions cleared');
+			
+			} catch (error) {
+			console.error('Logout error:', error);
+			// Even if there's an error, ensure basic cleanup happens
+			SessionManager.clearSession();
+			localStorage.removeItem('currentUser');
+			
+			const logoutBtn = document.getElementById('SC1-logout-btn');
+			if (logoutBtn) logoutBtn.remove();
+			
+			const loginContainer = document.querySelector('.SC1-login-form');
+			if (loginContainer) loginContainer.style.display = 'block';
+			
+			showSuccess(translate('SC1.login.success.logoutSuccess'));
 		}
-		// Show login form again
-		const loginContainer = document.querySelector('.SC1-login-form');
-		if (loginContainer) {
-			loginContainer.style.display = 'block';
-		}
-		showSuccess(translate('SC1.login.success.logoutSuccess'));
-		console.log('✅ User logged out and session cleared');
 	}
     // Enhanced session verification with Supabase
 	async function checkExistingLogin() {
@@ -686,7 +729,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.8.5",
+            version: "spiritual-guide-v2.8.6",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1017,7 +1060,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.8.5",
+            version: "spiritual-guide-v2.8.6",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1667,7 +1710,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.5</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.6</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2567,7 +2610,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.8.5'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.8.6'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2956,7 +2999,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.8.5'
+      'X-Client-Info': 'spiritual-guide-v2.8.6'
     }
   }
 });
@@ -2990,6 +3033,29 @@ const SessionManager = {
       return null;
     }
   },
+	
+	// automatic session verification
+	setupAutomaticRefresh: function() {
+		// Check session every 30 minutes
+		setInterval(() => {
+			const session = this.getCurrentSession();
+			if (session && this.isSessionValid(session)) {
+				this.updateLastVerified();
+				console.log('🔄 Session automatically refreshed');
+			}
+		}, 30 * 60 * 1000); // 30 minutes
+		
+		// Also refresh when user becomes active again
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden) {
+				const session = this.getCurrentSession();
+				if (session && this.isSessionValid(session)) {
+					this.updateLastVerified();
+					console.log('🔄 Session refreshed on page visible');
+				}
+			}
+		});
+	},
   // Clear session
   clearSession: function() {
     try {
@@ -3036,6 +3102,9 @@ function validateSecureConnection() {
 // Initialize security check when script loads
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(validateSecureConnection, 1000);
+  
+  // Start automatic session refresh
+  SessionManager.setupAutomaticRefresh();
 });
 // Export for global access
 window.supabaseClient = supabaseClient;
