@@ -312,14 +312,14 @@ function initializeLogin() {
             loginContainer.style.display = 'none';
         }
         // Create user info display
-        const userInfoDiv = document.createElement('div');
-        userInfoDiv.className = 'SC1-user-info';
-        userInfoDiv.innerHTML = `
-            <div class="SC1-user-welcome">
-                <span>Welcome, ${userData.username}</span>
-                <button id="SC1-logout-btn" class="SC1-logout-btn">Logout</button>
-            </div>
-        `;
+const userInfoDiv = document.createElement('div');
+userInfoDiv.className = 'SC1-user-info';
+userInfoDiv.innerHTML = `
+    <div class="SC1-user-welcome">
+        <span>${translate('SC1.login.welcome', { username: userData.username })}</span>
+        <button id="SC1-logout-btn" class="SC1-logout-btn">${translate('SC1.login.logout')}</button>
+    </div>
+`;
         // Insert user info after the login form container
         const headerControls = document.querySelector('.SC1-header-controls');
         if (headerControls && !document.getElementById('SC1-logout-btn')) {
@@ -668,7 +668,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.7.9",
+            version: "spiritual-guide-v2.8.0",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -999,7 +999,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.7.9",
+            version: "spiritual-guide-v2.8.0",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1649,7 +1649,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.7.9</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.0</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2546,7 +2546,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.7.9'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.8.0'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2935,7 +2935,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.7.9'
+      'X-Client-Info': 'spiritual-guide-v2.8.0'
     }
   }
 });

@@ -175,14 +175,14 @@ function initializeLogin() {
         }
         
         // Create user info display
-        const userInfoDiv = document.createElement('div');
-        userInfoDiv.className = 'SC1-user-info';
-        userInfoDiv.innerHTML = `
-            <div class="SC1-user-welcome">
-                <span>Welcome, ${userData.username}</span>
-                <button id="SC1-logout-btn" class="SC1-logout-btn">Logout</button>
-            </div>
-        `;
+const userInfoDiv = document.createElement('div');
+userInfoDiv.className = 'SC1-user-info';
+userInfoDiv.innerHTML = `
+    <div class="SC1-user-welcome">
+        <span>${translate('SC1.login.welcome', { username: userData.username })}</span>
+        <button id="SC1-logout-btn" class="SC1-logout-btn">${translate('SC1.login.logout')}</button>
+    </div>
+`;
         
         // Insert user info after the login form container
         const headerControls = document.querySelector('.SC1-header-controls');
