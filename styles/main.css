@@ -1587,12 +1587,55 @@ body.SC1-loading * {
     width: 36px;
     height: 36px;
     backdrop-filter: blur(10px);
+    position: relative;
 }
 
 .SC1-controls-line .SC1-logout-btn:hover {
     background: rgba(255, 255, 255, 0.25);
     transform: scale(1.1);
     border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== LOGOUT BUTTON TOOLTIP STYLES ===== */
+
+.SC1-controls-line .SC1-logout-btn .SC1-tooltip {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.SC1-controls-line .SC1-logout-btn .SC1-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 5px 5px 5px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+.SC1-controls-line .SC1-logout-btn:hover .SC1-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* RTL support for logout tooltip */
+[dir="rtl"] .SC1-controls-line .SC1-logout-btn .SC1-tooltip {
+    text-align: center;
 }
 
 /* ===== USER INFO STYLES ===== */
@@ -1616,23 +1659,6 @@ body.SC1-loading * {
     font-weight: 500;
     font-size: 0.9rem;
 }
-
-/* .SC1-logout-btn {
-    background: rgba(231, 111, 81, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-} */
-
-/* .SC1-logout-btn:hover {
-    background: rgba(231, 111, 81, 1);
-    transform: translateY(-1px);
-} */
 
 /* RTL support for user info */
 [dir="rtl"] .SC1-user-welcome {
