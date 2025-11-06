@@ -169,55 +169,55 @@ function initializeLogin() {
 
     // Update UI after successful login
     function updateUIAfterLogin(userData) {
-        const loginContainer = document.querySelector('.SC1-login-form');
-        if (loginContainer) {
-            loginContainer.style.display = 'none';
-        }
-        
-        // Create user info display
-const userInfoDiv = document.createElement('div');
-userInfoDiv.className = 'SC1-user-info';
-userInfoDiv.innerHTML = `
-    <div class="SC1-user-welcome">
-        <span>${translate('SC1.login.welcome', { username: userData.username })}</span>
-        <button id="SC1-logout-btn" class="SC1-logout-btn">${translate('SC1.login.logout')}</button>
-    </div>
-`;
-        
-        // Insert user info after the login form container
-        const headerControls = document.querySelector('.SC1-header-controls');
-        if (headerControls && !document.getElementById('SC1-logout-btn')) {
-            headerControls.appendChild(userInfoDiv);
-            
-            // Add logout functionality
-            document.getElementById('SC1-logout-btn').addEventListener('click', handleLogout);
-        }
-        
-        // Clear form securely
-        usernameInput.value = '';
-        passwordInput.value = '';
+    const loginContainer = document.querySelector('.SC1-login-form');
+    if (loginContainer) {
+        loginContainer.style.display = 'none';
     }
+
+    // Create logout button and add it to controls line
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className = 'SC1-logout-btn';
+    logoutBtn.id = 'SC1-logout-btn';
+    logoutBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+        </svg>
+        <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
+    `;
+
+    // Add logout button to controls line
+    const controlsLine = document.querySelector('.SC1-controls-line');
+    if (controlsLine && !document.getElementById('SC1-logout-btn')) {
+        controlsLine.appendChild(logoutBtn);
+        // Add logout functionality
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Clear form securely
+    usernameInput.value = '';
+    passwordInput.value = '';
+}
 
     // Logout function
     function handleLogout() {
-        localStorage.removeItem('currentUser');
-        currentUser = null;
-        
-        // Show login form again
-        const loginContainer = document.querySelector('.SC1-login-form');
-        if (loginContainer) {
-            loginContainer.style.display = 'block';
-        }
-        
-        // Remove user info
-        const userInfoDiv = document.querySelector('.SC1-user-info');
-        if (userInfoDiv) {
-            userInfoDiv.remove();
-        }
-        
-        showSuccess(translate('SC1.login.success.logoutSuccess'));
-        console.log('✅ User logged out');
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+
+    // Remove logout button
+    const logoutBtn = document.getElementById('SC1-logout-btn');
+    if (logoutBtn) {
+        logoutBtn.remove();
     }
+
+    // Show login form again
+    const loginContainer = document.querySelector('.SC1-login-form');
+    if (loginContainer) {
+        loginContainer.style.display = 'block';
+    }
+
+    showSuccess(translate('SC1.login.success.logoutSuccess'));
+    console.log('✅ User logged out');
+}
 
     // Generate secure session ID
     function generateSessionId() {

@@ -1572,6 +1572,28 @@ body.SC1-loading * {
         max-width: 200px;
     }
 }
+/* ===== LOGOUT BUTTON IN HEADER CONTROLS ===== */
+.SC1-controls-line .SC1-logout-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    backdrop-filter: blur(10px);
+}
+
+.SC1-controls-line .SC1-logout-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
 
 /* ===== USER INFO STYLES ===== */
 .SC1-user-info {
@@ -1595,7 +1617,7 @@ body.SC1-loading * {
     font-size: 0.9rem;
 }
 
-.SC1-logout-btn {
+/* .SC1-logout-btn {
     background: rgba(231, 111, 81, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
@@ -1605,12 +1627,12 @@ body.SC1-loading * {
     font-size: 0.8rem;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
-}
+} */
 
-.SC1-logout-btn:hover {
+/* .SC1-logout-btn:hover {
     background: rgba(231, 111, 81, 1);
     transform: translateY(-1px);
-}
+} */
 
 /* RTL support for user info */
 [dir="rtl"] .SC1-user-welcome {
