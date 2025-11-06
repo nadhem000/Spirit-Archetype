@@ -172,45 +172,46 @@ async function saveUserDataToSupabase() {
 
         console.log('🔄 Saving user data to Supabase for user:', session.username);
         
-        // Collect all user data from local storage
+        // Collect all user data from local storage - SIMPLIFIED STRUCTURE
         const userData = {
-            // Test progress
-            currentQuestionIndex: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
-            userAnswers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
-            // Saved results
-            savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
-            // User preferences
-            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
-            // Music preferences
-            musicPlaylist: loadFromStorage('SC1-music-playlist', null),
-            // Timestamp
-            lastSaved: new Date().toISOString(),
-            appVersion: 'spiritual-guide-v2.8.8'
+            test_progress: {
+                current_question: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+                user_answers: loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null)),
+                saved_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, [])
+            },
+            preferences: {
+                language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+                music_playlist: loadFromStorage('SC1-music-playlist', null)
+            },
+            app_info: {
+                last_saved: new Date().toISOString(),
+                app_version: 'spiritual-guide-v2.8.9',
+                total_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []).length
+            }
         };
 
         console.log('📦 User data to save:', userData);
 
-        // Save to Supabase - FIXED: Using the correct user ID
+        // Save to Supabase - FIXED: Using simpler data structure
         const { data, error } = await supabaseClient
             .from('auth_users')
             .update({ 
                 user_data: userData,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                last_login: new Date().toISOString() // Also update last_login
             })
-            .eq('id', session.id);  // Make sure this matches your user ID
+            .eq('id', session.id);
 
         if (error) {
             console.error('❌ Error saving user data to Supabase:', error);
-            // Show error notification to user
-            if (window.showError) {
-                window.showError('Failed to sync data to cloud: ' + error.message);
-            }
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                details: error.details
+            });
         } else {
             console.log('✅ User data successfully saved to Supabase');
-            // Optional: Show success notification
-            if (window.showSuccess) {
-                window.showSuccess('Data synced to cloud successfully!');
-            }
+            console.log('Updated rows:', data);
         }
     } catch (error) {
         console.error('❌ Error in saveUserDataToSupabase:', error);
@@ -247,6 +248,38 @@ function debugUserSession() {
         return false;
     }
 }
+
+// Debug function to check current user data in Supabase
+async function debugCheckUserData() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        if (!session || !session.id) {
+            console.log('❌ No user session found');
+            return;
+        }
+
+        console.log('🔍 Checking current user data in Supabase for user:', session.username);
+        
+        const { data, error } = await supabaseClient
+            .from('auth_users')
+            .select('id, username, email, user_data, updated_at, last_login')
+            .eq('id', session.id)
+            .single();
+
+        if (error) {
+            console.error('❌ Error fetching user data:', error);
+        } else {
+            console.log('📊 Current user data in Supabase:', data);
+            console.log('User data type:', typeof data.user_data);
+            console.log('User data value:', data.user_data);
+        }
+    } catch (error) {
+        console.error('❌ Error in debugCheckUserData:', error);
+    }
+}
+
+// Make it available globally
+window.debugCheckUserData = debugCheckUserData;
 
 // Make it available globally
 window.debugUserSession = debugUserSession;
