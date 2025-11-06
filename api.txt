@@ -718,7 +718,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.8.9",
+            version: "spiritual-guide-v2.9.0",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1049,7 +1049,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.8.9",
+            version: "spiritual-guide-v2.9.0",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1102,19 +1102,19 @@ function saveToStorage(key, data) {
     try {
         localStorage.setItem(key, JSON.stringify(data));
         return true;
-    } catch (error) {
+		} catch (error) {
         console.error('Error saving to localStorage:', error);
         return false;
-    }
+	}
 }
 function loadFromStorage(key, defaultValue = null) {
     try {
         const item = localStorage.getItem(key);
         return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
+		} catch (error) {
         console.error('Error loading from localStorage:', error);
         return defaultValue;
-    }
+	}
 }
 // Save user preferences
 function saveUserPreferences() {
@@ -1238,9 +1238,7 @@ async function saveUserDataToSupabase() {
             console.log('No user logged in - skipping Supabase save');
             return;
         }
-
         console.log('🔄 Saving user data to Supabase for user:', session.username);
-        
         // Collect all user data from local storage - SIMPLIFIED STRUCTURE
         const userData = {
             test_progress: {
@@ -1254,13 +1252,11 @@ async function saveUserDataToSupabase() {
             },
             app_info: {
                 last_saved: new Date().toISOString(),
-                app_version: 'spiritual-guide-v2.8.7',
+                app_version: 'spiritual-guide-v2.9.0',
                 total_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []).length
             }
         };
-
         console.log('📦 User data to save:', userData);
-
         // Save to Supabase - FIXED: Using simpler data structure
         const { data, error } = await supabaseClient
             .from('auth_users')
@@ -1270,7 +1266,6 @@ async function saveUserDataToSupabase() {
                 last_login: new Date().toISOString() // Also update last_login
             })
             .eq('id', session.id);
-
         if (error) {
             console.error('❌ Error saving user data to Supabase:', error);
             console.error('Error details:', {
@@ -1305,7 +1300,6 @@ function deleteSavedResult(resultId) {
 function debugUserSession() {
     const session = SessionManager.getCurrentSession();
     console.log('🔍 Debug - User Session:', session);
-    
     if (session && session.id) {
         console.log('✅ User is logged in with ID:', session.id);
         return true;
@@ -1314,7 +1308,6 @@ function debugUserSession() {
         return false;
     }
 }
-
 // Debug function to check current user data in Supabase
 async function debugCheckUserData() {
     try {
@@ -1323,15 +1316,12 @@ async function debugCheckUserData() {
             console.log('❌ No user session found');
             return;
         }
-
         console.log('🔍 Checking current user data in Supabase for user:', session.username);
-        
         const { data, error } = await supabaseClient
             .from('auth_users')
             .select('id, username, email, user_data, updated_at, last_login')
             .eq('id', session.id)
             .single();
-
         if (error) {
             console.error('❌ Error fetching user data:', error);
         } else {
@@ -1343,10 +1333,55 @@ async function debugCheckUserData() {
         console.error('❌ Error in debugCheckUserData:', error);
     }
 }
-
+// Enhanced debug function to see exactly what's happening
+async function enhancedDebug() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        if (!session || !session.id) {
+            console.log('❌ No user session found');
+            return;
+        }
+        console.log('🔍 ENHANCED DEBUG - User ID:', session.id);
+        // First, let's check if the user exists and what data they have
+        const { data: userData, error: fetchError } = await supabaseClient
+            .from('auth_users')
+            .select('*')
+            .eq('id', session.id)
+            .single();
+        if (fetchError) {
+            console.error('❌ Error fetching user:', fetchError);
+            return;
+        }
+        console.log('📊 Current user in database:', userData);
+        console.log('User data column:', userData.user_data);
+        // Now try a simple update
+        const testUpdate = {
+            test: "simple test " + Date.now(),
+            timestamp: new Date().toISOString()
+        };
+        console.log('🔄 Attempting test update with:', testUpdate);
+        const { data: updateData, error: updateError } = await supabaseClient
+            .from('auth_users')
+            .update({ 
+                user_data: testUpdate,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', session.id)
+            .select(); // Add .select() to see what was updated
+        if (updateError) {
+            console.error('❌ Update error:', updateError);
+        } else {
+            console.log('✅ Update result:', updateData);
+            console.log('Number of rows updated:', updateData ? updateData.length : 0);
+        }
+    } catch (error) {
+        console.error('❌ Error in enhancedDebug:', error);
+    }
+}
+// Make it available globally
+window.enhancedDebug = enhancedDebug;
 // Make it available globally
 window.debugCheckUserData = debugCheckUserData;
-
 // Make it available globally
 window.debugUserSession = debugUserSession;
 // Make functions global
@@ -1808,7 +1843,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.8.9</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.0</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2708,7 +2743,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.8.9'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.9.0'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3097,7 +3132,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.8.9'
+      'X-Client-Info': 'spiritual-guide-v2.9.0'
     }
   }
 });

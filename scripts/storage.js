@@ -185,7 +185,7 @@ async function saveUserDataToSupabase() {
             },
             app_info: {
                 last_saved: new Date().toISOString(),
-                app_version: 'spiritual-guide-v2.8.9',
+                app_version: 'spiritual-guide-v2.9.0',
                 total_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []).length
             }
         };
@@ -277,6 +277,64 @@ async function debugCheckUserData() {
         console.error('❌ Error in debugCheckUserData:', error);
     }
 }
+
+// Enhanced debug function to see exactly what's happening
+async function enhancedDebug() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        if (!session || !session.id) {
+            console.log('❌ No user session found');
+            return;
+        }
+
+        console.log('🔍 ENHANCED DEBUG - User ID:', session.id);
+        
+        // First, let's check if the user exists and what data they have
+        const { data: userData, error: fetchError } = await supabaseClient
+            .from('auth_users')
+            .select('*')
+            .eq('id', session.id)
+            .single();
+
+        if (fetchError) {
+            console.error('❌ Error fetching user:', fetchError);
+            return;
+        }
+
+        console.log('📊 Current user in database:', userData);
+        console.log('User data column:', userData.user_data);
+        
+        // Now try a simple update
+        const testUpdate = {
+            test: "simple test " + Date.now(),
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('🔄 Attempting test update with:', testUpdate);
+        
+        const { data: updateData, error: updateError } = await supabaseClient
+            .from('auth_users')
+            .update({ 
+                user_data: testUpdate,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', session.id)
+            .select(); // Add .select() to see what was updated
+
+        if (updateError) {
+            console.error('❌ Update error:', updateError);
+        } else {
+            console.log('✅ Update result:', updateData);
+            console.log('Number of rows updated:', updateData ? updateData.length : 0);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error in enhancedDebug:', error);
+    }
+}
+
+// Make it available globally
+window.enhancedDebug = enhancedDebug;
 
 // Make it available globally
 window.debugCheckUserData = debugCheckUserData;
