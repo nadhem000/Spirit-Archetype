@@ -192,7 +192,7 @@ async function saveUserDataToSupabase() {
             },
             app_info: {
                 last_saved: new Date().toISOString(),
-                app_version: 'spiritual-guide-v2.9.1',
+                app_version: 'spiritual-guide-v2.9.2',
                 total_results: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []).length
             }
         };
@@ -378,6 +378,26 @@ async function testSupabaseSave() {
         console.log('✅ Test save successful:', data);
     }
 }
+
+// Debug session function
+function debugSession() {
+  console.log('🔍 DEBUG SESSION INFORMATION:');
+  console.log('LocalStorage currentUser:', localStorage.getItem('currentUser'));
+  
+  const session = SessionManager.getCurrentSession();
+  console.log('SessionManager session:', session);
+  
+  if (session) {
+    const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+    console.log('Session age:', SessionManager.formatTime(sessionAge));
+    console.log('Session valid:', SessionManager.isSessionValid(session));
+  }
+  
+  console.log('Current user variable:', currentUser);
+}
+
+// Make it available globally
+window.debugSession = debugSession;
 
 // Make it available globally
 window.testSupabaseSave = testSupabaseSave;

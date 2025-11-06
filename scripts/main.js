@@ -115,11 +115,11 @@ function initializeLogin() {
             
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
-    .from('auth_users')  // NEW - change this!
-    .select('id, username, email, hashed_password, is_active, inscription_date')
-    .eq('username', username)
-    .eq('is_active', true)
-    .single();
+			.from('auth_users')  // NEW - change this!
+			.select('id, username, email, hashed_password, is_active, inscription_date')
+			.eq('username', username)
+			.eq('is_active', true)
+			.single();
 			
             if (error) {
                 console.error('Login error:', error);
@@ -273,47 +273,30 @@ function initializeLogin() {
     // Enhanced session verification with Supabase
 	async function checkExistingLogin() {
 		try {
-			const session = SessionManager.getCurrentSession();
+			console.log('🔐 Checking for existing login session...');
 			
-			if (!session || !SessionManager.isSessionValid(session)) {
-				console.log('No valid session found');
-				SessionManager.clearSession();
-				return;
+			const userData = await SessionManager.verifySessionWithSupabase();
+			
+			if (userData) {
+				// Session is valid - update UI
+				currentUser = userData.username;
+				console.log('✅ User logged in:', currentUser);
+				
+				updateUIAfterLogin({
+					id: userData.id,
+					username: userData.username,
+					email: userData.email
+				});
+				
+				return true;
+				} else {
+				console.log('❌ No valid session found');
+				return false;
 			}
-			
-			// Verify session with Supabase
-			console.log('🔐 Verifying existing session with Supabase...');
-			
-			const { data: users, error } = await supabaseClient
-    .from('auth_users')  // NEW - change this!
-    .select('id, username, email, hashed_password, is_active, inscription_date')
-    .eq('username', username)
-    .eq('is_active', true)
-    .single();
-			
-			if (error || !users) {
-				console.log('Session verification failed:', error);
-				SessionManager.clearSession();
-				return;
-			}
-			
-			// Session is valid - update UI
-			currentUser = users.username;
-			console.log('✅ Session verified, user logged in:', currentUser);
-			
-			// Update session verification timestamp
-			SessionManager.updateLastVerified();
-			updateUIAfterLogin({
-				id: users.id,
-				username: users.username,
-				email: users.email,
-				loginTime: session.loginTime,
-				sessionId: session.sessionId
-			});
-			
 			} catch (error) {
-			console.log('Session verification error:', error);
+			console.error('❌ Error checking existing login:', error);
 			SessionManager.clearSession();
+			return false;
 		}
 	}
 	
