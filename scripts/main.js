@@ -132,15 +132,14 @@ function initializeLogin() {
             currentUser = users.username;
             
             // Store minimal secure user info
-            // Store session using SessionManager
+            // Store session using SessionManager - include ALL required fields
 			const userData = {
 				id: users.id,
 				username: users.username,
-				email: users.email
+				email: users.email,
+				loginTime: new Date().toISOString()
 			};
 			SessionManager.saveUserSession(userData);
-            
-            localStorage.setItem('currentUser', JSON.stringify(userData));
             showSuccess(translate('SC1.login.success.loginSuccessful'));
 			
 			// Update user_data in Supabase with local storage data
@@ -281,49 +280,59 @@ function initializeLogin() {
 	} */
 	
     // Enhanced session verification with better persistence
-async function checkExistingLogin() {
-    try {
-        const session = SessionManager.getCurrentSession();
-        console.log('🔐 Checking existing session:', session);
-        
-        if (!session) {
-            console.log('No session found');
-            return;
-        }
-
-        // More lenient session validation
-        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-        
-        console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
-        
-        if (sessionAge >= maxSessionAge) {
-            console.log('Session expired (older than 30 days)');
-            SessionManager.clearSession();
-            return;
-        }
-
-        // Session is valid - update UI
-        currentUser = session.username;
-        console.log('✅ Session verified, user logged in:', currentUser);
-        
-        // Update session verification timestamp
-        SessionManager.updateLastVerified();
-        
-        updateUIAfterLogin({
-            id: session.id,
-            username: session.username,
-            email: session.email,
-            loginTime: session.loginTime,
-            sessionId: session.sessionId
-        });
-        
-    } catch (error) {
-        console.log('Session verification error:', error);
-        // Don't clear session on temporary errors
-        console.log('Session check error, keeping session for now');
-    }
-}
+	async function checkExistingLogin() {
+		try {
+			const session = SessionManager.getCurrentSession();
+			console.log('🔐 Checking existing session:', session);
+			
+			if (!session) {
+				console.log('No session found');
+				return;
+			}
+			
+			// More lenient session validation
+			let sessionAge;
+			if (session.loginTime) {
+				sessionAge = Date.now() - new Date(session.loginTime).getTime();
+				} else {
+				// If loginTime is missing, don't clear the session - just log a warning
+				console.warn('⚠️  Session missing loginTime, but keeping it for better UX');
+				sessionAge = 0; // Treat as new session
+			}
+			
+			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+			console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
+			
+			if (sessionAge >= maxSessionAge) {
+				console.log('Session expired (older than 30 days)');
+				SessionManager.clearSession();
+				return;
+			}
+			
+			// Session is valid - update UI
+			currentUser = session.username;
+			console.log('✅ Session verified, user logged in:', currentUser);
+			
+			// Update session verification timestamp
+			SessionManager.updateLastVerified();
+			updateUIAfterLogin({
+				id: session.id,
+				username: session.username,
+				email: session.email,
+				loginTime: session.loginTime,
+				sessionId: session.sessionId
+			});
+			} catch (error) {
+			console.log('Session verification error:', error);
+			// Don't clear session on temporary errors - be more lenient
+			console.log('Session check error, keeping session for better UX');
+			// Try to update UI anyway if we have a session
+			const session = SessionManager.getCurrentSession();
+			if (session) {
+				updateUIAfterLogin(session);
+			}
+		}
+	}
 	
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);

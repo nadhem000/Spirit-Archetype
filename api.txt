@@ -276,14 +276,14 @@ function initializeLogin() {
 			}
             currentUser = users.username;
             // Store minimal secure user info
-            // Store session using SessionManager
+            // Store session using SessionManager - include ALL required fields
 			const userData = {
 				id: users.id,
 				username: users.username,
-				email: users.email
+				email: users.email,
+				loginTime: new Date().toISOString()
 			};
 			SessionManager.saveUserSession(userData);
-            localStorage.setItem('currentUser', JSON.stringify(userData));
             showSuccess(translate('SC1.login.success.loginSuccessful'));
 			// Update user_data in Supabase with local storage data
 			setTimeout(() => {
@@ -400,40 +400,52 @@ function initializeLogin() {
 	}
     // Enhanced session verification with better persistence
 async function checkExistingLogin() {
-    try {
-        const session = SessionManager.getCurrentSession();
-        console.log('🔐 Checking existing session:', session);
-        if (!session) {
-            console.log('No session found');
-            return;
-        }
-        // More lenient session validation
-        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-        console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
-        if (sessionAge >= maxSessionAge) {
-            console.log('Session expired (older than 30 days)');
-            SessionManager.clearSession();
-            return;
-        }
-        // Session is valid - update UI
-        currentUser = session.username;
-        console.log('✅ Session verified, user logged in:', currentUser);
-        // Update session verification timestamp
-        SessionManager.updateLastVerified();
-        updateUIAfterLogin({
-            id: session.id,
-            username: session.username,
-            email: session.email,
-            loginTime: session.loginTime,
-            sessionId: session.sessionId
-        });
-    } catch (error) {
-        console.log('Session verification error:', error);
-        // Don't clear session on temporary errors
-        console.log('Session check error, keeping session for now');
-    }
-}
+		try {
+			const session = SessionManager.getCurrentSession();
+			console.log('🔐 Checking existing session:', session);
+			if (!session) {
+				console.log('No session found');
+				return;
+			}
+			// More lenient session validation
+			let sessionAge;
+			if (session.loginTime) {
+				sessionAge = Date.now() - new Date(session.loginTime).getTime();
+				} else {
+				// If loginTime is missing, don't clear the session - just log a warning
+				console.warn('⚠️  Session missing loginTime, but keeping it for better UX');
+				sessionAge = 0; // Treat as new session
+			}
+			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+			console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
+			if (sessionAge >= maxSessionAge) {
+				console.log('Session expired (older than 30 days)');
+				SessionManager.clearSession();
+				return;
+			}
+			// Session is valid - update UI
+			currentUser = session.username;
+			console.log('✅ Session verified, user logged in:', currentUser);
+			// Update session verification timestamp
+			SessionManager.updateLastVerified();
+			updateUIAfterLogin({
+				id: session.id,
+				username: session.username,
+				email: session.email,
+				loginTime: session.loginTime,
+				sessionId: session.sessionId
+			});
+			} catch (error) {
+			console.log('Session verification error:', error);
+			// Don't clear session on temporary errors - be more lenient
+			console.log('Session check error, keeping session for better UX');
+			// Try to update UI anyway if we have a session
+			const session = SessionManager.getCurrentSession();
+			if (session) {
+				updateUIAfterLogin(session);
+			}
+		}
+	}
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     // Security: Only clear password if specifically needed
@@ -731,7 +743,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v3.0.0",
+            version: "spiritual-guide-v3.0.1",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1062,7 +1074,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v3.0.0",
+            version: "spiritual-guide-v3.0.1",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1862,7 +1874,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.0</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.1</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2762,7 +2774,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v3.0.0'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v3.0.1'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3151,7 +3163,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v3.0.0'
+      'X-Client-Info': 'spiritual-guide-v3.0.1'
     }
   }
 });
@@ -3159,22 +3171,23 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const SessionManager = {
   // Save user session securely
   saveUserSession: function(userData) {
-    try {
-      const sessionData = {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        loginTime: new Date().toISOString(),
-        sessionId: this.generateSessionId(),
-        lastVerified: new Date().toISOString()
-      };
-      localStorage.setItem('currentUser', JSON.stringify(sessionData));
-      return true;
-    } catch (error) {
-      console.error('Error saving session:', error);
-      return false;
-    }
-  },
+		try {
+			const sessionData = {
+				id: userData.id,
+				username: userData.username,
+				email: userData.email,
+				loginTime: userData.loginTime || new Date().toISOString(), // Ensure loginTime is set
+				sessionId: this.generateSessionId(),
+				lastVerified: new Date().toISOString()
+			};
+			localStorage.setItem('currentUser', JSON.stringify(sessionData));
+			console.log('💾 Session saved:', sessionData);
+			return true;
+			} catch (error) {
+			console.error('Error saving session:', error);
+			return false;
+		}
+	},
   // Get current session
   getCurrentSession: function() {
     try {
@@ -3210,40 +3223,54 @@ const SessionManager = {
   },
   // More robust session restoration - FIXED: Proper session validation
 restoreSession: function() {
-    try {
-        const session = this.getCurrentSession();
-        if (session) {
-            console.log('🔄 Found existing session, checking validity...', session);
-            // Check if session has the required fields
-            if (!session.id || !session.username) {
-                console.log('❌ Session missing required fields');
-                this.clearSession();
-                return null;
-            }
-            // For sessions less than 30 days old, consider them valid
-            const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-            const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-            console.log(`Session age: ${sessionAge}ms, Max age: ${maxSessionAge}ms`);
-            if (sessionAge < maxSessionAge) {
-                // Update lastVerified to keep session alive
-                this.updateLastVerified();
-                console.log('✅ Session restored successfully');
-                return session;
-            } else {
-                console.log('❌ Session expired (older than 30 days)');
-                this.clearSession();
-            }
-        } else {
-            console.log('No session found in localStorage');
-        }
-        return null;
-    } catch (error) {
-        console.error('Session restoration error:', error);
-        // Don't clear session on temporary errors
-        console.log('Session check error, keeping session for now');
-        return null;
-    }
-},
+		try {
+			const session = this.getCurrentSession();
+			if (session) {
+				console.log('🔄 Found existing session, checking validity...', session);
+				// Check if session has the required fields
+				if (!session.id || !session.username) {
+					console.log('❌ Session missing required fields');
+					this.clearSession();
+					return null;
+				}
+				// If loginTime is missing but we have a valid session, add it
+				if (!session.loginTime) {
+					console.log('⚠️  Adding missing loginTime to session');
+					session.loginTime = new Date().toISOString();
+					this.saveUserSession(session); // Save the updated session
+				}
+				// Calculate session age with fallback
+				let sessionAge;
+				if (session.loginTime) {
+					sessionAge = Date.now() - new Date(session.loginTime).getTime();
+					} else {
+					// If loginTime is still missing, use a default age of 0 (new session)
+					sessionAge = 0;
+					console.log('⚠️  Using default session age due to missing loginTime');
+				}
+				const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+				console.log(`Session age: ${sessionAge}ms, Max age: ${maxSessionAge}ms`);
+				if (sessionAge < maxSessionAge) {
+					// Update lastVerified to keep session alive
+					this.updateLastVerified();
+					console.log('✅ Session restored successfully');
+					return session;
+					} else {
+					console.log('❌ Session expired (older than 30 days)');
+					this.clearSession();
+				}
+				} else {
+				console.log('No session found in localStorage');
+			}
+			return null;
+			} catch (error) {
+			console.error('Session restoration error:', error);
+			// Don't clear session on temporary errors - be more lenient
+			console.log('Session check error, keeping session for now');
+			const session = this.getCurrentSession();
+			return session; // Return the session anyway for better UX
+		}
+	},
   // Generate secure session ID
   generateSessionId: function() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
