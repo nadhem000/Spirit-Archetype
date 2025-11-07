@@ -398,34 +398,23 @@ function initializeLogin() {
 				console.log('No session found');
 				return;
 			}
-			// More lenient session validation - allow longer sessions
-			if (!SessionManager.isSessionValid(session)) {
-				console.log('Session expired or invalid');
-				SessionManager.clearSession();
-				return;
-			}
-			// Verify session with Supabase
-			console.log('🔐 Verifying existing session with Supabase...');
-			const { data: users, error } = await supabaseClient
-            .from('auth_users')
-            .select('id, username, email, is_active')
-            .eq('username', session.username)
-            .eq('is_active', true)
-            .single();
-			if (error || !users) {
-				console.log('Session verification failed:', error);
+			// Use the updated session validation
+			const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+			if (sessionAge >= maxSessionAge) {
+				console.log('Session expired (older than 30 days)');
 				SessionManager.clearSession();
 				return;
 			}
 			// Session is valid - update UI
-			currentUser = users.username;
+			currentUser = session.username;
 			console.log('✅ Session verified, user logged in:', currentUser);
 			// Update session verification timestamp
 			SessionManager.updateLastVerified();
 			updateUIAfterLogin({
-				id: users.id,
-				username: users.username,
-				email: users.email,
+				id: session.id,
+				username: session.username,
+				email: session.email,
 				loginTime: session.loginTime,
 				sessionId: session.sessionId
 			});
@@ -732,7 +721,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.9.7",
+            version: "spiritual-guide-v2.9.8",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1063,7 +1052,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.9.7",
+            version: "spiritual-guide-v2.9.8",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1763,7 +1752,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.7</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.8</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2663,7 +2652,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.9.7'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.9.8'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3052,7 +3041,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.7'
+      'X-Client-Info': 'spiritual-guide-v2.9.8'
     }
   }
 });
@@ -3086,27 +3075,6 @@ const SessionManager = {
       return null;
     }
   },
-	// automatic session verification
-	setupAutomaticRefresh: function() {
-		// Check session every 30 minutes
-		setInterval(() => {
-			const session = this.getCurrentSession();
-			if (session && this.isSessionValid(session)) {
-				this.updateLastVerified();
-				console.log('🔄 Session automatically refreshed');
-			}
-		}, 30 * 60 * 1000); // 30 minutes
-		// Also refresh when user becomes active again
-		document.addEventListener('visibilitychange', () => {
-			if (!document.hidden) {
-				const session = this.getCurrentSession();
-				if (session && this.isSessionValid(session)) {
-					this.updateLastVerified();
-					console.log('🔄 Session refreshed on page visible');
-				}
-			}
-		});
-	},
   // Clear session
   clearSession: function() {
     try {
@@ -3117,32 +3085,44 @@ const SessionManager = {
       return false;
     }
   },
-  // Check if session is valid - more lenient version
-    isSessionValid: function(session) {
-        if (!session || !session.loginTime) return false;
-        
+  // Check if session is valid - FIXED: More lenient validation
+  isSessionValid: function(session) {
+    if (!session || !session.loginTime) return false;
+    const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+    const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days instead of 7
+    // If session is within max age, update lastVerified and consider valid
+    if (sessionAge < maxSessionAge) {
+      // Update last verified timestamp to keep session alive
+      this.updateLastVerified();
+      return true;
+    }
+    return false;
+  },
+  // More robust session restoration - FIXED: Always try to restore valid sessions
+  restoreSession: function() {
+    try {
+      const session = this.getCurrentSession();
+      if (session) {
+        console.log('🔄 Found existing session, checking validity...');
+        // Always update lastVerified when restoring session
+        this.updateLastVerified();
+        // For sessions less than 30 days old, consider them valid
         const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-        const maxSessionAge = 7 * 24 * 60 * 60 * 1000; // 7 days instead of 24 hours
-        const isRecentVerification = session.lastVerified && 
-            (Date.now() - new Date(session.lastVerified).getTime() < 30 * 60 * 1000); // 30 minutes
-        
-        return sessionAge < maxSessionAge && isRecentVerification;
-    },
-    // More robust session restoration
-    restoreSession: function() {
-        try {
-            const session = this.getCurrentSession();
-            if (session && this.isSessionValid(session)) {
-                console.log('🔄 Session restored successfully');
-                this.updateLastVerified();
-                return session;
-            }
-            return null;
-        } catch (error) {
-            console.error('Session restoration error:', error);
-            return null;
+        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        if (sessionAge < maxSessionAge) {
+          console.log('✅ Session restored successfully');
+          return session;
+        } else {
+          console.log('❌ Session expired (older than 30 days)');
+          this.clearSession();
         }
-    },
+      }
+      return null;
+    } catch (error) {
+      console.error('Session restoration error:', error);
+      return null;
+    }
+  },
   // Generate secure session ID
   generateSessionId: function() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
@@ -3154,6 +3134,27 @@ const SessionManager = {
       session.lastVerified = new Date().toISOString();
       localStorage.setItem('currentUser', JSON.stringify(session));
     }
+  },
+  // Automatic session verification with better persistence
+  setupAutomaticRefresh: function() {
+    // Check session every 60 minutes instead of 30
+    setInterval(() => {
+      const session = this.getCurrentSession();
+      if (session) {
+        this.updateLastVerified();
+        console.log('🔄 Session automatically refreshed');
+      }
+    }, 60 * 60 * 1000); // 60 minutes
+    // Also refresh when user becomes active again
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        const session = this.getCurrentSession();
+        if (session) {
+          this.updateLastVerified();
+          console.log('🔄 Session refreshed on page visible');
+        }
+      }
+    });
   }
 };
 // Security validation function

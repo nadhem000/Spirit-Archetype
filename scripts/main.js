@@ -164,16 +164,16 @@ function initializeLogin() {
 			loginBtn.disabled = false;
 			loginBtn.textContent = originalText;
 		}
-	}
+		}
 	
     // Simple client-side hash function (for basic security)
     async function simpleHash(str) {
         const encoder = new TextEncoder();
-	const data = encoder.encode(str);
-	const hash = await crypto.subtle.digest('SHA-256', data);
-	return Array.from(new Uint8Array(hash))
-	.map(b => b.toString(16).padStart(2, '0'))
-	.join('');
+		const data = encoder.encode(str);
+		const hash = await crypto.subtle.digest('SHA-256', data);
+		return Array.from(new Uint8Array(hash))
+		.map(b => b.toString(16).padStart(2, '0'))
+		.join('');
 	}
 	
     // Rest of your existing functions remain the same...
@@ -282,39 +282,26 @@ function initializeLogin() {
 				return;
 			}
 			
-			// More lenient session validation - allow longer sessions
-			if (!SessionManager.isSessionValid(session)) {
-				console.log('Session expired or invalid');
-				SessionManager.clearSession();
-				return;
-			}
+			// Use the updated session validation
+			const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
 			
-			// Verify session with Supabase
-			console.log('🔐 Verifying existing session with Supabase...');
-			const { data: users, error } = await supabaseClient
-            .from('auth_users')
-            .select('id, username, email, is_active')
-            .eq('username', session.username)
-            .eq('is_active', true)
-            .single();
-			
-			if (error || !users) {
-				console.log('Session verification failed:', error);
+			if (sessionAge >= maxSessionAge) {
+				console.log('Session expired (older than 30 days)');
 				SessionManager.clearSession();
 				return;
 			}
 			
 			// Session is valid - update UI
-			currentUser = users.username;
+			currentUser = session.username;
 			console.log('✅ Session verified, user logged in:', currentUser);
 			
 			// Update session verification timestamp
 			SessionManager.updateLastVerified();
-			
 			updateUIAfterLogin({
-				id: users.id,
-				username: users.username,
-				email: users.email,
+				id: session.id,
+				username: session.username,
+				email: session.email,
 				loginTime: session.loginTime,
 				sessionId: session.sessionId
 			});
