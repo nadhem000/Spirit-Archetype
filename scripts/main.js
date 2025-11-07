@@ -58,9 +58,9 @@ window.guideImage = document.getElementById('SC1-guide-image');
 
 // Application state
 let currentLanguage = loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en');
-window.currentQuestionIndex = 0;
-window.userAnswers = Array(questions.length).fill(null);
-window.scores = { A: 0, B: 0, C: 0, D: 0 };
+let currentQuestionIndex = 0;
+let userAnswers = Array(questions.length).fill(null);
+let scores = { A: 0, B: 0, C: 0, D: 0 };
 
 // ===== ENHANCED SECURE LOGIN FUNCTIONALITY =====
 function initializeLogin() {
@@ -115,7 +115,7 @@ function initializeLogin() {
             
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
-			.from('auth_users')  // NEW - change this!
+			.from('auth_users')
 			.select('id, username, email, hashed_password, is_active, inscription_date')
 			.eq('username', username)
 			.eq('is_active', true)
@@ -273,30 +273,47 @@ function initializeLogin() {
     // Enhanced session verification with Supabase
 	async function checkExistingLogin() {
 		try {
-			console.log('🔐 Checking for existing login session...');
+			const session = SessionManager.getCurrentSession();
 			
-			const userData = await SessionManager.verifySessionWithSupabase();
-			
-			if (userData) {
-				// Session is valid - update UI
-				currentUser = userData.username;
-				console.log('✅ User logged in:', currentUser);
-				
-				updateUIAfterLogin({
-					id: userData.id,
-					username: userData.username,
-					email: userData.email
-				});
-				
-				return true;
-				} else {
-				console.log('❌ No valid session found');
-				return false;
+			if (!session || !SessionManager.isSessionValid(session)) {
+				console.log('No valid session found');
+				SessionManager.clearSession();
+				return;
 			}
+			
+			// Verify session with Supabase
+			console.log('🔐 Verifying existing session with Supabase...');
+			
+			const { data: users, error } = await supabaseClient
+            .from('auth_users')
+            .select('id, username, email, is_active')
+            .eq('username', session.username)
+            .eq('is_active', true)
+            .single();
+			
+			if (error || !users) {
+				console.log('Session verification failed:', error);
+				SessionManager.clearSession();
+				return;
+			}
+			
+			// Session is valid - update UI
+			currentUser = users.username;
+			console.log('✅ Session verified, user logged in:', currentUser);
+			
+			// Update session verification timestamp
+			SessionManager.updateLastVerified();
+			updateUIAfterLogin({
+				id: users.id,
+				username: users.username,
+				email: users.email,
+				loginTime: session.loginTime,
+				sessionId: session.sessionId
+			});
+			
 			} catch (error) {
-			console.error('❌ Error checking existing login:', error);
+			console.log('Session verification error:', error);
 			SessionManager.clearSession();
-			return false;
 		}
 	}
 	
@@ -328,25 +345,20 @@ function initializeAppUI() {
 // reset the test when header icon is clicked
 function resetTestFromHeader() {
     // Reset state
-    window.currentQuestionIndex = 0;
-    window.userAnswers = Array(questions.length).fill(null);
-    window.scores = { A: 0, B: 0, C: 0, D: 0 };
-    
+    currentQuestionIndex = 0;
+    userAnswers = Array(questions.length).fill(null);
+    scores = { A: 0, B: 0, C: 0, D: 0 };
     // Clear saved progress
     localStorage.removeItem(STORAGE_KEYS.ANSWERS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
-    
     // Return to welcome card
     resultCard.classList.remove('SC1-active');
     questionCard.classList.remove('SC1-active');
     welcomeCard.classList.add('SC1-active');
-    
     // Reset progress bar
     updateProgressBar();
-    
     // Apply translations
     applyTranslations();
-    
     // Update navigation buttons
     updateNavButtons();
 }

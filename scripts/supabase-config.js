@@ -19,155 +19,100 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 	},
 	global: {
 		headers: {
-			'X-Client-Info': 'spiritual-guide-v2.9.2'
+			'X-Client-Info': 'spiritual-guide-v2.9.3'
 		}
 	}
 });
 
 // Session management functions
 const SessionManager = {
-  // Save user session securely
-  saveUserSession: function(userData) {
-    try {
-      const sessionData = {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        loginTime: new Date().toISOString(),
-        sessionId: this.generateSessionId(),
-        lastVerified: new Date().toISOString()
-      };
-      localStorage.setItem('currentUser', JSON.stringify(sessionData));
-      console.log('✅ Session saved:', sessionData);
-      return true;
-    } catch (error) {
-      console.error('Error saving session:', error);
-      return false;
-    }
-  },
-
-  // Get current session - FIXED VERSION
-  getCurrentSession: function() {
-    try {
-      const savedSession = localStorage.getItem('currentUser');
-      if (!savedSession) {
-        console.log('❌ No session found in localStorage');
-        return null;
-      }
-      
-      const session = JSON.parse(savedSession);
-      console.log('📋 Retrieved session:', session);
-      
-      // Validate required fields
-      if (!session.id || !session.username || !session.loginTime) {
-        console.log('❌ Session missing required fields');
-        this.clearSession();
-        return null;
-      }
-      
-      return session;
-    } catch (error) {
-      console.error('Error getting session:', error);
-      this.clearSession();
-      return null;
-    }
-  },
-
-  // Clear session
-  clearSession: function() {
-    try {
-      localStorage.removeItem('currentUser');
-      console.log('✅ Session cleared');
-      return true;
-    } catch (error) {
-      console.error('Error clearing session:', error);
-      return false;
-    }
-  },
-
-  // Check if session is valid - RELAXED VERSION
-  isSessionValid: function(session) {
-    if (!session || !session.loginTime) {
-      console.log('❌ No session or loginTime');
-      return false;
-    }
-    
-    // Check if session is older than 7 days (more relaxed)
-    const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-    const maxSessionAge = 7 * 24 * 60 * 60 * 1000; // 7 days instead of 24 hours
-    
-    const isValid = sessionAge < maxSessionAge;
-    
-    if (!isValid) {
-      console.log('❌ Session expired - age:', this.formatTime(sessionAge), 'max:', this.formatTime(maxSessionAge));
-      this.clearSession();
-    } else {
-      console.log('✅ Session valid - age:', this.formatTime(sessionAge));
-    }
-    
-    return isValid;
-  },
-
-  // Helper to format time for logging
-  formatTime: function(milliseconds) {
-    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
-    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
-  },
-
-  // Generate secure session ID
-  generateSessionId: function() {
-    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  },
-
-  // Update last verified timestamp
-  updateLastVerified: function() {
-    const session = this.getCurrentSession();
-    if (session) {
-      session.lastVerified = new Date().toISOString();
-      localStorage.setItem('currentUser', JSON.stringify(session));
-      console.log('✅ Last verified updated');
-    }
-  },
-
-  // Enhanced session verification with better error handling
-  verifySessionWithSupabase: async function() {
-    try {
-      const session = this.getCurrentSession();
-      if (!session || !this.isSessionValid(session)) {
-        return null;
-      }
-
-      console.log('🔐 Verifying session with Supabase for user:', session.username);
-      
-      const { data: users, error } = await supabaseClient
-        .from('auth_users')
-        .select('id, username, email, is_active')
-        .eq('username', session.username)
-        .eq('is_active', true)
-        .single();
-
-      if (error) {
-        console.error('❌ Supabase verification failed:', error);
-        this.clearSession();
-        return null;
-      }
-
-      if (!users) {
-        console.log('❌ User not found or inactive');
-        this.clearSession();
-        return null;
-      }
-
-      console.log('✅ Session verified with Supabase');
-      this.updateLastVerified();
-      return users;
-    } catch (error) {
-      console.error('❌ Session verification error:', error);
-      this.clearSession();
-      return null;
-    }
-  }
+	// Save user session securely
+	saveUserSession: function(userData) {
+		try {
+			const sessionData = {
+				id: userData.id,
+				username: userData.username,
+				email: userData.email,
+				loginTime: new Date().toISOString(),
+				sessionId: this.generateSessionId(),
+				lastVerified: new Date().toISOString()
+			};
+			localStorage.setItem('currentUser', JSON.stringify(sessionData));
+			return true;
+			} catch (error) {
+			console.error('Error saving session:', error);
+			return false;
+		}
+	},
+	
+	// Get current session
+	getCurrentSession: function() {
+		try {
+			const savedSession = localStorage.getItem('currentUser');
+			return savedSession ? JSON.parse(savedSession) : null;
+			} catch (error) {
+			console.error('Error getting session:', error);
+			return null;
+		}
+	},
+	
+	// automatic session verification
+	setupAutomaticRefresh: function() {
+		// Check session every 30 minutes
+		setInterval(() => {
+			const session = this.getCurrentSession();
+			if (session && this.isSessionValid(session)) {
+				this.updateLastVerified();
+				console.log('🔄 Session automatically refreshed');
+			}
+		}, 30 * 60 * 1000); // 30 minutes
+		
+		// Also refresh when user becomes active again
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden) {
+				const session = this.getCurrentSession();
+				if (session && this.isSessionValid(session)) {
+					this.updateLastVerified();
+					console.log('🔄 Session refreshed on page visible');
+				}
+			}
+		});
+	},
+	
+	// Clear session
+	clearSession: function() {
+		try {
+			localStorage.removeItem('currentUser');
+			return true;
+			} catch (error) {
+			console.error('Error clearing session:', error);
+			return false;
+		}
+	},
+	
+	// Check if session is valid
+	isSessionValid: function(session) {
+		if (!session || !session.loginTime) return false;
+		
+		const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+		const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+		
+		return sessionAge < maxSessionAge;
+	},
+	
+	// Generate secure session ID
+	generateSessionId: function() {
+		return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
+	},
+	
+	// Update last verified timestamp
+	updateLastVerified: function() {
+		const session = this.getCurrentSession();
+		if (session) {
+			session.lastVerified = new Date().toISOString();
+			localStorage.setItem('currentUser', JSON.stringify(session));
+		}
+	}
 };
 
 // Security validation function
@@ -187,10 +132,10 @@ function validateSecureConnection() {
 
 // Initialize security check when script loads
 document.addEventListener('DOMContentLoaded', function() {
-	setTimeout(validateSecureConnection, 1000);
-	
-	// Start automatic session refresh
-	SessionManager.setupAutomaticRefresh();
+  setTimeout(validateSecureConnection, 1000);
+  
+  // Start automatic session refresh
+  SessionManager.setupAutomaticRefresh();
 });
 
 // Export for global access
