@@ -105,13 +105,17 @@ function displayResult() {
     const resultPattern = calculateResult();
     const result = results[resultPattern];
     
-    // استخدام مفاتيح الترجمة لعرض النتيجة
-    resultGuideElement.textContent = `${translate(`SC1.results.${result.key}.guide`)} - ${translate(`SC1.results.${result.key}.title`)}`;
-    symbolicMeaningElement.textContent = translate(`SC1.results.${result.key}.symbolicMeaning`);
-    coreChallengeElement.textContent = translate(`SC1.results.${result.key}.coreChallenge`);
-    mission90DaysElement.textContent = translate(`SC1.results.${result.key}.mission90Days`);
-    kpiElement.textContent = translate(`SC1.results.${result.key}.kpi`);
-    allianceTipElement.textContent = translate(`SC1.results.${result.key}.allianceTip`);
+    // Get translations for current language
+    const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
+    
+    // Use the translated result details
+    resultGuideElement.textContent = `${resultTranslations.guide} - ${resultTranslations.title}`;
+    symbolicMeaningElement.textContent = resultTranslations.symbolicMeaning;
+    coreChallengeElement.textContent = resultTranslations.coreChallenge;
+    mission90DaysElement.textContent = resultTranslations.mission90Days;
+    kpiElement.textContent = resultTranslations.kpi;
+    allianceTipElement.textContent = resultTranslations.allianceTip;
+    
     // Display images based on result pattern
     displayResultImages(resultPattern);
 }

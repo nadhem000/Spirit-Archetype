@@ -495,6 +495,10 @@ document.addEventListener('DOMContentLoaded', () => {
             forceHideLoader();
 		}
 	}, 100);
+    // Optimize existing saved results (run once)
+    setTimeout(() => {
+        optimizeExistingResults();
+    }, 2000);
 });
 
 // Also show loader when page is about to refresh/unload

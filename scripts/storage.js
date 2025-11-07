@@ -102,33 +102,23 @@ function saveCurrentResults() {
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
-	
+
     // Use setTimeout to break up the work and prevent blocking
     setTimeout(() => {
         try {
             const resultPattern = calculateResult();
             const resultId = generateResultId();
             
-            // Get translations more efficiently
-            const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
-            
+            // OPTIMIZED: Only store essential data, not full result details
             const resultData = {
                 id: resultId,
                 date: new Date().toISOString(),
                 dominantPattern: resultPattern,
                 scores: {...scores},
-                userAnswers: [...userAnswers],
-                resultDetails: {
-                    guide: resultTranslations.guide,
-                    title: resultTranslations.title,
-                    symbolicMeaning: resultTranslations.symbolicMeaning,
-                    coreChallenge: resultTranslations.coreChallenge,
-                    mission90Days: resultTranslations.mission90Days,
-                    kpi: resultTranslations.kpi,
-                    allianceTip: resultTranslations.allianceTip
-				}
-			};
-			
+                // OPTIMIZED: Store answer counts instead of full array
+                answerCounts: countAnswers(userAnswers)
+            };
+
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
             
@@ -139,30 +129,90 @@ function saveCurrentResults() {
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
             
             // Show result using notification system
-			if (saved) {
-				showSuccess(translate('SC1.results.saveSuccess'));
-				} else {
-				showError(translate('SC1.results.saveError'));
-			}
-			
-			// Also update user_data in Supabase with the new saved results
-			setTimeout(() => {
-				updateUserDataInSupabase().then(success => {
-					if (success) {
-						console.log('✅ Saved results merged to user_data');
-					}
-				});
-			}, 500);
+            if (saved) {
+                showSuccess(translate('SC1.results.saveSuccess'));
+            } else {
+                showError(translate('SC1.results.saveError'));
+            }
             
-			} catch (error) {
-			console.error('Error saving results:', error);
-			showError(translate('SC1.results.saveError'));
-			} finally {
+            // Also update user_data in Supabase with the new saved results
+            setTimeout(() => {
+                updateUserDataInSupabase().then(success => {
+                    if (success) {
+                        console.log('✅ Saved results merged to user_data');
+                    }
+                });
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error saving results:', error);
+            showError(translate('SC1.results.saveError'));
+        } finally {
             // Restore button state
             saveResultsBtn.textContent = originalText;
             saveResultsBtn.disabled = false;
-		}
-	}, 10); // Small delay to allow UI to update
+        }
+    }, 10);
+}
+
+// Helper function to count answers and return compact format
+function countAnswers(userAnswers) {
+    const counts = { A: 0, B: 0, C: 0, D: 0 };
+    userAnswers.forEach(answer => {
+        if (answer && counts.hasOwnProperty(answer)) {
+            counts[answer]++;
+        }
+    });
+    return counts;
+}
+
+// Helper function to reconstruct userAnswers from counts (if needed)
+function reconstructAnswers(counts, totalQuestions = 8) {
+    const answers = [];
+    const patterns = ['A', 'B', 'C', 'D'];
+    
+    // This is a simplified reconstruction - in practice you might not need the exact sequence
+    // since the scores are what matter for the result
+    patterns.forEach(pattern => {
+        for (let i = 0; i < counts[pattern]; i++) {
+            answers.push(pattern);
+        }
+    });
+    
+    // Fill remaining slots with null if needed
+    while (answers.length < totalQuestions) {
+        answers.push(null);
+    }
+    
+    return answers;
+}
+
+// Function to optimize existing saved results (run this once to clean up)
+function optimizeExistingResults() {
+    try {
+        const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+        const optimizedResults = existingResults.map(result => {
+            // If it's the old format with resultDetails, convert to new format
+            if (result.resultDetails) {
+                return {
+                    id: result.id,
+                    date: result.date,
+                    dominantPattern: result.dominantPattern,
+                    scores: result.scores,
+                    answerCounts: countAnswers(result.userAnswers || [])
+                };
+            }
+            // If it's already optimized, keep it
+            return result;
+        });
+        
+        saveToStorage(STORAGE_KEYS.SAVED_RESULTS, optimizedResults);
+        console.log(`✅ Optimized ${optimizedResults.length} saved results`);
+        return optimizedResults;
+    } catch (error) {
+        console.error('Error optimizing existing results:', error);
+        return [];
+    }
 }
 
 // Load all saved results
@@ -271,27 +321,37 @@ async function updateUserDataInSupabase() {
 function mergeSavedResults(existingResults, newResults) {
     if (!existingResults || existingResults.length === 0) return newResults;
     if (!newResults || newResults.length === 0) return existingResults;
-    
+
     // Create a map of existing results by ID for quick lookup
     const resultMap = new Map();
     
-    // Add all existing results to the map
+    // Add all existing results to the map (optimize old format if needed)
     existingResults.forEach(result => {
         if (result && result.id) {
+            // Convert old format to new format if necessary
+            if (result.resultDetails && !result.answerCounts) {
+                result = {
+                    id: result.id,
+                    date: result.date,
+                    dominantPattern: result.dominantPattern,
+                    scores: result.scores,
+                    answerCounts: countAnswers(result.userAnswers || [])
+                };
+            }
             resultMap.set(result.id, result);
-		}
-	});
+        }
+    });
     
-    // Add or update with new results (newer results replace older ones)
+    // Add or update with new results
     newResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
-		}
-	});
+        }
+    });
     
     // Convert map back to array and sort by date (newest first)
     return Array.from(resultMap.values())
-	.sort((a, b) => new Date(b.date) - new Date(a.date));
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 // Function to sync from Supabase to local storage (for when user logs in on different device)

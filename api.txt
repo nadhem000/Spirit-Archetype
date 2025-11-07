@@ -584,6 +584,10 @@ document.addEventListener('DOMContentLoaded', () => {
             forceHideLoader();
         }
     }, 100);
+    // Optimize existing saved results (run once)
+    setTimeout(() => {
+        optimizeExistingResults();
+    }, 2000);
 });
 // Also show loader when page is about to refresh/unload
 window.addEventListener('beforeunload', function() {
@@ -774,7 +778,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v3.0.2",
+            version: "spiritual-guide-v3.0.3",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1106,7 +1110,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v3.0.2",
+            version: "spiritual-guide-v3.0.3",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1243,23 +1247,14 @@ function saveCurrentResults() {
         try {
             const resultPattern = calculateResult();
             const resultId = generateResultId();
-            // Get translations more efficiently
-            const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
+            // OPTIMIZED: Only store essential data, not full result details
             const resultData = {
                 id: resultId,
                 date: new Date().toISOString(),
                 dominantPattern: resultPattern,
                 scores: {...scores},
-                userAnswers: [...userAnswers],
-                resultDetails: {
-                    guide: resultTranslations.guide,
-                    title: resultTranslations.title,
-                    symbolicMeaning: resultTranslations.symbolicMeaning,
-                    coreChallenge: resultTranslations.coreChallenge,
-                    mission90Days: resultTranslations.mission90Days,
-                    kpi: resultTranslations.kpi,
-                    allianceTip: resultTranslations.allianceTip
-                }
+                // OPTIMIZED: Store answer counts instead of full array
+                answerCounts: countAnswers(userAnswers)
             };
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
@@ -1268,28 +1263,81 @@ function saveCurrentResults() {
             // Save back to storage
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
             // Show result using notification system
-			if (saved) {
-				showSuccess(translate('SC1.results.saveSuccess'));
-				} else {
-				showError(translate('SC1.results.saveError'));
-			}
-			// Also update user_data in Supabase with the new saved results
-			setTimeout(() => {
-				updateUserDataInSupabase().then(success => {
-					if (success) {
-						console.log('✅ Saved results merged to user_data');
-					}
-				});
-			}, 500);
+            if (saved) {
+                showSuccess(translate('SC1.results.saveSuccess'));
+            } else {
+                showError(translate('SC1.results.saveError'));
+            }
+            // Also update user_data in Supabase with the new saved results
+            setTimeout(() => {
+                updateUserDataInSupabase().then(success => {
+                    if (success) {
+                        console.log('✅ Saved results merged to user_data');
+                    }
+                });
+            }, 500);
         } catch (error) {
-			console.error('Error saving results:', error);
-			showError(translate('SC1.results.saveError'));
-			} finally {
+            console.error('Error saving results:', error);
+            showError(translate('SC1.results.saveError'));
+        } finally {
             // Restore button state
             saveResultsBtn.textContent = originalText;
             saveResultsBtn.disabled = false;
         }
-    }, 10); // Small delay to allow UI to update
+    }, 10);
+}
+// Helper function to count answers and return compact format
+function countAnswers(userAnswers) {
+    const counts = { A: 0, B: 0, C: 0, D: 0 };
+    userAnswers.forEach(answer => {
+        if (answer && counts.hasOwnProperty(answer)) {
+            counts[answer]++;
+        }
+    });
+    return counts;
+}
+// Helper function to reconstruct userAnswers from counts (if needed)
+function reconstructAnswers(counts, totalQuestions = 8) {
+    const answers = [];
+    const patterns = ['A', 'B', 'C', 'D'];
+    // This is a simplified reconstruction - in practice you might not need the exact sequence
+    // since the scores are what matter for the result
+    patterns.forEach(pattern => {
+        for (let i = 0; i < counts[pattern]; i++) {
+            answers.push(pattern);
+        }
+    });
+    // Fill remaining slots with null if needed
+    while (answers.length < totalQuestions) {
+        answers.push(null);
+    }
+    return answers;
+}
+// Function to optimize existing saved results (run this once to clean up)
+function optimizeExistingResults() {
+    try {
+        const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+        const optimizedResults = existingResults.map(result => {
+            // If it's the old format with resultDetails, convert to new format
+            if (result.resultDetails) {
+                return {
+                    id: result.id,
+                    date: result.date,
+                    dominantPattern: result.dominantPattern,
+                    scores: result.scores,
+                    answerCounts: countAnswers(result.userAnswers || [])
+                };
+            }
+            // If it's already optimized, keep it
+            return result;
+        });
+        saveToStorage(STORAGE_KEYS.SAVED_RESULTS, optimizedResults);
+        console.log(`✅ Optimized ${optimizedResults.length} saved results`);
+        return optimizedResults;
+    } catch (error) {
+        console.error('Error optimizing existing results:', error);
+        return [];
+    }
 }
 // Load all saved results
 function loadSavedResults() {
@@ -1385,13 +1433,23 @@ function mergeSavedResults(existingResults, newResults) {
     if (!newResults || newResults.length === 0) return existingResults;
     // Create a map of existing results by ID for quick lookup
     const resultMap = new Map();
-    // Add all existing results to the map
+    // Add all existing results to the map (optimize old format if needed)
     existingResults.forEach(result => {
         if (result && result.id) {
+            // Convert old format to new format if necessary
+            if (result.resultDetails && !result.answerCounts) {
+                result = {
+                    id: result.id,
+                    date: result.date,
+                    dominantPattern: result.dominantPattern,
+                    scores: result.scores,
+                    answerCounts: countAnswers(result.userAnswers || [])
+                };
+            }
             resultMap.set(result.id, result);
         }
     });
-    // Add or update with new results (newer results replace older ones)
+    // Add or update with new results
     newResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
@@ -1650,13 +1708,15 @@ function displayResultImages(resultPattern) {
 function displayResult() {
     const resultPattern = calculateResult();
     const result = results[resultPattern];
-    // استخدام مفاتيح الترجمة لعرض النتيجة
-    resultGuideElement.textContent = `${translate(`SC1.results.${result.key}.guide`)} - ${translate(`SC1.results.${result.key}.title`)}`;
-    symbolicMeaningElement.textContent = translate(`SC1.results.${result.key}.symbolicMeaning`);
-    coreChallengeElement.textContent = translate(`SC1.results.${result.key}.coreChallenge`);
-    mission90DaysElement.textContent = translate(`SC1.results.${result.key}.mission90Days`);
-    kpiElement.textContent = translate(`SC1.results.${result.key}.kpi`);
-    allianceTipElement.textContent = translate(`SC1.results.${result.key}.allianceTip`);
+    // Get translations for current language
+    const resultTranslations = getCurrentTranslationObject().SC1.results[resultPattern];
+    // Use the translated result details
+    resultGuideElement.textContent = `${resultTranslations.guide} - ${resultTranslations.title}`;
+    symbolicMeaningElement.textContent = resultTranslations.symbolicMeaning;
+    coreChallengeElement.textContent = resultTranslations.coreChallenge;
+    mission90DaysElement.textContent = resultTranslations.mission90Days;
+    kpiElement.textContent = resultTranslations.kpi;
+    allianceTipElement.textContent = resultTranslations.allianceTip;
     // Display images based on result pattern
     displayResultImages(resultPattern);
 }
@@ -1910,7 +1970,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.2</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.3</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2810,7 +2870,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v3.0.2'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v3.0.3'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3199,7 +3259,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v3.0.2'
+      'X-Client-Info': 'spiritual-guide-v3.0.3'
     }
   }
 });
