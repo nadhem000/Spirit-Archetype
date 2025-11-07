@@ -150,6 +150,15 @@ function initializeLogin() {
             
             localStorage.setItem('currentUser', JSON.stringify(userData));
             showSuccess(translate('SC1.login.success.loginSuccessful'));
+
+			// Update user_data in Supabase with local storage data
+			setTimeout(() => {
+				updateUserDataInSupabase().then(success => {
+					if (success) {
+						console.log('✅ Local storage data sent to user_data after login');
+					}
+				});
+			}, 1000);
             
             // Hide login form and show user info
             updateUIAfterLogin(userData);

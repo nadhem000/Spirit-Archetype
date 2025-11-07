@@ -293,6 +293,15 @@ function initializeLogin() {
 			SessionManager.saveUserSession(userData);
             localStorage.setItem('currentUser', JSON.stringify(userData));
             showSuccess(translate('SC1.login.success.loginSuccessful'));
+
+			// Update user_data in Supabase with local storage data
+			setTimeout(() => {
+				updateUserDataInSupabase().then(success => {
+					if (success) {
+						console.log('✅ Local storage data sent to user_data after login');
+					}
+				});
+			}, 1000);
             // Hide login form and show user info
             updateUIAfterLogin(userData);
             console.log('✅ Secure login successful for user:', currentUser);
@@ -729,7 +738,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.9.3",
+            version: "spiritual-guide-v2.9.4",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1060,7 +1069,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.9.3",
+            version: "spiritual-guide-v2.9.4",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1227,6 +1236,15 @@ function saveCurrentResults() {
 				} else {
 				showError(translate('SC1.results.saveError'));
 			}
+
+			// Also update user_data in Supabase with the new saved results
+			setTimeout(() => {
+				updateUserDataInSupabase().then(success => {
+					if (success) {
+						console.log('✅ Saved results updated in user_data');
+					}
+				});
+			}, 500);
         } catch (error) {
 			console.error('Error saving results:', error);
 			showError(translate('SC1.results.saveError'));
@@ -1252,6 +1270,56 @@ function deleteSavedResult(resultId) {
     const filteredResults = allResults.filter(result => result.id !== resultId);
     return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
 }
+
+// Function to update user_data in Supabase with local storage data
+async function updateUserDataInSupabase() {
+    try {
+        // Check if user is logged in
+        const currentUser = SessionManager.getCurrentSession();
+        if (!currentUser || !currentUser.username) {
+            console.log('No user logged in - skipping user_data update');
+            return false;
+        }
+
+        // Collect data from local storage
+        const userData = {
+            testProgress: {
+                answers: loadFromStorage(STORAGE_KEYS.ANSWERS, []),
+                currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+                lastUpdated: new Date().toISOString()
+            },
+            savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
+            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('Updating user_data in Supabase for user:', currentUser.username);
+
+        // Update user_data in Supabase
+        const { data, error } = await supabaseClient
+            .from('auth_users')
+            .update({ 
+                user_data: userData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('username', currentUser.username);
+
+        if (error) {
+            console.error('Error updating user_data in Supabase:', error);
+            return false;
+        }
+
+        console.log('✅ User data successfully updated in Supabase');
+        return true;
+
+    } catch (error) {
+        console.error('Error in updateUserDataInSupabase:', error);
+        return false;
+    }
+}
+
+// Make it available globally
+window.updateUserDataInSupabase = updateUserDataInSupabase;
 // Make functions global
 window.saveCurrentResults = saveCurrentResults;
 window.loadSavedResults = loadSavedResults;
@@ -1710,7 +1778,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.3</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.4</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2610,7 +2678,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.9.3'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.9.4'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -2999,7 +3067,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.3'
+      'X-Client-Info': 'spiritual-guide-v2.9.4'
     }
   }
 });

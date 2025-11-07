@@ -144,6 +144,15 @@ function saveCurrentResults() {
 				} else {
 				showError(translate('SC1.results.saveError'));
 			}
+
+			// Also update user_data in Supabase with the new saved results
+			setTimeout(() => {
+				updateUserDataInSupabase().then(success => {
+					if (success) {
+						console.log('✅ Saved results updated in user_data');
+					}
+				});
+			}, 500);
             
 			} catch (error) {
 			console.error('Error saving results:', error);
@@ -173,6 +182,56 @@ function deleteSavedResult(resultId) {
     const filteredResults = allResults.filter(result => result.id !== resultId);
     return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
 }
+
+// Function to update user_data in Supabase with local storage data
+async function updateUserDataInSupabase() {
+    try {
+        // Check if user is logged in
+        const currentUser = SessionManager.getCurrentSession();
+        if (!currentUser || !currentUser.username) {
+            console.log('No user logged in - skipping user_data update');
+            return false;
+        }
+
+        // Collect data from local storage
+        const userData = {
+            testProgress: {
+                answers: loadFromStorage(STORAGE_KEYS.ANSWERS, []),
+                currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+                lastUpdated: new Date().toISOString()
+            },
+            savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
+            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('Updating user_data in Supabase for user:', currentUser.username);
+
+        // Update user_data in Supabase
+        const { data, error } = await supabaseClient
+            .from('auth_users')
+            .update({ 
+                user_data: userData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('username', currentUser.username);
+
+        if (error) {
+            console.error('Error updating user_data in Supabase:', error);
+            return false;
+        }
+
+        console.log('✅ User data successfully updated in Supabase');
+        return true;
+
+    } catch (error) {
+        console.error('Error in updateUserDataInSupabase:', error);
+        return false;
+    }
+}
+
+// Make it available globally
+window.updateUserDataInSupabase = updateUserDataInSupabase;
 
 // Make functions global
 window.saveCurrentResults = saveCurrentResults;
