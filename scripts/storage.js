@@ -70,14 +70,14 @@ function resumeTestFromSavedState() {
             questionCard.classList.remove('SC1-active');
             resultCard.classList.add('SC1-active');
             displayResult();
-        } 
+		} 
         // If we're in the middle of the test
         else if (currentQuestionIndex < questions.length) {
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
             displayQuestion(currentQuestionIndex);
-        }
+		}
         // If we're at the end but haven't completed all questions
         else if (currentQuestionIndex >= questions.length && hasSavedProgress) {
             // This handles edge cases - show the last question
@@ -87,8 +87,8 @@ function resumeTestFromSavedState() {
             // Make sure we don't go beyond the last question
             currentQuestionIndex = Math.min(currentQuestionIndex, questions.length - 1);
             displayQuestion(currentQuestionIndex);
-        }
-    }
+		}
+	}
 }
 
 // Generate a unique ID for saved results
@@ -144,12 +144,12 @@ function saveCurrentResults() {
 				} else {
 				showError(translate('SC1.results.saveError'));
 			}
-
+			
 			// Also update user_data in Supabase with the new saved results
 			setTimeout(() => {
 				updateUserDataInSupabase().then(success => {
 					if (success) {
-						console.log('✅ Saved results updated in user_data');
+						console.log('✅ Saved results merged to user_data');
 					}
 				});
 			}, 500);
@@ -183,7 +183,7 @@ function deleteSavedResult(resultId) {
     return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
 }
 
-// Function to update user_data in Supabase with local storage data
+// Function to update user_data in Supabase with proper merging
 async function updateUserDataInSupabase() {
     try {
         // Check if user is logged in
@@ -191,43 +191,161 @@ async function updateUserDataInSupabase() {
         if (!currentUser || !currentUser.username) {
             console.log('No user logged in - skipping user_data update');
             return false;
-        }
-
-        // Collect data from local storage
-        const userData = {
+		}
+		
+        // Get existing user_data from Supabase first
+        const { data: existingUser, error: fetchError } = await supabaseClient
+		.from('auth_users')
+		.select('user_data')
+		.eq('username', currentUser.username)
+		.single();
+		
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+            console.error('Error fetching existing user_data:', fetchError);
+            return false;
+		}
+		
+        // Get current data from local storage
+        const currentLocalData = {
             testProgress: {
                 answers: loadFromStorage(STORAGE_KEYS.ANSWERS, []),
                 currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
                 lastUpdated: new Date().toISOString()
-            },
+			},
             savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
             language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
             timestamp: new Date().toISOString()
-        };
-
+		};
+		
+        // Smart merge: Update only what's changed, don't accumulate
+        let mergedUserData;
+        
+        if (existingUser && existingUser.user_data) {
+            // Merge existing data with new data intelligently
+            mergedUserData = {
+                ...existingUser.user_data,
+                // Update test progress with latest
+                testProgress: currentLocalData.testProgress,
+                // For savedResults, only keep unique results (based on id)
+                savedResults: mergeSavedResults(
+                    existingUser.user_data.savedResults || [],
+                    currentLocalData.savedResults
+				),
+                // Update language and timestamp
+                language: currentLocalData.language,
+                timestamp: currentLocalData.timestamp
+			};
+            
+            console.log('🔁 Merged user_data with existing data');
+			} else {
+            // No existing data, use current local data
+            mergedUserData = currentLocalData;
+            console.log('🆕 Creating new user_data');
+		}
+		
         console.log('Updating user_data in Supabase for user:', currentUser.username);
-
+        
         // Update user_data in Supabase
         const { data, error } = await supabaseClient
-            .from('auth_users')
-            .update({ 
-                user_data: userData,
-                updated_at: new Date().toISOString()
-            })
-            .eq('username', currentUser.username);
-
+		.from('auth_users')
+		.update({ 
+			user_data: mergedUserData,
+			updated_at: new Date().toISOString()
+		})
+		.eq('username', currentUser.username);
+		
         if (error) {
             console.error('Error updating user_data in Supabase:', error);
             return false;
-        }
-
+		}
+		
         console.log('✅ User data successfully updated in Supabase');
         return true;
-
-    } catch (error) {
+		} catch (error) {
         console.error('Error in updateUserDataInSupabase:', error);
         return false;
-    }
+	}
+}
+
+// Helper function to merge saved results without duplicates
+function mergeSavedResults(existingResults, newResults) {
+    if (!existingResults || existingResults.length === 0) return newResults;
+    if (!newResults || newResults.length === 0) return existingResults;
+    
+    // Create a map of existing results by ID for quick lookup
+    const resultMap = new Map();
+    
+    // Add all existing results to the map
+    existingResults.forEach(result => {
+        if (result && result.id) {
+            resultMap.set(result.id, result);
+		}
+	});
+    
+    // Add or update with new results (newer results replace older ones)
+    newResults.forEach(result => {
+        if (result && result.id) {
+            resultMap.set(result.id, result);
+		}
+	});
+    
+    // Convert map back to array and sort by date (newest first)
+    return Array.from(resultMap.values())
+	.sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Function to sync from Supabase to local storage (for when user logs in on different device)
+async function syncFromSupabaseToLocal() {
+    try {
+        const currentUser = SessionManager.getCurrentSession();
+        if (!currentUser || !currentUser.username) {
+            console.log('No user logged in - skipping sync from Supabase');
+            return false;
+		}
+		
+        // Get user_data from Supabase
+        const { data: userData, error } = await supabaseClient
+		.from('auth_users')
+		.select('user_data')
+		.eq('username', currentUser.username)
+		.single();
+		
+        if (error) {
+            console.error('Error fetching user_data from Supabase:', error);
+            return false;
+		}
+		
+        if (!userData || !userData.user_data) {
+            console.log('No user_data found in Supabase');
+            return false;
+		}
+		
+        const supabaseData = userData.user_data;
+        
+        // Update local storage with data from Supabase
+        if (supabaseData.testProgress) {
+            saveToStorage(STORAGE_KEYS.ANSWERS, supabaseData.testProgress.answers || []);
+            saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, supabaseData.testProgress.currentQuestion || 0);
+		}
+        
+        if (supabaseData.savedResults) {
+            saveToStorage(STORAGE_KEYS.SAVED_RESULTS, supabaseData.savedResults);
+		}
+        
+        if (supabaseData.language) {
+            saveToStorage(STORAGE_KEYS.LANGUAGE, supabaseData.language);
+            // Update current language variable
+            currentLanguage = supabaseData.language;
+            // Refresh UI
+            initializeAppUI();
+		}
+		
+        console.log('✅ Synced data from Supabase to local storage');
+        return true;
+		} catch (error) {
+        console.error('Error in syncFromSupabaseToLocal:', error);
+        return false;
+	}
 }
 
 // Make it available globally

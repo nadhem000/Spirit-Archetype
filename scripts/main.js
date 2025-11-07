@@ -145,10 +145,19 @@ function initializeLogin() {
 			
 			// Update user_data in Supabase with local storage data
 			setTimeout(() => {
-				updateUserDataInSupabase().then(success => {
-					if (success) {
-						console.log('✅ Local storage data sent to user_data after login');
+				// First sync FROM Supabase to get any existing data
+				syncFromSupabaseToLocal().then(synced => {
+					if (synced) {
+						console.log('✅ Synced from Supabase to local storage');
+						// Then update UI with the merged data
+						initializeAppUI();
 					}
+					// Then sync TO Supabase with merged data
+					updateUserDataInSupabase().then(success => {
+						if (success) {
+							console.log('✅ Merged data sent to user_data after login');
+						}
+					});
 				});
 			}, 1000);
             
@@ -164,7 +173,7 @@ function initializeLogin() {
 			loginBtn.disabled = false;
 			loginBtn.textContent = originalText;
 		}
-		}
+	}
 	
     // Simple client-side hash function (for basic security)
     async function simpleHash(str) {
