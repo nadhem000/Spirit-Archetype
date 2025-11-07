@@ -399,40 +399,41 @@ function initializeLogin() {
 		}
 	}
     // Enhanced session verification with better persistence
-	async function checkExistingLogin() {
-		try {
-			const session = SessionManager.getCurrentSession();
-			console.log('🔐 Checking existing session:', session);
-			if (!session) {
-				console.log('No session found');
-				return;
-			}
-			// Use the updated session validation
-			const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-			if (sessionAge >= maxSessionAge) {
-				console.log('Session expired (older than 30 days)');
-				SessionManager.clearSession();
-				return;
-			}
-			// Session is valid - update UI
-			currentUser = session.username;
-			console.log('✅ Session verified, user logged in:', currentUser);
-			// Update session verification timestamp
-			SessionManager.updateLastVerified();
-			updateUIAfterLogin({
-				id: session.id,
-				username: session.username,
-				email: session.email,
-				loginTime: session.loginTime,
-				sessionId: session.sessionId
-			});
-			} catch (error) {
-			console.log('Session verification error:', error);
-			// Don't clear session on temporary errors
-			console.log('Session check error, keeping session for now');
-		}
-	}
+async function checkExistingLogin() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        console.log('🔐 Checking existing session:', session);
+        if (!session) {
+            console.log('No session found');
+            return;
+        }
+        // More lenient session validation
+        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
+        if (sessionAge >= maxSessionAge) {
+            console.log('Session expired (older than 30 days)');
+            SessionManager.clearSession();
+            return;
+        }
+        // Session is valid - update UI
+        currentUser = session.username;
+        console.log('✅ Session verified, user logged in:', currentUser);
+        // Update session verification timestamp
+        SessionManager.updateLastVerified();
+        updateUIAfterLogin({
+            id: session.id,
+            username: session.username,
+            email: session.email,
+            loginTime: session.loginTime,
+            sessionId: session.sessionId
+        });
+    } catch (error) {
+        console.log('Session verification error:', error);
+        // Don't clear session on temporary errors
+        console.log('Session check error, keeping session for now');
+    }
+}
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     // Security: Only clear password if specifically needed
@@ -730,7 +731,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.9.9",
+            version: "spiritual-guide-v3.0.0",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1061,7 +1062,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.9.9",
+            version: "spiritual-guide-v3.0.0",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1270,19 +1271,16 @@ async function updateUserDataInSupabase() {
             console.log('No user logged in - skipping user_data update');
             return false;
         }
-
         // Get existing user_data from Supabase first
         const { data: existingUser, error: fetchError } = await supabaseClient
             .from('auth_users')
             .select('user_data')
             .eq('username', currentUser.username)
             .single();
-
         if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
             console.error('Error fetching existing user_data:', fetchError);
             return false;
         }
-
         // Get current data from local storage
         const currentLocalData = {
             testProgress: {
@@ -1294,10 +1292,8 @@ async function updateUserDataInSupabase() {
             language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
             timestamp: new Date().toISOString()
         };
-
         // Smart merge: Update only what's changed, don't accumulate
         let mergedUserData;
-        
         if (existingUser && existingUser.user_data) {
             // Merge existing data with new data intelligently
             mergedUserData = {
@@ -1313,16 +1309,13 @@ async function updateUserDataInSupabase() {
                 language: currentLocalData.language,
                 timestamp: currentLocalData.timestamp
             };
-            
             console.log('🔁 Merged user_data with existing data');
         } else {
             // No existing data, use current local data
             mergedUserData = currentLocalData;
             console.log('🆕 Creating new user_data');
         }
-
         console.log('Updating user_data in Supabase for user:', currentUser.username);
-        
         // Update user_data in Supabase
         const { data, error } = await supabaseClient
             .from('auth_users')
@@ -1331,12 +1324,10 @@ async function updateUserDataInSupabase() {
                 updated_at: new Date().toISOString()
             })
             .eq('username', currentUser.username);
-
         if (error) {
             console.error('Error updating user_data in Supabase:', error);
             return false;
         }
-
         console.log('✅ User data successfully updated in Supabase');
         return true;
     } catch (error) {
@@ -1344,34 +1335,28 @@ async function updateUserDataInSupabase() {
         return false;
     }
 }
-
 // Helper function to merge saved results without duplicates
 function mergeSavedResults(existingResults, newResults) {
     if (!existingResults || existingResults.length === 0) return newResults;
     if (!newResults || newResults.length === 0) return existingResults;
-    
     // Create a map of existing results by ID for quick lookup
     const resultMap = new Map();
-    
     // Add all existing results to the map
     existingResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
         }
     });
-    
     // Add or update with new results (newer results replace older ones)
     newResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
         }
     });
-    
     // Convert map back to array and sort by date (newest first)
     return Array.from(resultMap.values())
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
-
 // Function to sync from Supabase to local storage (for when user logs in on different device)
 async function syncFromSupabaseToLocal() {
     try {
@@ -1380,36 +1365,29 @@ async function syncFromSupabaseToLocal() {
             console.log('No user logged in - skipping sync from Supabase');
             return false;
         }
-
         // Get user_data from Supabase
         const { data: userData, error } = await supabaseClient
             .from('auth_users')
             .select('user_data')
             .eq('username', currentUser.username)
             .single();
-
         if (error) {
             console.error('Error fetching user_data from Supabase:', error);
             return false;
         }
-
         if (!userData || !userData.user_data) {
             console.log('No user_data found in Supabase');
             return false;
         }
-
         const supabaseData = userData.user_data;
-        
         // Update local storage with data from Supabase
         if (supabaseData.testProgress) {
             saveToStorage(STORAGE_KEYS.ANSWERS, supabaseData.testProgress.answers || []);
             saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, supabaseData.testProgress.currentQuestion || 0);
         }
-        
         if (supabaseData.savedResults) {
             saveToStorage(STORAGE_KEYS.SAVED_RESULTS, supabaseData.savedResults);
         }
-        
         if (supabaseData.language) {
             saveToStorage(STORAGE_KEYS.LANGUAGE, supabaseData.language);
             // Update current language variable
@@ -1417,7 +1395,6 @@ async function syncFromSupabaseToLocal() {
             // Refresh UI
             initializeAppUI();
         }
-
         console.log('✅ Synced data from Supabase to local storage');
         return true;
     } catch (error) {
@@ -1885,7 +1862,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.9</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.0</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2785,7 +2762,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.9.9'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v3.0.0'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3174,7 +3151,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.9'
+      'X-Client-Info': 'spiritual-guide-v3.0.0'
     }
   }
 });
@@ -3231,31 +3208,42 @@ const SessionManager = {
     }
     return false;
   },
-  // More robust session restoration - FIXED: Always try to restore valid sessions
-  restoreSession: function() {
+  // More robust session restoration - FIXED: Proper session validation
+restoreSession: function() {
     try {
-      const session = this.getCurrentSession();
-      if (session) {
-        console.log('🔄 Found existing session, checking validity...');
-        // Always update lastVerified when restoring session
-        this.updateLastVerified();
-        // For sessions less than 30 days old, consider them valid
-        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-        if (sessionAge < maxSessionAge) {
-          console.log('✅ Session restored successfully');
-          return session;
+        const session = this.getCurrentSession();
+        if (session) {
+            console.log('🔄 Found existing session, checking validity...', session);
+            // Check if session has the required fields
+            if (!session.id || !session.username) {
+                console.log('❌ Session missing required fields');
+                this.clearSession();
+                return null;
+            }
+            // For sessions less than 30 days old, consider them valid
+            const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+            const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+            console.log(`Session age: ${sessionAge}ms, Max age: ${maxSessionAge}ms`);
+            if (sessionAge < maxSessionAge) {
+                // Update lastVerified to keep session alive
+                this.updateLastVerified();
+                console.log('✅ Session restored successfully');
+                return session;
+            } else {
+                console.log('❌ Session expired (older than 30 days)');
+                this.clearSession();
+            }
         } else {
-          console.log('❌ Session expired (older than 30 days)');
-          this.clearSession();
+            console.log('No session found in localStorage');
         }
-      }
-      return null;
+        return null;
     } catch (error) {
-      console.error('Session restoration error:', error);
-      return null;
+        console.error('Session restoration error:', error);
+        // Don't clear session on temporary errors
+        console.log('Session check error, keeping session for now');
+        return null;
     }
-  },
+},
   // Generate secure session ID
   generateSessionId: function() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
@@ -3313,10 +3301,26 @@ document.addEventListener('DOMContentLoaded', function() {
   // Start automatic session refresh
   SessionManager.setupAutomaticRefresh();
 });
+// Debug function to check session state
+function debugSessionState() {
+    const session = SessionManager.getCurrentSession();
+    console.log('=== SESSION DEBUG INFO ===');
+    console.log('Session exists:', !!session);
+    if (session) {
+        console.log('Session data:', session);
+        console.log('Login time:', session.loginTime);
+        console.log('Session age (days):', Math.round((Date.now() - new Date(session.loginTime).getTime()) / (24 * 60 * 60 * 1000)));
+        console.log('Has required fields:', !!session.id && !!session.username);
+    }
+    console.log('LocalStorage currentUser:', localStorage.getItem('currentUser'));
+    console.log('==========================');
+}
 // Export for global access
 window.supabaseClient = supabaseClient;
 window.validateSecureConnection = validateSecureConnection;
 window.SessionManager = SessionManager;
+// Call this after login and on page load to debug
+window.debugSessionState = debugSessionState;
 =====================
 FILE: register.html
 ================

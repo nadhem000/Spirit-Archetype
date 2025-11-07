@@ -281,46 +281,49 @@ function initializeLogin() {
 	} */
 	
     // Enhanced session verification with better persistence
-	async function checkExistingLogin() {
-		try {
-			const session = SessionManager.getCurrentSession();
-			console.log('🔐 Checking existing session:', session);
-			
-			if (!session) {
-				console.log('No session found');
-				return;
-			}
-			
-			// Use the updated session validation
-			const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-			
-			if (sessionAge >= maxSessionAge) {
-				console.log('Session expired (older than 30 days)');
-				SessionManager.clearSession();
-				return;
-			}
-			
-			// Session is valid - update UI
-			currentUser = session.username;
-			console.log('✅ Session verified, user logged in:', currentUser);
-			
-			// Update session verification timestamp
-			SessionManager.updateLastVerified();
-			updateUIAfterLogin({
-				id: session.id,
-				username: session.username,
-				email: session.email,
-				loginTime: session.loginTime,
-				sessionId: session.sessionId
-			});
-			
-			} catch (error) {
-			console.log('Session verification error:', error);
-			// Don't clear session on temporary errors
-			console.log('Session check error, keeping session for now');
-		}
-	}
+async function checkExistingLogin() {
+    try {
+        const session = SessionManager.getCurrentSession();
+        console.log('🔐 Checking existing session:', session);
+        
+        if (!session) {
+            console.log('No session found');
+            return;
+        }
+
+        // More lenient session validation
+        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        
+        console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
+        
+        if (sessionAge >= maxSessionAge) {
+            console.log('Session expired (older than 30 days)');
+            SessionManager.clearSession();
+            return;
+        }
+
+        // Session is valid - update UI
+        currentUser = session.username;
+        console.log('✅ Session verified, user logged in:', currentUser);
+        
+        // Update session verification timestamp
+        SessionManager.updateLastVerified();
+        
+        updateUIAfterLogin({
+            id: session.id,
+            username: session.username,
+            email: session.email,
+            loginTime: session.loginTime,
+            sessionId: session.sessionId
+        });
+        
+    } catch (error) {
+        console.log('Session verification error:', error);
+        // Don't clear session on temporary errors
+        console.log('Session check error, keeping session for now');
+    }
+}
 	
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);

@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.9'
+      'X-Client-Info': 'spiritual-guide-v3.0.0'
     }
   }
 });
@@ -84,34 +84,46 @@ const SessionManager = {
     return false;
   },
 
-  // More robust session restoration - FIXED: Always try to restore valid sessions
-  restoreSession: function() {
+  // More robust session restoration - FIXED: Proper session validation
+restoreSession: function() {
     try {
-      const session = this.getCurrentSession();
-      if (session) {
-        console.log('🔄 Found existing session, checking validity...');
-        
-        // Always update lastVerified when restoring session
-        this.updateLastVerified();
-        
-        // For sessions less than 30 days old, consider them valid
-        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-        const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-        
-        if (sessionAge < maxSessionAge) {
-          console.log('✅ Session restored successfully');
-          return session;
+        const session = this.getCurrentSession();
+        if (session) {
+            console.log('🔄 Found existing session, checking validity...', session);
+            
+            // Check if session has the required fields
+            if (!session.id || !session.username) {
+                console.log('❌ Session missing required fields');
+                this.clearSession();
+                return null;
+            }
+            
+            // For sessions less than 30 days old, consider them valid
+            const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+            const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+            
+            console.log(`Session age: ${sessionAge}ms, Max age: ${maxSessionAge}ms`);
+            
+            if (sessionAge < maxSessionAge) {
+                // Update lastVerified to keep session alive
+                this.updateLastVerified();
+                console.log('✅ Session restored successfully');
+                return session;
+            } else {
+                console.log('❌ Session expired (older than 30 days)');
+                this.clearSession();
+            }
         } else {
-          console.log('❌ Session expired (older than 30 days)');
-          this.clearSession();
+            console.log('No session found in localStorage');
         }
-      }
-      return null;
+        return null;
     } catch (error) {
-      console.error('Session restoration error:', error);
-      return null;
+        console.error('Session restoration error:', error);
+        // Don't clear session on temporary errors
+        console.log('Session check error, keeping session for now');
+        return null;
     }
-  },
+},
 
   // Generate secure session ID
   generateSessionId: function() {
@@ -177,7 +189,25 @@ document.addEventListener('DOMContentLoaded', function() {
   SessionManager.setupAutomaticRefresh();
 });
 
+
+// Debug function to check session state
+function debugSessionState() {
+    const session = SessionManager.getCurrentSession();
+    console.log('=== SESSION DEBUG INFO ===');
+    console.log('Session exists:', !!session);
+    if (session) {
+        console.log('Session data:', session);
+        console.log('Login time:', session.loginTime);
+        console.log('Session age (days):', Math.round((Date.now() - new Date(session.loginTime).getTime()) / (24 * 60 * 60 * 1000)));
+        console.log('Has required fields:', !!session.id && !!session.username);
+    }
+    console.log('LocalStorage currentUser:', localStorage.getItem('currentUser'));
+    console.log('==========================');
+}
+
 // Export for global access
 window.supabaseClient = supabaseClient;
 window.validateSecureConnection = validateSecureConnection;
 window.SessionManager = SessionManager;
+// Call this after login and on page load to debug
+window.debugSessionState = debugSessionState;
