@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 	},
 	global: {
 		headers: {
-			'X-Client-Info': 'spiritual-guide-v2.9.6'
+			'X-Client-Info': 'spiritual-guide-v2.9.7'
 		}
 	}
 });
@@ -115,7 +115,7 @@ const SessionManager = {
             console.error('Session restoration error:', error);
             return null;
         }
-    }
+    },
 	
 	// Generate secure session ID
 	generateSessionId: function() {
