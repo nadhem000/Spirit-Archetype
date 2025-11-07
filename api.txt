@@ -732,7 +732,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.9.5",
+            version: "spiritual-guide-v2.9.6",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1063,7 +1063,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.9.5",
+            version: "spiritual-guide-v2.9.6",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1763,7 +1763,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.5</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.6</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2663,7 +2663,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.9.5'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.9.6'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3052,7 +3052,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.5'
+      'X-Client-Info': 'spiritual-guide-v2.9.6'
     }
   }
 });
@@ -3117,13 +3117,32 @@ const SessionManager = {
       return false;
     }
   },
-  // Check if session is valid
-  isSessionValid: function(session) {
-    if (!session || !session.loginTime) return false;
-    const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-    const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
-    return sessionAge < maxSessionAge;
-  },
+  // Check if session is valid - more lenient version
+    isSessionValid: function(session) {
+        if (!session || !session.loginTime) return false;
+        
+        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+        const maxSessionAge = 7 * 24 * 60 * 60 * 1000; // 7 days instead of 24 hours
+        const isRecentVerification = session.lastVerified && 
+            (Date.now() - new Date(session.lastVerified).getTime() < 30 * 60 * 1000); // 30 minutes
+        
+        return sessionAge < maxSessionAge && isRecentVerification;
+    },
+    // More robust session restoration
+    restoreSession: function() {
+        try {
+            const session = this.getCurrentSession();
+            if (session && this.isSessionValid(session)) {
+                console.log('🔄 Session restored successfully');
+                this.updateLastVerified();
+                return session;
+            }
+            return null;
+        } catch (error) {
+            console.error('Session restoration error:', error);
+            return null;
+        }
+    }
   // Generate secure session ID
   generateSessionId: function() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);

@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 	},
 	global: {
 		headers: {
-			'X-Client-Info': 'spiritual-guide-v2.9.5'
+			'X-Client-Info': 'spiritual-guide-v2.9.6'
 		}
 	}
 });
@@ -90,15 +90,32 @@ const SessionManager = {
 		}
 	},
 	
-	// Check if session is valid
-	isSessionValid: function(session) {
-		if (!session || !session.loginTime) return false;
-		
-		const sessionAge = Date.now() - new Date(session.loginTime).getTime();
-		const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
-		
-		return sessionAge < maxSessionAge;
-	},
+	// Check if session is valid - more lenient version
+    isSessionValid: function(session) {
+        if (!session || !session.loginTime) return false;
+        
+        const sessionAge = Date.now() - new Date(session.loginTime).getTime();
+        const maxSessionAge = 7 * 24 * 60 * 60 * 1000; // 7 days instead of 24 hours
+        const isRecentVerification = session.lastVerified && 
+            (Date.now() - new Date(session.lastVerified).getTime() < 30 * 60 * 1000); // 30 minutes
+        
+        return sessionAge < maxSessionAge && isRecentVerification;
+    },
+    // More robust session restoration
+    restoreSession: function() {
+        try {
+            const session = this.getCurrentSession();
+            if (session && this.isSessionValid(session)) {
+                console.log('🔄 Session restored successfully');
+                this.updateLastVerified();
+                return session;
+            }
+            return null;
+        } catch (error) {
+            console.error('Session restoration error:', error);
+            return null;
+        }
+    }
 	
 	// Generate secure session ID
 	generateSessionId: function() {
