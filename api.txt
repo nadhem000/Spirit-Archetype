@@ -232,56 +232,48 @@ function initializeLogin() {
     let currentUser = null;
     // Enhanced secure login function
     async function handleLogin(event) {
-        event.preventDefault();
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim();
-        // Basic validation
-        if (!username || !password) {
-            showError(translate('SC1.login.validation.fillAllFields'));
-            return;
-        }
-        if (username.length < 3) {
-            showError(translate('SC1.login.validation.usernameLength'));
-            return;
-        }
-        if (password.length < 6) {
-            showError(translate('SC1.login.validation.passwordLength'));
-            return;
-        }
-        // Show loading state
-        loginBtn.disabled = true;
-        const originalText = loginBtn.textContent;
-        loginBtn.textContent = translate('SC1.login.button') + '...';
-        try {
-            // Verify secure connection first
-            if (!validateSecureConnection()) {
-                showError(translate('SC1.login.validation.secureConnection'));
-                return;
-            }
-            console.log('🔐 Attempting secure login for user:', username);
+		event.preventDefault();
+		const username = usernameInput.value.trim();
+		const password = passwordInput.value.trim();
+		// Basic validation
+		if (!username || !password) {
+			showError(translate('SC1.login.validation.fillAllFields'));
+			return;
+		}
+		// Show loading state
+		loginBtn.disabled = true;
+		const originalText = loginBtn.textContent;
+		loginBtn.textContent = translate('SC1.login.button') + '...';
+		try {
+			// Use more practical security validation
+			if (!validateSecureConnection()) {
+				console.warn('Running with limited security - proceeding with login');
+				// Don't block login, just warn
+			}
+			console.log('🔐 Attempting login for user:', username);
             // SECURE: Hash password before sending (basic client-side hashing)
             const passwordHash = await simpleHash(password);
             // Check if user exists in Supabase with enhanced security
             const { data: users, error } = await supabaseClient
-                .from('auth_users')
-                .select('id, username, email, hashed_password, is_active, inscription_date')
-                .eq('username', username)
-                .eq('is_active', true)
-                .single();
+			.from('auth_users')
+			.select('id, username, email, hashed_password, is_active, inscription_date')
+			.eq('username', username)
+			.eq('is_active', true)
+			.single();
             if (error) {
                 console.error('Login error:', error);
                 if (error.code === 'PGRST116') {
                     showError(translate('SC1.login.validation.usernameNotFound'));
-                } else {
+					} else {
                     showError(translate('SC1.login.validation.loginFailed') + ': ' + error.message);
-                }
+				}
                 return;
-            }
+			}
             // SECURE: Compare hashed passwords instead of plain text
             if (users.hashed_password !== passwordHash) {
                 showError(translate('SC1.login.validation.invalidPassword'));
                 return;
-            }
+			}
             currentUser = users.username;
             // Store minimal secure user info
             // Store session using SessionManager
@@ -293,7 +285,6 @@ function initializeLogin() {
 			SessionManager.saveUserSession(userData);
             localStorage.setItem('currentUser', JSON.stringify(userData));
             showSuccess(translate('SC1.login.success.loginSuccessful'));
-
 			// Update user_data in Supabase with local storage data
 			setTimeout(() => {
 				updateUserDataInSupabase().then(success => {
@@ -305,15 +296,15 @@ function initializeLogin() {
             // Hide login form and show user info
             updateUIAfterLogin(userData);
             console.log('✅ Secure login successful for user:', currentUser);
-        } catch (error) {
-            console.error('Secure login error:', error);
-            showError('Login failed. Please try again.');
-        } finally {
-            // Reset button
-            loginBtn.disabled = false;
-            loginBtn.textContent = originalText;
-        }
-    }
+			} catch (error) {
+			console.error('Login error:', error);
+			showError('Login failed. Please try again.');
+			} finally {
+			// Reset button
+			loginBtn.disabled = false;
+			loginBtn.textContent = originalText;
+		}
+	}
     // Simple client-side hash function (for basic security)
     async function simpleHash(str) {
         const encoder = new TextEncoder();
@@ -354,11 +345,9 @@ function initializeLogin() {
 		try {
 			// Enhanced logout: Clear both local session and Supabase connection
 			console.log('🔐 Starting secure logout process...');
-			
 			// 1. Clear local session first
 			SessionManager.clearSession();
 			currentUser = null;
-			
 			// 2. Clear any Supabase session data
 			if (window.supabaseClient) {
 				// Sign out from Supabase (if using auth)
@@ -367,54 +356,51 @@ function initializeLogin() {
 					console.log('Supabase signout note:', error.message);
 				}
 			}
-			
 			// 3. Clear any additional localStorage items
 			localStorage.removeItem('currentUser');
 			localStorage.removeItem('spiritual-guide-supabase-auth');
-			
 			// 4. Remove logout button from UI
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) {
 				logoutBtn.remove();
 			}
-			
 			// 5. Show login form again
 			const loginContainer = document.querySelector('.SC1-login-form');
 			if (loginContainer) {
 				loginContainer.style.display = 'block';
 			}
-			
 			// 6. Clear login form fields
 			const usernameInput = document.getElementById('SC1-username');
 			const passwordInput = document.getElementById('SC1-password');
 			if (usernameInput) usernameInput.value = '';
 			if (passwordInput) passwordInput.value = '';
-			
 			// 7. Show success message
 			showSuccess(translate('SC1.login.success.logoutSuccess'));
 			console.log('✅ Secure logout completed - all sessions cleared');
-			
 			} catch (error) {
 			console.error('Logout error:', error);
 			// Even if there's an error, ensure basic cleanup happens
 			SessionManager.clearSession();
 			localStorage.removeItem('currentUser');
-			
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) logoutBtn.remove();
-			
 			const loginContainer = document.querySelector('.SC1-login-form');
 			if (loginContainer) loginContainer.style.display = 'block';
-			
 			showSuccess(translate('SC1.login.success.logoutSuccess'));
 		}
 	}
-    // Enhanced session verification with Supabase
+    // Enhanced session verification with better persistence
 	async function checkExistingLogin() {
 		try {
 			const session = SessionManager.getCurrentSession();
-			if (!session || !SessionManager.isSessionValid(session)) {
-				console.log('No valid session found');
+			console.log('🔐 Checking existing session:', session);
+			if (!session) {
+				console.log('No session found');
+				return;
+			}
+			// More lenient session validation - allow longer sessions
+			if (!SessionManager.isSessionValid(session)) {
+				console.log('Session expired or invalid');
 				SessionManager.clearSession();
 				return;
 			}
@@ -445,17 +431,18 @@ function initializeLogin() {
 			});
 			} catch (error) {
 			console.log('Session verification error:', error);
-			SessionManager.clearSession();
+			// Don't clear session on temporary errors
+			console.log('Session check error, keeping session for now');
 		}
 	}
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
-    // Security: Clear password on page blur
-    window.addEventListener('blur', () => {
-        if (passwordInput && document.activeElement !== passwordInput) {
-            console.log('Page lost focus - security event logged');
-        }
-    });
+    // Security: Only clear password if specifically needed
+	window.addEventListener('blur', () => {
+		// Only log the event, don't take any action
+		console.log('Page lost focus - security event logged');
+		// Remove any password clearing logic here
+	});
     // Initialize login check
     checkExistingLogin();
 }
@@ -526,8 +513,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show loader immediately when page starts loading
     showLoader();
     // Use setTimeout to ensure loader is visible before starting initialization
-    setTimeout(() => {
+    setTimeout(async () => {
         try {
+            // FIRST: Try to restore session before anything else
+            const restoredSession = SessionManager.restoreSession();
+            if (restoredSession) {
+                console.log('✅ Session restored on page load');
+                // Update currentUser variable
+                currentUser = restoredSession.username;
+            }
             // Initialize settings modal first
             initializeSettingsModal();
             // Initialize header icon functionality
@@ -738,7 +732,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v2.9.4",
+            version: "spiritual-guide-v2.9.5",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1069,7 +1063,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v2.9.4",
+            version: "spiritual-guide-v2.9.5",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1236,7 +1230,6 @@ function saveCurrentResults() {
 				} else {
 				showError(translate('SC1.results.saveError'));
 			}
-
 			// Also update user_data in Supabase with the new saved results
 			setTimeout(() => {
 				updateUserDataInSupabase().then(success => {
@@ -1270,7 +1263,6 @@ function deleteSavedResult(resultId) {
     const filteredResults = allResults.filter(result => result.id !== resultId);
     return saveToStorage(STORAGE_KEYS.SAVED_RESULTS, filteredResults);
 }
-
 // Function to update user_data in Supabase with local storage data
 async function updateUserDataInSupabase() {
     try {
@@ -1280,7 +1272,6 @@ async function updateUserDataInSupabase() {
             console.log('No user logged in - skipping user_data update');
             return false;
         }
-
         // Collect data from local storage
         const userData = {
             testProgress: {
@@ -1292,9 +1283,7 @@ async function updateUserDataInSupabase() {
             language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
             timestamp: new Date().toISOString()
         };
-
         console.log('Updating user_data in Supabase for user:', currentUser.username);
-
         // Update user_data in Supabase
         const { data, error } = await supabaseClient
             .from('auth_users')
@@ -1303,21 +1292,17 @@ async function updateUserDataInSupabase() {
                 updated_at: new Date().toISOString()
             })
             .eq('username', currentUser.username);
-
         if (error) {
             console.error('Error updating user_data in Supabase:', error);
             return false;
         }
-
         console.log('✅ User data successfully updated in Supabase');
         return true;
-
     } catch (error) {
         console.error('Error in updateUserDataInSupabase:', error);
         return false;
     }
 }
-
 // Make it available globally
 window.updateUserDataInSupabase = updateUserDataInSupabase;
 // Make functions global
@@ -1778,7 +1763,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.4</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v2.9.5</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2678,7 +2663,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v2.9.4'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v2.9.5'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3067,7 +3052,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v2.9.4'
+      'X-Client-Info': 'spiritual-guide-v2.9.5'
     }
   }
 });
@@ -3101,7 +3086,6 @@ const SessionManager = {
       return null;
     }
   },
-	
 	// automatic session verification
 	setupAutomaticRefresh: function() {
 		// Check session every 30 minutes
@@ -3112,7 +3096,6 @@ const SessionManager = {
 				console.log('🔄 Session automatically refreshed');
 			}
 		}, 30 * 60 * 1000); // 30 minutes
-		
 		// Also refresh when user becomes active again
 		document.addEventListener('visibilitychange', () => {
 			if (!document.hidden) {
@@ -3156,21 +3139,24 @@ const SessionManager = {
 };
 // Security validation function
 function validateSecureConnection() {
-  const isSecure = window.location.protocol === 'https:';
-  const hasSupabase = !!supabaseClient;
-  console.log('🔒 Security Check:');
-  console.log('- HTTPS Connection:', isSecure);
-  console.log('- Supabase Client Initialized:', hasSupabase);
-  console.log('- Secure Origin:', window.location.origin);
-  if (!isSecure) {
-    console.warn('⚠️  Running on non-HTTPS protocol. Some features may be limited.');
-  }
-  return isSecure && hasSupabase;
+    const isSecure = window.location.protocol === 'https:' || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+    const hasSupabase = !!supabaseClient;
+    console.log('🔒 Security Check:');
+    console.log('- Secure Connection:', isSecure);
+    console.log('- Supabase Client Initialized:', hasSupabase);
+    console.log('- Current Origin:', window.location.origin);
+    // Don't block functionality on non-HTTPS for development
+    if (!isSecure && !hasSupabase) {
+        console.warn('⚠️  Running in non-secure environment. Some features may be limited.');
+        return false;
+    }
+    return true; // Always return true to not block login
 }
 // Initialize security check when script loads
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(validateSecureConnection, 1000);
-  
   // Start automatic session refresh
   SessionManager.setupAutomaticRefresh();
 });

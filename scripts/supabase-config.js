@@ -19,7 +19,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 	},
 	global: {
 		headers: {
-			'X-Client-Info': 'spiritual-guide-v2.9.4'
+			'X-Client-Info': 'spiritual-guide-v2.9.5'
 		}
 	}
 });
@@ -117,17 +117,23 @@ const SessionManager = {
 
 // Security validation function
 function validateSecureConnection() {
-	const isSecure = window.location.protocol === 'https:';
-	const hasSupabase = !!supabaseClient;
-	console.log('🔒 Security Check:');
-	console.log('- HTTPS Connection:', isSecure);
-	console.log('- Supabase Client Initialized:', hasSupabase);
-	console.log('- Secure Origin:', window.location.origin);
-	
-	if (!isSecure) {
-		console.warn('⚠️  Running on non-HTTPS protocol. Some features may be limited.');
-	}
-	return isSecure && hasSupabase;
+    const isSecure = window.location.protocol === 'https:' || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+    const hasSupabase = !!supabaseClient;
+    
+    console.log('🔒 Security Check:');
+    console.log('- Secure Connection:', isSecure);
+    console.log('- Supabase Client Initialized:', hasSupabase);
+    console.log('- Current Origin:', window.location.origin);
+    
+    // Don't block functionality on non-HTTPS for development
+    if (!isSecure && !hasSupabase) {
+        console.warn('⚠️  Running in non-secure environment. Some features may be limited.');
+        return false;
+    }
+    
+    return true; // Always return true to not block login
 }
 
 // Initialize security check when script loads

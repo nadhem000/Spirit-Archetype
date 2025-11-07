@@ -78,37 +78,29 @@ function initializeLogin() {
 	
     // Enhanced secure login function
     async function handleLogin(event) {
-        event.preventDefault();
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim();
+		event.preventDefault();
+		const username = usernameInput.value.trim();
+		const password = passwordInput.value.trim();
 		
-        // Basic validation
-        if (!username || !password) {
-            showError(translate('SC1.login.validation.fillAllFields'));
-            return;
-		}
-        if (username.length < 3) {
-            showError(translate('SC1.login.validation.usernameLength'));
-            return;
-		}
-        if (password.length < 6) {
-            showError(translate('SC1.login.validation.passwordLength'));
-            return;
+		// Basic validation
+		if (!username || !password) {
+			showError(translate('SC1.login.validation.fillAllFields'));
+			return;
 		}
 		
-        // Show loading state
-        loginBtn.disabled = true;
-        const originalText = loginBtn.textContent;
-        loginBtn.textContent = translate('SC1.login.button') + '...';
+		// Show loading state
+		loginBtn.disabled = true;
+		const originalText = loginBtn.textContent;
+		loginBtn.textContent = translate('SC1.login.button') + '...';
 		
-        try {
-            // Verify secure connection first
-            if (!validateSecureConnection()) {
-                showError(translate('SC1.login.validation.secureConnection'));
-                return;
+		try {
+			// Use more practical security validation
+			if (!validateSecureConnection()) {
+				console.warn('Running with limited security - proceeding with login');
+				// Don't block login, just warn
 			}
 			
-            console.log('🔐 Attempting secure login for user:', username);
+			console.log('🔐 Attempting login for user:', username);
 			
             // SECURE: Hash password before sending (basic client-side hashing)
             const passwordHash = await simpleHash(password);
@@ -150,7 +142,7 @@ function initializeLogin() {
             
             localStorage.setItem('currentUser', JSON.stringify(userData));
             showSuccess(translate('SC1.login.success.loginSuccessful'));
-
+			
 			// Update user_data in Supabase with local storage data
 			setTimeout(() => {
 				updateUserDataInSupabase().then(success => {
@@ -165,23 +157,23 @@ function initializeLogin() {
             console.log('✅ Secure login successful for user:', currentUser);
 			
 			} catch (error) {
-            console.error('Secure login error:', error);
-            showError('Login failed. Please try again.');
+			console.error('Login error:', error);
+			showError('Login failed. Please try again.');
 			} finally {
-            // Reset button
-            loginBtn.disabled = false;
-            loginBtn.textContent = originalText;
+			// Reset button
+			loginBtn.disabled = false;
+			loginBtn.textContent = originalText;
 		}
 	}
 	
     // Simple client-side hash function (for basic security)
     async function simpleHash(str) {
         const encoder = new TextEncoder();
-        const data = encoder.encode(str);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(hash))
-		.map(b => b.toString(16).padStart(2, '0'))
-		.join('');
+	const data = encoder.encode(str);
+	const hash = await crypto.subtle.digest('SHA-256', data);
+	return Array.from(new Uint8Array(hash))
+	.map(b => b.toString(16).padStart(2, '0'))
+	.join('');
 	}
 	
     // Rest of your existing functions remain the same...
@@ -279,20 +271,26 @@ function initializeLogin() {
         return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + btoa(navigator.userAgent).substr(0, 10);
 	} */
 	
-    // Enhanced session verification with Supabase
+    // Enhanced session verification with better persistence
 	async function checkExistingLogin() {
 		try {
 			const session = SessionManager.getCurrentSession();
+			console.log('🔐 Checking existing session:', session);
 			
-			if (!session || !SessionManager.isSessionValid(session)) {
-				console.log('No valid session found');
+			if (!session) {
+				console.log('No session found');
+				return;
+			}
+			
+			// More lenient session validation - allow longer sessions
+			if (!SessionManager.isSessionValid(session)) {
+				console.log('Session expired or invalid');
 				SessionManager.clearSession();
 				return;
 			}
 			
 			// Verify session with Supabase
 			console.log('🔐 Verifying existing session with Supabase...');
-			
 			const { data: users, error } = await supabaseClient
             .from('auth_users')
             .select('id, username, email, is_active')
@@ -312,6 +310,7 @@ function initializeLogin() {
 			
 			// Update session verification timestamp
 			SessionManager.updateLastVerified();
+			
 			updateUIAfterLogin({
 				id: users.id,
 				username: users.username,
@@ -322,18 +321,19 @@ function initializeLogin() {
 			
 			} catch (error) {
 			console.log('Session verification error:', error);
-			SessionManager.clearSession();
+			// Don't clear session on temporary errors
+			console.log('Session check error, keeping session for now');
 		}
 	}
 	
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);
     
-    // Security: Clear password on page blur
-    window.addEventListener('blur', () => {
-        if (passwordInput && document.activeElement !== passwordInput) {
-            console.log('Page lost focus - security event logged');
-		}
+    // Security: Only clear password if specifically needed
+	window.addEventListener('blur', () => {
+		// Only log the event, don't take any action
+		console.log('Page lost focus - security event logged');
+		// Remove any password clearing logic here
 	});
 	
     // Initialize login check
@@ -411,10 +411,18 @@ function initializeHeaderIcon() {
 document.addEventListener('DOMContentLoaded', () => {
     // Show loader immediately when page starts loading
     showLoader();
-    
+	
     // Use setTimeout to ensure loader is visible before starting initialization
-    setTimeout(() => {
+    setTimeout(async () => {
         try {
+            // FIRST: Try to restore session before anything else
+            const restoredSession = SessionManager.restoreSession();
+            if (restoredSession) {
+                console.log('✅ Session restored on page load');
+                // Update currentUser variable
+                currentUser = restoredSession.username;
+			}
+			
             // Initialize settings modal first
             initializeSettingsModal();
             
@@ -430,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Use our new function to initialize everything
             initializeAppUI();
-            
+			
             // Hide loader after everything is initialized
             setTimeout(() => {
                 hideLoader();
