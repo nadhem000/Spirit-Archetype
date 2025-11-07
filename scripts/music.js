@@ -575,7 +575,7 @@ window.resetMusicPlaylist = function() {
 	}
 };
 
-// Update the existing MusicPlayer instance to work with playlist
+// MusicPlayer instance  work with playlist
 if (window.musicPlayer) {
     // Override the updateTrackNames method to be accessible
     window.musicPlayer.updateTrackNames = function() {

@@ -24,6 +24,7 @@ const translations_en = {
 			welcome: "Welcome, {username}",
 			logout: "Logout",
 			logoutSuccess: "Logged out successfully",
+    registrationLink: "Need an account? Register here",
 			validation: {
 				fillAllFields: "Please fill in all fields",
 				usernameLength: "Username must be at least 3 characters long", 
@@ -179,7 +180,7 @@ const translations_en = {
 		},
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v3.0.1",
+            version: "spiritual-guide-v3.0.2",
             project: "Atlantis Platform"
 		},
 		music: {

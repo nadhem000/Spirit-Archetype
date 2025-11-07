@@ -24,6 +24,7 @@ const translations_ar = {
 			welcome: "مرحبا, {username}",
 			logout: "تسجيل الخروج",
 			logoutSuccess: "تسجيل الخروج بنجاح",
+    registrationLink: "تريد انشاء حساب؟ سجل هنا",
 			validation: {
 				fillAllFields: "يرجى ملء جميع الحقول",
 				usernameLength: "يجب أن يكون اسم المستخدم 3 أحرف على الأقل",
@@ -179,7 +180,7 @@ const translations_ar = {
 		},
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v3.0.1",
+            version: "spiritual-guide-v3.0.2",
             project: "منصة أطلانتس"
 		},
 		music: {

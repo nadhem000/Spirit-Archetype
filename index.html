@@ -57,9 +57,13 @@
 						</form>
 						
 						<!-- Registration link (temporary - you can remove this later) -->
-						<div style="text-align: center; margin-top: 10px;">
+						<!-- Registration link and Welcome message -->
+						<div id="SC1-user-welcome" style="text-align: center; margin-top: 10px; display: none;">
+							<span id="SC1-welcome-text" style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"></span>
+						</div>
+						<div id="SC1-registration-link" style="text-align: center; margin-top: 10px;">
 							<a href="register.html" style="color: rgba(255,255,255,0.8); font-size: 0.8rem; text-decoration: none;">
-								Need an account? Register here
+								<span data-i18n="SC1.login.registrationLink">Need an account? Register here</span>
 							</a>
 						</div>
 						
@@ -247,7 +251,7 @@
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.1</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.2</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>

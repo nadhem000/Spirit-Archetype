@@ -184,46 +184,61 @@ function initializeLogin() {
 		.join('');
 	}
 	
-    // Rest of your existing functions remain the same...
-    function updateUIAfterLogin(userData) {
-        const loginContainer = document.querySelector('.SC1-login-form');
-        if (loginContainer) {
-            loginContainer.style.display = 'none';
+	
+	function updateUIAfterLogin(userData) {
+		const loginContainer = document.querySelector('.SC1-login-form');
+		if (loginContainer) {
+			loginContainer.style.display = 'none';
 		}
-        
-        // Create logout button and add it to controls line
-        const logoutBtn = document.createElement('button');
-        logoutBtn.className = 'SC1-logout-btn';
-        logoutBtn.id = 'SC1-logout-btn';
-        logoutBtn.innerHTML = `
-		<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+		
+		// Hide registration link and show welcome message
+		const registrationLink = document.getElementById('SC1-registration-link');
+		const userWelcome = document.getElementById('SC1-user-welcome');
+		const welcomeText = document.getElementById('SC1-welcome-text');
+		
+		if (registrationLink) {
+			registrationLink.style.display = 'none';
+		}
+		
+		if (userWelcome && welcomeText) {
+			// Set welcome message with translation
+			welcomeText.textContent = translate('SC1.login.welcome', { username: userData.username });
+			userWelcome.style.display = 'block';
+		}
+		
+		// Create logout button and add it to controls line
+		const logoutBtn = document.createElement('button');
+		logoutBtn.className = 'SC1-logout-btn';
+		logoutBtn.id = 'SC1-logout-btn';
+		logoutBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 		<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-		</svg>
-		<span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
-        `;
-        
-        // Add logout button to controls line
-        const controlsLine = document.querySelector('.SC1-controls-line');
-        if (controlsLine && !document.getElementById('SC1-logout-btn')) {
-            controlsLine.appendChild(logoutBtn);
-            // Add logout functionality
-            logoutBtn.addEventListener('click', handleLogout);
+        </svg>
+        <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
+		`;
+		
+		// Add logout button to controls line
+		const controlsLine = document.querySelector('.SC1-controls-line');
+		if (controlsLine && !document.getElementById('SC1-logout-btn')) {
+			controlsLine.appendChild(logoutBtn);
+			// Add logout functionality
+			logoutBtn.addEventListener('click', handleLogout);
 		}
-        
-        // Clear form securely
-        usernameInput.value = '';
-        passwordInput.value = '';
+		
+		// Clear form securely
+		const usernameInput = document.getElementById('SC1-username');
+		const passwordInput = document.getElementById('SC1-password');
+		if (usernameInput) usernameInput.value = '';
+		if (passwordInput) passwordInput.value = '';
 	}
 	
     async function handleLogout() {
 		try {
 			// Enhanced logout: Clear both local session and Supabase connection
 			console.log('🔐 Starting secure logout process...');
-			
 			// 1. Clear local session first
 			SessionManager.clearSession();
 			currentUser = null;
-			
 			// 2. Clear any Supabase session data
 			if (window.supabaseClient) {
 				// Sign out from Supabase (if using auth)
@@ -232,38 +247,58 @@ function initializeLogin() {
 					console.log('Supabase signout note:', error.message);
 				}
 			}
-			
 			// 3. Clear any additional localStorage items
 			localStorage.removeItem('currentUser');
 			localStorage.removeItem('spiritual-guide-supabase-auth');
 			
-			// 4. Remove logout button from UI
+			// 4. Show registration link and hide welcome message
+			const registrationLink = document.getElementById('SC1-registration-link');
+			const userWelcome = document.getElementById('SC1-user-welcome');
+			
+			if (registrationLink) {
+				registrationLink.style.display = 'block';
+			}
+			
+			if (userWelcome) {
+				userWelcome.style.display = 'none';
+			}
+			
+			// 5. Remove logout button from UI
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) {
 				logoutBtn.remove();
 			}
 			
-			// 5. Show login form again
+			// 6. Show login form again
 			const loginContainer = document.querySelector('.SC1-login-form');
 			if (loginContainer) {
 				loginContainer.style.display = 'block';
 			}
 			
-			// 6. Clear login form fields
+			// 7. Clear login form fields
 			const usernameInput = document.getElementById('SC1-username');
 			const passwordInput = document.getElementById('SC1-password');
 			if (usernameInput) usernameInput.value = '';
 			if (passwordInput) passwordInput.value = '';
 			
-			// 7. Show success message
+			// 8. Show success message
 			showSuccess(translate('SC1.login.success.logoutSuccess'));
 			console.log('✅ Secure logout completed - all sessions cleared');
+			
+			// 9. Re-apply translations to update the registration link text
+			applyTranslations();
 			
 			} catch (error) {
 			console.error('Logout error:', error);
 			// Even if there's an error, ensure basic cleanup happens
 			SessionManager.clearSession();
 			localStorage.removeItem('currentUser');
+			
+			// Show registration link on error too
+			const registrationLink = document.getElementById('SC1-registration-link');
+			const userWelcome = document.getElementById('SC1-user-welcome');
+			if (registrationLink) registrationLink.style.display = 'block';
+			if (userWelcome) userWelcome.style.display = 'none';
 			
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) logoutBtn.remove();
@@ -284,7 +319,6 @@ function initializeLogin() {
 		try {
 			const session = SessionManager.getCurrentSession();
 			console.log('🔐 Checking existing session:', session);
-			
 			if (!session) {
 				console.log('No session found');
 				return;
@@ -315,6 +349,8 @@ function initializeLogin() {
 			
 			// Update session verification timestamp
 			SessionManager.updateLastVerified();
+			
+			// Update UI for logged-in state
 			updateUIAfterLogin({
 				id: session.id,
 				username: session.username,
@@ -322,6 +358,7 @@ function initializeLogin() {
 				loginTime: session.loginTime,
 				sessionId: session.sessionId
 			});
+			
 			} catch (error) {
 			console.log('Session verification error:', error);
 			// Don't clear session on temporary errors - be more lenient

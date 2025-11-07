@@ -323,33 +323,46 @@ function initializeLogin() {
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
     }
-    // Rest of your existing functions remain the same...
-    function updateUIAfterLogin(userData) {
-        const loginContainer = document.querySelector('.SC1-login-form');
-        if (loginContainer) {
-            loginContainer.style.display = 'none';
-        }
-        // Create logout button and add it to controls line
-        const logoutBtn = document.createElement('button');
-        logoutBtn.className = 'SC1-logout-btn';
-        logoutBtn.id = 'SC1-logout-btn';
-        logoutBtn.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-            </svg>
-            <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
-        `;
-        // Add logout button to controls line
-        const controlsLine = document.querySelector('.SC1-controls-line');
-        if (controlsLine && !document.getElementById('SC1-logout-btn')) {
-            controlsLine.appendChild(logoutBtn);
-            // Add logout functionality
-            logoutBtn.addEventListener('click', handleLogout);
-        }
-        // Clear form securely
-        usernameInput.value = '';
-        passwordInput.value = '';
-    }
+	function updateUIAfterLogin(userData) {
+		const loginContainer = document.querySelector('.SC1-login-form');
+		if (loginContainer) {
+			loginContainer.style.display = 'none';
+		}
+		// Hide registration link and show welcome message
+		const registrationLink = document.getElementById('SC1-registration-link');
+		const userWelcome = document.getElementById('SC1-user-welcome');
+		const welcomeText = document.getElementById('SC1-welcome-text');
+		if (registrationLink) {
+			registrationLink.style.display = 'none';
+		}
+		if (userWelcome && welcomeText) {
+			// Set welcome message with translation
+			welcomeText.textContent = translate('SC1.login.welcome', { username: userData.username });
+			userWelcome.style.display = 'block';
+		}
+		// Create logout button and add it to controls line
+		const logoutBtn = document.createElement('button');
+		logoutBtn.className = 'SC1-logout-btn';
+		logoutBtn.id = 'SC1-logout-btn';
+		logoutBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+		<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+        </svg>
+        <span class="SC1-tooltip">${translate('SC1.login.logout')}</span>
+		`;
+		// Add logout button to controls line
+		const controlsLine = document.querySelector('.SC1-controls-line');
+		if (controlsLine && !document.getElementById('SC1-logout-btn')) {
+			controlsLine.appendChild(logoutBtn);
+			// Add logout functionality
+			logoutBtn.addEventListener('click', handleLogout);
+		}
+		// Clear form securely
+		const usernameInput = document.getElementById('SC1-username');
+		const passwordInput = document.getElementById('SC1-password');
+		if (usernameInput) usernameInput.value = '';
+		if (passwordInput) passwordInput.value = '';
+	}
     async function handleLogout() {
 		try {
 			// Enhanced logout: Clear both local session and Supabase connection
@@ -368,29 +381,45 @@ function initializeLogin() {
 			// 3. Clear any additional localStorage items
 			localStorage.removeItem('currentUser');
 			localStorage.removeItem('spiritual-guide-supabase-auth');
-			// 4. Remove logout button from UI
+			// 4. Show registration link and hide welcome message
+			const registrationLink = document.getElementById('SC1-registration-link');
+			const userWelcome = document.getElementById('SC1-user-welcome');
+			if (registrationLink) {
+				registrationLink.style.display = 'block';
+			}
+			if (userWelcome) {
+				userWelcome.style.display = 'none';
+			}
+			// 5. Remove logout button from UI
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) {
 				logoutBtn.remove();
 			}
-			// 5. Show login form again
+			// 6. Show login form again
 			const loginContainer = document.querySelector('.SC1-login-form');
 			if (loginContainer) {
 				loginContainer.style.display = 'block';
 			}
-			// 6. Clear login form fields
+			// 7. Clear login form fields
 			const usernameInput = document.getElementById('SC1-username');
 			const passwordInput = document.getElementById('SC1-password');
 			if (usernameInput) usernameInput.value = '';
 			if (passwordInput) passwordInput.value = '';
-			// 7. Show success message
+			// 8. Show success message
 			showSuccess(translate('SC1.login.success.logoutSuccess'));
 			console.log('✅ Secure logout completed - all sessions cleared');
+			// 9. Re-apply translations to update the registration link text
+			applyTranslations();
 			} catch (error) {
 			console.error('Logout error:', error);
 			// Even if there's an error, ensure basic cleanup happens
 			SessionManager.clearSession();
 			localStorage.removeItem('currentUser');
+			// Show registration link on error too
+			const registrationLink = document.getElementById('SC1-registration-link');
+			const userWelcome = document.getElementById('SC1-user-welcome');
+			if (registrationLink) registrationLink.style.display = 'block';
+			if (userWelcome) userWelcome.style.display = 'none';
 			const logoutBtn = document.getElementById('SC1-logout-btn');
 			if (logoutBtn) logoutBtn.remove();
 			const loginContainer = document.querySelector('.SC1-login-form');
@@ -428,6 +457,7 @@ async function checkExistingLogin() {
 			console.log('✅ Session verified, user logged in:', currentUser);
 			// Update session verification timestamp
 			SessionManager.updateLastVerified();
+			// Update UI for logged-in state
 			updateUIAfterLogin({
 				id: session.id,
 				username: session.username,
@@ -588,6 +618,7 @@ const translations_ar = {
 			welcome: "مرحبا, {username}",
 			logout: "تسجيل الخروج",
 			logoutSuccess: "تسجيل الخروج بنجاح",
+			registrationLink: "تريد انشاء حساب؟ سجل هنا",
 			validation: {
 				fillAllFields: "يرجى ملء جميع الحقول",
 				usernameLength: "يجب أن يكون اسم المستخدم 3 أحرف على الأقل",
@@ -743,7 +774,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v3.0.1",
+            version: "spiritual-guide-v3.0.2",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -919,6 +950,7 @@ const translations_en = {
 			welcome: "Welcome, {username}",
 			logout: "Logout",
 			logoutSuccess: "Logged out successfully",
+			registrationLink: "Need an account? Register here",
 			validation: {
 				fillAllFields: "Please fill in all fields",
 				usernameLength: "Username must be at least 3 characters long", 
@@ -1074,7 +1106,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v3.0.1",
+            version: "spiritual-guide-v3.0.2",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1694,9 +1726,13 @@ FILE: index.html
 							</div>
 						</form>
 						<!-- Registration link (temporary - you can remove this later) -->
-						<div style="text-align: center; margin-top: 10px;">
+						<!-- Registration link and Welcome message -->
+						<div id="SC1-user-welcome" style="text-align: center; margin-top: 10px; display: none;">
+							<span id="SC1-welcome-text" style="color: rgba(255,255,255,0.8); font-size: 0.8rem;"></span>
+						</div>
+						<div id="SC1-registration-link" style="text-align: center; margin-top: 10px;">
 							<a href="register.html" style="color: rgba(255,255,255,0.8); font-size: 0.8rem; text-decoration: none;">
-								Need an account? Register here
+								<span data-i18n="SC1.login.registrationLink">Need an account? Register here</span>
 							</a>
 						</div>
 						<div class="SC1-controls-line">
@@ -1874,7 +1910,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.1</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.2</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2759,7 +2795,7 @@ window.resetMusicPlaylist = function() {
         window.playlistModal.resetToDefault();
     }
 };
-// Update the existing MusicPlayer instance to work with playlist
+// MusicPlayer instance  work with playlist
 if (window.musicPlayer) {
     // Override the updateTrackNames method to be accessible
     window.musicPlayer.updateTrackNames = function() {
@@ -2774,7 +2810,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v3.0.1'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v3.0.2'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3163,7 +3199,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v3.0.1'
+      'X-Client-Info': 'spiritual-guide-v3.0.2'
     }
   }
 });
