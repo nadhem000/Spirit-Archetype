@@ -496,9 +496,19 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}, 100);
     // Optimize existing saved results (run once)
-    setTimeout(() => {
-        optimizeExistingResults();
-    }, 2000);
+    
+	// Run optimization on next load
+	setTimeout(() => {
+		const optimized = optimizeExistingResults();
+		console.log(`Cleaned up ${optimized.length} saved results`);
+		
+		// Also optimize the current test progress if it exists
+		const currentAnswers = loadFromStorage(STORAGE_KEYS.ANSWERS, null);
+		if (currentAnswers && Array.isArray(currentAnswers)) {
+			// Convert to optimized format on next save
+			console.log('Test progress will be optimized on next save');
+		}
+	}, 3000);
 });
 
 // Also show loader when page is about to refresh/unload
