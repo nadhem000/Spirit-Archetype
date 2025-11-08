@@ -154,6 +154,11 @@ function countAnswers(userAnswers) {
     return counts;
 }
 
+// Load all saved results
+function loadSavedResults() {
+    return loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+}
+
 // Get a specific saved result by ID
 function getSavedResultById(resultId) {
     const allResults = loadSavedResults();

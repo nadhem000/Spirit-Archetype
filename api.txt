@@ -774,7 +774,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v3.0.5",
+            version: "spiritual-guide-v3.0.6",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1106,7 +1106,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v3.0.5",
+            version: "spiritual-guide-v3.0.6",
             project: "Atlantis Platform"
         },
 		music: {
@@ -1191,7 +1191,6 @@ function loadUserPreferences() {
 function loadTestProgress() {
     let savedAnswers = loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null));
     const savedQuestionIndex = loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0);
-    
     return { savedAnswers, savedQuestionIndex };
 }
 // Resume test from saved state
@@ -1229,13 +1228,11 @@ function saveCurrentResults() {
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
-    
     // Use setTimeout to break up the work and prevent blocking
     setTimeout(() => {
         try {
             const resultPattern = calculateResult();
             const resultId = generateResultId();
-            
             // Store essential data
             const resultData = {
                 id: resultId,
@@ -1243,23 +1240,18 @@ function saveCurrentResults() {
                 dominantPattern: resultPattern,
                 answerCounts: countAnswers(userAnswers)
             };
-            
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
-            
             // Add new result
             existingResults.push(resultData);
-            
             // Save back to storage
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
-            
             // Show result using notification system
             if (saved) {
                 showSuccess(translate('SC1.results.saveSuccess'));
             } else {
                 showError(translate('SC1.results.saveError'));
             }
-            
             // Also update user_data in Supabase with the new saved results
             setTimeout(() => {
                 updateUserDataInSupabase().then(success => {
@@ -1287,6 +1279,10 @@ function countAnswers(userAnswers) {
         }
     });
     return counts;
+}
+// Load all saved results
+function loadSavedResults() {
+    return loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
 }
 // Get a specific saved result by ID
 function getSavedResultById(resultId) {
@@ -1377,24 +1373,20 @@ async function updateUserDataInSupabase() {
 function mergeSavedResults(existingResults, newResults) {
     if (!existingResults || existingResults.length === 0) return newResults;
     if (!newResults || newResults.length === 0) return existingResults;
-    
     // Create a map of existing results by ID for quick lookup
     const resultMap = new Map();
-    
     // Add all existing results to the map
     existingResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
         }
     });
-    
     // Add or update with new results
     newResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
         }
     });
-    
     // Convert map back to array and sort by date (newest first)
     return Array.from(resultMap.values())
         .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1910,7 +1902,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.5</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.6</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2810,7 +2802,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v3.0.5'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v3.0.6'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3199,7 +3191,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v3.0.5'
+      'X-Client-Info': 'spiritual-guide-v3.0.6'
     }
   }
 });
