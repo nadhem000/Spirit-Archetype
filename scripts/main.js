@@ -495,6 +495,11 @@ document.addEventListener('DOMContentLoaded', () => {
             forceHideLoader();
 		}
 	}, 100);
+    
+    // Clean up old data on app start
+    setTimeout(() => {
+        cleanupUserData();
+    }, 2000);
 });
 
 // Also show loader when page is about to refresh/unload

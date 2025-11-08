@@ -35,6 +35,11 @@ function saveUserPreferences() {
 
 // Save test progress
 function saveTestProgress() {
+    const progressData = {
+        answers: userAnswers,
+        currentQuestion: currentQuestionIndex,
+        timestamp: new Date().toISOString()
+    };
     saveToStorage(STORAGE_KEYS.ANSWERS, userAnswers);
     saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, currentQuestionIndex);
 }
@@ -87,44 +92,52 @@ function generateResultId() {
     return 'result_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// Save current results to saved results storage
+// Enhanced result saving with deduplication
 function saveCurrentResults() {
-    // Show immediate feedback to user
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
-    
-    // Use setTimeout to break up the work and prevent blocking
+
     setTimeout(() => {
         try {
             const resultPattern = calculateResult();
-            const resultId = generateResultId();
+            const currentCounts = countAnswers(userAnswers);
             
-            // Store essential data
+            // Check if this exact result already exists (avoid duplicates)
+            const existingResults = loadSavedResults();
+            const isDuplicate = existingResults.some(result => 
+                result.dominantPattern === resultPattern &&
+                JSON.stringify(result.answerCounts) === JSON.stringify(currentCounts)
+            );
+
+            if (isDuplicate) {
+                showInfo(translate('SC1.results.saveSuccess')); // Still show success but don't save duplicate
+                return;
+            }
+
+            const resultId = generateResultId();
             const resultData = {
                 id: resultId,
                 date: new Date().toISOString(),
                 dominantPattern: resultPattern,
-                answerCounts: countAnswers(userAnswers)
+                answerCounts: currentCounts
             };
+
+            // Limit saved results to prevent excessive storage
+            existingResults.unshift(resultData); // Add to beginning (newest first)
             
-            // Load existing saved results
-            const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
+            // Keep only last 10 results to prevent storage bloat
+            const trimmedResults = existingResults.slice(0, 10);
             
-            // Add new result
-            existingResults.push(resultData);
-            
-            // Save back to storage
-            const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
-            
-            // Show result using notification system
+            const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, trimmedResults);
+
             if (saved) {
                 showSuccess(translate('SC1.results.saveSuccess'));
             } else {
                 showError(translate('SC1.results.saveError'));
             }
-            
-            // Also update user_data in Supabase with the new saved results
+
+            // Update Supabase
             setTimeout(() => {
                 updateUserDataInSupabase().then(success => {
                     if (success) {
@@ -132,16 +145,17 @@ function saveCurrentResults() {
                     }
                 });
             }, 500);
+
         } catch (error) {
             console.error('Error saving results:', error);
             showError(translate('SC1.results.saveError'));
         } finally {
-            // Restore button state
             saveResultsBtn.textContent = originalText;
             saveResultsBtn.disabled = false;
         }
     }, 10);
 }
+
 
 // Helper function to count answers and return compact format
 function countAnswers(userAnswers) {
@@ -149,8 +163,8 @@ function countAnswers(userAnswers) {
     userAnswers.forEach(answer => {
         if (answer && counts.hasOwnProperty(answer)) {
             counts[answer]++;
-		}
-	});
+        }
+    });
     return counts;
 }
 
@@ -175,86 +189,105 @@ function deleteSavedResult(resultId) {
 // Function to update user_data in Supabase with proper merging
 async function updateUserDataInSupabase() {
     try {
-        // Check if user is logged in
         const currentUser = SessionManager.getCurrentSession();
         if (!currentUser || !currentUser.username) {
             console.log('No user logged in - skipping user_data update');
             return false;
-		}
-		
-        // Get existing user_data from Supabase first
+        }
+
+        // Get existing user_data from Supabase
         const { data: existingUser, error: fetchError } = await supabaseClient
-		.from('auth_users')
-		.select('user_data')
-		.eq('username', currentUser.username)
-		.single();
-		
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+            .from('auth_users')
+            .select('user_data')
+            .eq('username', currentUser.username)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
             console.error('Error fetching existing user_data:', fetchError);
             return false;
-		}
-		
-        // Get current data from local storage
+        }
+
+        // Get current optimized data
         const currentLocalData = {
-			testProgress: {
-				// OPTIMIZED: Store only answer counts instead of full array
-				answerCounts: countAnswers(loadFromStorage(STORAGE_KEYS.ANSWERS, [])),
-				currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
-				lastUpdated: new Date().toISOString()
-			},
-			savedResults: loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []),
-			language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
-			timestamp: new Date().toISOString()
-		};
-		
-        // Smart merge: Update only what's changed, don't accumulate
+            version: 2, // Add version for future migrations
+            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+            testProgress: {
+                currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+                timestamp: new Date().toISOString()
+            },
+            savedResults: loadSavedResults().slice(0, 10), // Keep only last 10
+            timestamp: new Date().toISOString()
+        };
+
+        // Smart merge
         let mergedUserData;
-        
         if (existingUser && existingUser.user_data) {
-            // Merge existing data with new data intelligently
             mergedUserData = {
                 ...existingUser.user_data,
-                // Update test progress with latest
+                language: currentLocalData.language,
                 testProgress: currentLocalData.testProgress,
-                // For savedResults, only keep unique results (based on id)
-                savedResults: mergeSavedResults(
+                savedResults: mergeSavedResultsOptimized(
                     existingUser.user_data.savedResults || [],
                     currentLocalData.savedResults
-				),
-                // Update language and timestamp
-                language: currentLocalData.language,
+                ),
                 timestamp: currentLocalData.timestamp
-			};
-            
-            console.log('🔁 Merged user_data with existing data');
-			} else {
-            // No existing data, use current local data
+            };
+        } else {
             mergedUserData = currentLocalData;
-            console.log('🆕 Creating new user_data');
-		}
-		
-        console.log('Updating user_data in Supabase for user:', currentUser.username);
-        
-        // Update user_data in Supabase
+        }
+
+        // Update Supabase
         const { data, error } = await supabaseClient
-		.from('auth_users')
-		.update({ 
-			user_data: mergedUserData,
-			updated_at: new Date().toISOString()
-		})
-		.eq('username', currentUser.username);
-		
+            .from('auth_users')
+            .update({ 
+                user_data: mergedUserData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('username', currentUser.username);
+
         if (error) {
             console.error('Error updating user_data in Supabase:', error);
             return false;
-		}
-		
+        }
+
         console.log('✅ User data successfully updated in Supabase');
         return true;
-		} catch (error) {
+    } catch (error) {
         console.error('Error in updateUserDataInSupabase:', error);
         return false;
-	}
+    }
+}
+
+// Optimized merge function to prevent duplicates
+function mergeSavedResultsOptimized(existingResults, newResults) {
+    if (!existingResults || existingResults.length === 0) return newResults;
+    if (!newResults || newResults.length === 0) return existingResults;
+
+    const resultMap = new Map();
+    
+    // Add all existing results
+    existingResults.forEach(result => {
+        if (result && result.id) {
+            const key = `${result.dominantPattern}_${JSON.stringify(result.answerCounts)}`;
+            resultMap.set(key, result);
+        }
+    });
+    
+    // Add or update with new results (avoiding duplicates)
+    newResults.forEach(result => {
+        if (result && result.id) {
+            const key = `${result.dominantPattern}_${JSON.stringify(result.answerCounts)}`;
+            // Keep the newest version of duplicate results
+            if (!resultMap.has(key) || new Date(result.date) > new Date(resultMap.get(key).date)) {
+                resultMap.set(key, result);
+            }
+        }
+    });
+    
+    // Convert to array, sort by date (newest first), and limit to 10
+    return Array.from(resultMap.values())
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 10);
 }
 
 // Helper function to merge saved results without duplicates
@@ -337,6 +370,62 @@ async function syncFromSupabaseToLocal() {
         return false;
 	}
 }
+
+// manual cleanup
+function cleanupUserData() {
+    try {
+        // Clean up saved results - remove duplicates and limit count
+        const savedResults = loadSavedResults();
+        
+        // Remove duplicates based on pattern and counts
+        const uniqueResults = [];
+        const seen = new Set();
+        
+        savedResults.forEach(result => {
+            const key = `${result.dominantPattern}_${JSON.stringify(result.answerCounts)}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueResults.push(result);
+            }
+        });
+        
+        // Keep only last 10 unique results
+        const cleanedResults = uniqueResults
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 10);
+            
+        saveToStorage(STORAGE_KEYS.SAVED_RESULTS, cleanedResults);
+        console.log('✅ Cleaned user data:', {
+            before: savedResults.length,
+            after: cleanedResults.length
+        });
+        
+        return cleanedResults;
+    } catch (error) {
+        console.error('Error cleaning user data:', error);
+        return [];
+    }
+}
+
+function getResultSummary() {
+    const savedResults = loadSavedResults();
+    const summary = { A: 0, B: 0, C: 0, D: 0 };
+    
+    savedResults.forEach(result => {
+        if (summary.hasOwnProperty(result.dominantPattern)) {
+            summary[result.dominantPattern]++;
+        }
+    });
+    
+    return {
+        totalTests: savedResults.length,
+        patternDistribution: summary,
+        latestResult: savedResults[0] || null
+    };
+}
+
+// Make it available globally
+window.cleanupUserData = cleanupUserData;
 
 // Make it available globally
 window.updateUserDataInSupabase = updateUserDataInSupabase;
