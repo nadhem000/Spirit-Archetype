@@ -106,10 +106,11 @@ function initializeLogin() {
             const passwordHash = await simpleHash(password);
             
             // Check if user exists in Supabase with enhanced security
-            const { data: users, error } = await supabaseClient
+            // Check if user exists in Supabase with enhanced security
+			const { data: users, error } = await supabaseClient
 			.from('auth_users')
 			.select('id, username, email, hashed_password, is_active, inscription_date')
-			.eq('username', username)
+			.or(`username.eq.${username},email.eq.${username}`)
 			.eq('is_active', true)
 			.single();
 			
@@ -499,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clean up old data on app start
     setTimeout(() => {
         cleanupUserData();
-    }, 2000);
+	}, 2000);
 });
 
 // Also show loader when page is about to refresh/unload

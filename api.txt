@@ -254,10 +254,10 @@ function initializeLogin() {
             // SECURE: Hash password before sending (basic client-side hashing)
             const passwordHash = await simpleHash(password);
             // Check if user exists in Supabase with enhanced security
-            const { data: users, error } = await supabaseClient
+			const { data: users, error } = await supabaseClient
 			.from('auth_users')
 			.select('id, username, email, hashed_password, is_active, inscription_date')
-			.eq('username', username)
+			.or(`username.eq.${username},email.eq.${username}`)
 			.eq('is_active', true)
 			.single();
             if (error) {
@@ -779,7 +779,7 @@ const translations_ar = {
         },
         footer: {
             developedBy: "تم التطوير بواسطة ماجري زياد",
-            version: "spiritual-guide-v3.0.9",
+            version: "spiritual-guide-v4.0.0",
             project: "منصة أطلانتس"
         },
 		music: {
@@ -1111,7 +1111,7 @@ const translations_en = {
         },
         footer: {
             developedBy: "Developed by Mejri Ziad",
-            version: "spiritual-guide-v3.0.9",
+            version: "spiritual-guide-v4.0.0",
             project: "Atlantis Platform"
         },
 		music: {
@@ -2013,7 +2013,7 @@ FILE: index.html
 			</div>
 			<div class="SC1-footer-content">
 				<span class="SC1-footer-text" data-i18n="SC1.footer.developedBy">Developed by Mejri Ziad</span>
-				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v3.0.9</span>
+				<span class="SC1-footer-text" data-i18n="SC1.footer.version">spiritual-guide-v4.0.0</span>
 				<span class="SC1-footer-text" data-i18n="SC1.footer.project">Atlantis Platform</span>
 			</div>
 		</footer>
@@ -2913,7 +2913,7 @@ if (window.musicPlayer) {
 FILE: sw.js
 =================
 // sw.js - Enhanced Service Worker for Spiritual Guide with Offline Support
-const CACHE_NAME = 'spiritual-guide-v3.0.9'; // Changed version to force update
+const CACHE_NAME = 'spiritual-guide-v4.0.0'; // Changed version to force update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -3302,7 +3302,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'spiritual-guide-v3.0.9'
+      'X-Client-Info': 'spiritual-guide-v4.0.0'
     }
   }
 });
