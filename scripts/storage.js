@@ -50,14 +50,6 @@ function loadTestProgress() {
     let savedAnswers = loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null));
     const savedQuestionIndex = loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0);
     
-    // Handle case where we might have answerCounts instead of full array
-    if (savedAnswers && savedAnswers.answerCounts && !Array.isArray(savedAnswers)) {
-        // This is the optimized format - reconstruct the array
-        savedAnswers = reconstructUserAnswersFromCounts(savedAnswers.answerCounts);
-        // Save back in the optimized format for future
-        saveToStorage(STORAGE_KEYS.ANSWERS, savedAnswers);
-    }
-    
     return { savedAnswers, savedQuestionIndex };
 }
 
@@ -101,56 +93,54 @@ function saveCurrentResults() {
     const originalText = saveResultsBtn.textContent;
     saveResultsBtn.textContent = translate('SC1.results.saveButton') + '...';
     saveResultsBtn.disabled = true;
-	
+    
     // Use setTimeout to break up the work and prevent blocking
     setTimeout(() => {
         try {
             const resultPattern = calculateResult();
             const resultId = generateResultId();
             
-            // OPTIMIZED: Only store essential data - remove redundant scores
+            // Store essential data
             const resultData = {
                 id: resultId,
                 date: new Date().toISOString(),
                 dominantPattern: resultPattern,
-                // Remove scores since they're redundant with answerCounts
-                answerCounts: countAnswers(userAnswers) // This gives us {A:0, B:0, C:0, D:8}
-			};
-			
+                answerCounts: countAnswers(userAnswers)
+            };
+            
             // Load existing saved results
             const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
-			
+            
             // Add new result
             existingResults.push(resultData);
-			
+            
             // Save back to storage
             const saved = saveToStorage(STORAGE_KEYS.SAVED_RESULTS, existingResults);
-			
+            
             // Show result using notification system
             if (saved) {
                 showSuccess(translate('SC1.results.saveSuccess'));
-				} else {
+            } else {
                 showError(translate('SC1.results.saveError'));
-			}
-			
+            }
+            
             // Also update user_data in Supabase with the new saved results
             setTimeout(() => {
                 updateUserDataInSupabase().then(success => {
                     if (success) {
-                        console.log('✅ Optimized saved results merged to user_data');
-					}
-				});
-			}, 500);
-			
-			} catch (error) {
+                        console.log('✅ Saved results merged to user_data');
+                    }
+                });
+            }, 500);
+        } catch (error) {
             console.error('Error saving results:', error);
             showError(translate('SC1.results.saveError'));
-			} finally {
+        } finally {
             // Restore button state
             saveResultsBtn.textContent = originalText;
             saveResultsBtn.disabled = false;
-		}
-	}, 10);
+        }
+    }, 10);
 }
 
 // Helper function to count answers and return compact format
@@ -162,71 +152,6 @@ function countAnswers(userAnswers) {
 		}
 	});
     return counts;
-}
-
-// Helper function to reconstruct userAnswers from counts (if needed)
-function reconstructAnswers(counts, totalQuestions = 8) {
-    const answers = [];
-    const patterns = ['A', 'B', 'C', 'D'];
-    
-    // This is a simplified reconstruction - in practice you might not need the exact sequence
-    // since the scores are what matter for the result
-    patterns.forEach(pattern => {
-        for (let i = 0; i < counts[pattern]; i++) {
-            answers.push(pattern);
-		}
-	});
-    
-    // Fill remaining slots with null if needed
-    while (answers.length < totalQuestions) {
-        answers.push(null);
-	}
-    
-    return answers;
-}
-
-// Function to optimize existing saved results (run this once to clean up)
-function optimizeExistingResults() {
-    try {
-        const existingResults = loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
-        let optimizedCount = 0;
-        
-        const optimizedResults = existingResults.map(result => {
-            // If it has redundant scores field, remove it
-            if (result.scores && result.answerCounts) {
-                const { scores, ...cleanResult } = result;
-                optimizedCount++;
-                return cleanResult;
-			}
-            // If it's the old format with resultDetails, convert to new format
-            if (result.resultDetails) {
-                optimizedCount++;
-                return {
-                    id: result.id,
-                    date: result.date,
-                    dominantPattern: result.dominantPattern,
-                    answerCounts: countAnswers(result.userAnswers || [])
-				};
-			}
-            // If it's already optimized, keep it
-            return result;
-		});
-		
-        if (optimizedCount > 0) {
-            saveToStorage(STORAGE_KEYS.SAVED_RESULTS, optimizedResults);
-            console.log(`✅ Optimized ${optimizedCount} saved results (removed redundant data)`);
-		}
-        
-        return optimizedResults;
-		} catch (error) {
-        console.error('Error optimizing existing results:', error);
-        return [];
-	}
-}
-
-// Load all saved results
-function loadSavedResults() {
-    return loadFromStorage(STORAGE_KEYS.SAVED_RESULTS, []);
 }
 
 // Get a specific saved result by ID
@@ -331,37 +256,27 @@ async function updateUserDataInSupabase() {
 function mergeSavedResults(existingResults, newResults) {
     if (!existingResults || existingResults.length === 0) return newResults;
     if (!newResults || newResults.length === 0) return existingResults;
-	
+    
     // Create a map of existing results by ID for quick lookup
     const resultMap = new Map();
     
-    // Add all existing results to the map (optimize old format if needed)
+    // Add all existing results to the map
     existingResults.forEach(result => {
         if (result && result.id) {
-            // Convert old format to new format if necessary
-            if (result.resultDetails && !result.answerCounts) {
-                result = {
-                    id: result.id,
-                    date: result.date,
-                    dominantPattern: result.dominantPattern,
-                    scores: result.scores,
-                    answerCounts: countAnswers(result.userAnswers || [])
-				};
-			}
             resultMap.set(result.id, result);
-		}
-	});
+        }
+    });
     
     // Add or update with new results
     newResults.forEach(result => {
         if (result && result.id) {
             resultMap.set(result.id, result);
-		}
-	});
+        }
+    });
     
     // Convert map back to array and sort by date (newest first)
     return Array.from(resultMap.values())
-	.sort((a, b) => new Date(b.date) - new Date(a.date));
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 // Function to sync from Supabase to local storage (for when user logs in on different device)
@@ -416,25 +331,6 @@ async function syncFromSupabaseToLocal() {
         console.error('Error in syncFromSupabaseToLocal:', error);
         return false;
 	}
-}
-
-// Reconstruct userAnswers from counts when resuming test (if needed)
-function reconstructUserAnswersFromCounts(answerCounts) {
-    const reconstructed = [];
-    const patterns = ['A', 'B', 'C', 'D'];
-    
-    patterns.forEach(pattern => {
-        for (let i = 0; i < answerCounts[pattern]; i++) {
-            reconstructed.push(pattern);
-        }
-    });
-    
-    // Fill remaining slots with null if needed
-    while (reconstructed.length < questions.length) {
-        reconstructed.push(null);
-    }
-    
-    return reconstructed;
 }
 
 // Make it available globally
