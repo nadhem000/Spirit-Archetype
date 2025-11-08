@@ -2,15 +2,15 @@
 
 // حساب النتيجة
 function calculateResult() {
-    // Recalculate scores from userAnswers
+    // إعادة تعيين النقاط
     scores = { A: 0, B: 0, C: 0, D: 0 };
+    // حساب النقاط
     userAnswers.forEach(answer => {
         if (answer && scores.hasOwnProperty(answer)) {
             scores[answer] += 1;
         }
     });
-    
-    // Find dominant pattern (existing logic)
+    // العثور على النمط المسيطر
     let dominantPattern = 'A';
     let maxScore = scores.A;
     for (const pattern in scores) {

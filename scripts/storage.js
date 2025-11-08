@@ -35,14 +35,13 @@ function saveUserPreferences() {
 
 // Save test progress
 function saveTestProgress() {
-    // Store only current question index, not full answers array
     const progressData = {
-        c: currentQuestionIndex, // current question
-        t: Math.floor(Date.now() / 1000), // timestamp in seconds
-        // Skip storing answers array - we can recalculate if needed
+        answers: userAnswers,
+        currentQuestion: currentQuestionIndex,
+        timestamp: new Date().toISOString()
     };
-    
-    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, progressData);
+    saveToStorage(STORAGE_KEYS.ANSWERS, userAnswers);
+    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, currentQuestionIndex);
 }
 
 // Load user preferences
@@ -53,17 +52,10 @@ function loadUserPreferences() {
 
 // Load test progress
 function loadTestProgress() {
-    const savedProgress = loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, {c: 0, t: 0});
-    const savedAnswers = loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null));
+    let savedAnswers = loadFromStorage(STORAGE_KEYS.ANSWERS, Array(questions.length).fill(null));
+    const savedQuestionIndex = loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0);
     
-    currentQuestionIndex = savedProgress.c;
-    
-    const hasSavedProgress = savedAnswers.some(answer => answer !== null);
-    if (hasSavedProgress) {
-        userAnswers = savedAnswers;
-        // Resume logic remains the same...
-        resumeTestFromSavedState();
-    }
+    return { savedAnswers, savedQuestionIndex };
 }
 
 // Resume test from saved state
@@ -215,29 +207,30 @@ async function updateUserDataInSupabase() {
             return false;
         }
 
-        // COMPACT: Minimal data for Supabase
+        // Get current optimized data
         const currentLocalData = {
-            v: 3, // version
-            l: currentLanguage, // language
-            sr: loadSavedResults(), // saved results (already compact)
-            tp: { // test progress
-                c: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, {c: 0}).c,
-                t: new Date().toISOString().split('T')[0] // date only
+            version: 2, // Add version for future migrations
+            language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
+            testProgress: {
+                currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+                timestamp: new Date().toISOString()
             },
-            ts: Math.floor(Date.now() / 1000) // timestamp in seconds
+            savedResults: loadSavedResults().slice(0, 10), // Keep only last 10
+            timestamp: new Date().toISOString()
         };
 
-        // Smart merge with existing data
+        // Smart merge
         let mergedUserData;
         if (existingUser && existingUser.user_data) {
-            // Migrate old data to new compact format if needed
-            const migratedData = migrateToCompactFormat(existingUser.user_data);
             mergedUserData = {
-                ...migratedData,
-                l: currentLocalData.l,
-                tp: currentLocalData.tp,
-                sr: mergeCompactResults(migratedData.sr || [], currentLocalData.sr),
-                ts: currentLocalData.ts
+                ...existingUser.user_data,
+                language: currentLocalData.language,
+                testProgress: currentLocalData.testProgress,
+                savedResults: mergeSavedResultsOptimized(
+                    existingUser.user_data.savedResults || [],
+                    currentLocalData.savedResults
+                ),
+                timestamp: currentLocalData.timestamp
             };
         } else {
             mergedUserData = currentLocalData;
@@ -257,66 +250,12 @@ async function updateUserDataInSupabase() {
             return false;
         }
 
-        console.log('✅ Compact user data saved to Supabase');
+        console.log('✅ User data successfully updated in Supabase');
         return true;
     } catch (error) {
         console.error('Error in updateUserDataInSupabase:', error);
         return false;
     }
-}
-
-// Migration helper for old data format
-function migrateToCompactFormat(oldData) {
-    if (!oldData) return {};
-    
-    // If already compact format, return as-is
-    if (oldData.v >= 3) return oldData;
-    
-    const compact = {
-        v: 3,
-        l: oldData.language,
-        ts: Math.floor(Date.now() / 1000)
-    };
-    
-    // Migrate saved results
-    if (oldData.savedResults && Array.isArray(oldData.savedResults)) {
-        compact.sr = oldData.savedResults.map(result => ({
-            i: result.id || (Date.now() + '_' + result.dominantPattern),
-            p: result.dominantPattern,
-            d: result.date ? result.date.split('T')[0] : new Date().toISOString().split('T')[0]
-        })).slice(0, 5); // Keep only last 5
-    }
-    
-    // Migrate test progress
-    if (oldData.testProgress) {
-        compact.tp = {
-            c: oldData.testProgress.currentQuestion || 0,
-            t: oldData.testProgress.lastUpdated ? 
-               oldData.testProgress.lastUpdated.split('T')[0] : 
-               new Date().toISOString().split('T')[0]
-        };
-    }
-    
-    return compact;
-}
-
-// Compact results merger
-function mergeCompactResults(existing, newResults) {
-    const combined = [...existing, ...newResults];
-    
-    // Remove duplicates by pattern+date
-    const seen = new Set();
-    const unique = combined.filter(result => {
-        const key = `${result.p}_${result.d}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-    
-    // Sort by date (newest first) and limit to 5
-    return unique
-        .sort((a, b) => new Date(b.d) - new Date(a.d))
-        .slice(0, 5);
 }
 
 // Optimized merge function to prevent duplicates
