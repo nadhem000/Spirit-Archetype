@@ -16,39 +16,30 @@ function initializeNavigation() {
 			displayQuestion(currentQuestionIndex);
 		}
 	});
-    // Next button
-    nextBtn.addEventListener('click', () => {
-		if (currentQuestionIndex < questions.length - 1) {
-			// Save progress BEFORE moving to next question
-			saveTestProgress();
-			currentQuestionIndex++;
-			displayQuestion(currentQuestionIndex);
-			} else {
-			// Test completed - show results
-			// Save progress before showing results
-			saveTestProgress();
-			questionCard.classList.remove('SC1-active');
-			resultCard.classList.add('SC1-active');
-			displayResult();
-		}
-	});
-    // Restart button
-    restartBtn.addEventListener('click', () => {
-		// إعادة تعيين الحالة
-		currentQuestionIndex = 0;
-		userAnswers = Array(questions.length).fill(null);
-		scores = { A: 0, B: 0, C: 0, D: 0 };
-		// Clear saved progress ONLY when user explicitly restarts
-		localStorage.removeItem(STORAGE_KEYS.ANSWERS);
-		localStorage.removeItem(STORAGE_KEYS.CURRENT_QUESTION);
-		// العودة إلى بطاقة الترحيب
-		resultCard.classList.remove('SC1-active');
-		welcomeCard.classList.add('SC1-active');
-		// إعادة تعيين شريط التقدم
-		updateProgressBar();
-		// تطبيق الترجمات
-		applyTranslations();
-	});
+    // Next button - save minimal progress
+nextBtn.addEventListener('click', () => {
+    if (currentQuestionIndex < questions.length - 1) {
+        // Save minimal progress BEFORE moving to next question
+        saveMinimalTestProgress();
+        currentQuestionIndex++;
+        displayQuestion(currentQuestionIndex);
+    } else {
+        // Test completed - show results
+        saveMinimalTestProgress();
+        questionCard.classList.remove('SC1-active');
+        resultCard.classList.add('SC1-active');
+        displayResult();
+    }
+});
+
+// Previous button - save minimal progress  
+prevBtn.addEventListener('click', () => {
+    if (currentQuestionIndex > 0) {
+        saveMinimalTestProgress();
+        currentQuestionIndex--;
+        displayQuestion(currentQuestionIndex);
+    }
+});
 	// Save Results button
 	saveResultsBtn.addEventListener('click', () => {
 		saveCurrentResults();

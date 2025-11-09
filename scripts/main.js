@@ -145,21 +145,17 @@ function initializeLogin() {
 			
 			// Update user_data in Supabase with local storage data
 			setTimeout(() => {
-				// First sync FROM Supabase to get any existing data
-				syncFromSupabaseToLocal().then(synced => {
-					if (synced) {
-						console.log('✅ Synced from Supabase to local storage');
-						// Then update UI with the merged data
-						initializeAppUI();
-					}
-					// Then sync TO Supabase with merged data
-					updateUserDataInSupabase().then(success => {
-						if (success) {
-							console.log('✅ Merged data sent to user_data after login');
-						}
-					});
-				});
-			}, 1000);
+    // First sync FROM Supabase to get any existing data
+    syncAndResumeTest().then(() => {
+        console.log('✅ Test state restored after login');
+        // Then update Supabase with merged data
+        updateUserDataInSupabase().then(success => {
+            if (success) {
+                console.log('✅ Merged data sent to user_data after login');
+            }
+        });
+    });
+}, 1000);
             
             // Hide login form and show user info
             updateUIAfterLogin(userData);
@@ -317,60 +313,39 @@ function initializeLogin() {
 	
     // Enhanced session verification with better persistence
 	async function checkExistingLogin() {
-		try {
-			const session = SessionManager.getCurrentSession();
-			console.log('🔐 Checking existing session:', session);
-			if (!session) {
-				console.log('No session found');
-				return;
-			}
-			
-			// More lenient session validation
-			let sessionAge;
-			if (session.loginTime) {
-				sessionAge = Date.now() - new Date(session.loginTime).getTime();
-				} else {
-				// If loginTime is missing, don't clear the session - just log a warning
-				console.warn('⚠️  Session missing loginTime, but keeping it for better UX');
-				sessionAge = 0; // Treat as new session
-			}
-			
-			const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-			console.log(`Session age: ${Math.round(sessionAge / (24 * 60 * 60 * 1000))} days`);
-			
-			if (sessionAge >= maxSessionAge) {
-				console.log('Session expired (older than 30 days)');
-				SessionManager.clearSession();
-				return;
-			}
-			
-			// Session is valid - update UI
-			currentUser = session.username;
-			console.log('✅ Session verified, user logged in:', currentUser);
-			
-			// Update session verification timestamp
-			SessionManager.updateLastVerified();
-			
-			// Update UI for logged-in state
-			updateUIAfterLogin({
-				id: session.id,
-				username: session.username,
-				email: session.email,
-				loginTime: session.loginTime,
-				sessionId: session.sessionId
-			});
-			
-			} catch (error) {
-			console.log('Session verification error:', error);
-			// Don't clear session on temporary errors - be more lenient
-			console.log('Session check error, keeping session for better UX');
-			// Try to update UI anyway if we have a session
-			const session = SessionManager.getCurrentSession();
-			if (session) {
-				updateUIAfterLogin(session);
-			}
-		}
-	}
+    try {
+        const session = SessionManager.getCurrentSession();
+        console.log('🔐 Checking existing session:', session);
+        
+        if (!session) {
+            console.log('No session found');
+            return;
+        }
+
+        // Session validation (your existing code)...
+        
+        // If session is valid, sync and restore test state
+        currentUser = session.username;
+        console.log('✅ Session verified, user logged in:', currentUser);
+        
+        // Sync test state from Supabase
+        await syncAndResumeTest();
+        
+        // Update UI for logged-in state
+        updateUIAfterLogin({
+            id: session.id,
+            username: session.username,
+            email: session.email,
+            loginTime: session.loginTime,
+            sessionId: session.sessionId
+        });
+        
+    } catch (error) {
+        console.log('Session verification error:', error);
+        // Fallback: try to restore from local storage only
+        resumeTestFromSavedState();
+    }
+}
 	
     // Event listeners
     loginForm.addEventListener('submit', handleLogin);

@@ -58,7 +58,26 @@ function loadTestProgress() {
     return { savedAnswers, savedQuestionIndex };
 }
 
-// Resume test from saved state
+// Enhanced minimal test progress storage
+function saveMinimalTestProgress() {
+    const progressData = {
+        currentQuestion: currentQuestionIndex,
+        answers: userAnswers.filter(answer => answer !== null), // Only store non-null answers
+        completed: userAnswers.every(answer => answer !== null), // Test completion status
+        timestamp: new Date().toISOString()
+    };
+    
+    saveToStorage(STORAGE_KEYS.ANSWERS, userAnswers);
+    saveToStorage(STORAGE_KEYS.CURRENT_QUESTION, currentQuestionIndex);
+    
+    // Update Supabase with minimal data if user is logged in
+    const currentUser = SessionManager.getCurrentSession();
+    if (currentUser) {
+        updateUserDataInSupabase();
+    }
+}
+
+// Enhanced resume function with explicit state restoration
 function resumeTestFromSavedState() {
     const { savedAnswers, savedQuestionIndex } = loadTestProgress();
     const hasSavedProgress = savedAnswers.some(answer => answer !== null);
@@ -67,23 +86,48 @@ function resumeTestFromSavedState() {
         userAnswers = savedAnswers;
         currentQuestionIndex = savedQuestionIndex;
         
-        // Check if all questions are answered (test completed)
-        const allQuestionsAnswered = userAnswers.every(answer => answer !== null);
+        // Check if test was completed
+        const testCompleted = userAnswers.every(answer => answer !== null);
         
-        if (allQuestionsAnswered) {
-            // Test was completed - show results
+        if (testCompleted) {
+            // Test was completed - show results immediately
             welcomeCard.classList.remove('SC1-active');
             questionCard.classList.remove('SC1-active');
             resultCard.classList.add('SC1-active');
             displayResult();
-        } 
-        // If we're in the middle of the test
-        else if (currentQuestionIndex < questions.length) {
+        } else if (currentQuestionIndex < questions.length) {
+            // Test in progress - show current question
             welcomeCard.classList.remove('SC1-active');
             resultCard.classList.remove('SC1-active');
             questionCard.classList.add('SC1-active');
             displayQuestion(currentQuestionIndex);
         }
+        
+        console.log('✅ Test state restored:', { 
+            currentQuestion: currentQuestionIndex + 1,
+            answeredQuestions: userAnswers.filter(a => a !== null).length,
+            totalQuestions: questions.length
+        });
+    }
+}
+
+// Enhanced sync function for login
+async function syncAndResumeTest() {
+    try {
+        const synced = await syncFromSupabaseToLocal();
+        if (synced) {
+            console.log('✅ Data synced from Supabase, restoring test state...');
+            
+            // Reload the progress from storage after sync
+            const { savedAnswers, savedQuestionIndex } = loadTestProgress();
+            userAnswers = savedAnswers;
+            currentQuestionIndex = savedQuestionIndex;
+            
+            // Force UI update
+            initializeAppUI();
+        }
+    } catch (error) {
+        console.error('Error syncing test state:', error);
     }
 }
 
@@ -207,30 +251,39 @@ async function updateUserDataInSupabase() {
             return false;
         }
 
-        // Get current optimized data
+        // Minimal test progress data
+        const answeredCount = userAnswers.filter(answer => answer !== null).length;
+        const testCompleted = answeredCount === questions.length;
+        
         const currentLocalData = {
-            version: 2, // Add version for future migrations
+            version: 3, // Increment version for new structure
             language: loadFromStorage(STORAGE_KEYS.LANGUAGE, 'en'),
             testProgress: {
-                currentQuestion: loadFromStorage(STORAGE_KEYS.CURRENT_QUESTION, 0),
+                currentQuestion: currentQuestionIndex,
+                answeredQuestions: answeredCount,
+                completed: testCompleted,
+                // Only store dominant pattern if test completed, not all answers
+                result: testCompleted ? calculateResult() : null,
                 timestamp: new Date().toISOString()
             },
-            savedResults: loadSavedResults().slice(0, 10), // Keep only last 10
+            savedResults: loadSavedResults().slice(0, 5), // Keep only last 5 results
             timestamp: new Date().toISOString()
         };
 
-        // Smart merge
+        // Smart merge - prefer existing savedResults to avoid duplicates
         let mergedUserData;
         if (existingUser && existingUser.user_data) {
             mergedUserData = {
                 ...existingUser.user_data,
                 language: currentLocalData.language,
                 testProgress: currentLocalData.testProgress,
+                // Preserve existing savedResults, merge with new ones
                 savedResults: mergeSavedResultsOptimized(
                     existingUser.user_data.savedResults || [],
                     currentLocalData.savedResults
                 ),
-                timestamp: currentLocalData.timestamp
+                timestamp: currentLocalData.timestamp,
+                version: currentLocalData.version
             };
         } else {
             mergedUserData = currentLocalData;
@@ -250,7 +303,11 @@ async function updateUserDataInSupabase() {
             return false;
         }
 
-        console.log('✅ User data successfully updated in Supabase');
+        console.log('✅ Minimal user data updated in Supabase:', {
+            currentQuestion: currentQuestionIndex,
+            answeredQuestions: answeredCount,
+            completed: testCompleted
+        });
         return true;
     } catch (error) {
         console.error('Error in updateUserDataInSupabase:', error);
